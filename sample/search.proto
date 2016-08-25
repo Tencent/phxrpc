@@ -1,0 +1,44 @@
+syntax = "proto2";
+
+package search;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+import "phxrpc/rpc/phxrpc.proto";
+
+
+enum SiteType {
+    BLOG = 0;
+    NEWS = 1;
+    VIDEO = 2;
+    UNKNOWN = 3;
+}
+message Site {
+    required string url = 1;
+    required string title = 2;
+    required SiteType type = 3;
+    optional string summary = 4;
+}
+
+message SearchRequest {
+    required string query = 1;
+}
+message SearchResult {
+    repeated Site sites = 1;
+}
+
+service Search{
+    rpc Search( SearchRequest ) returns( SearchResult ) {
+        option( phxrpc.CmdID ) = 1;
+        option( phxrpc.OptString ) = "q:";
+        option( phxrpc.Usage ) = "-q <query>";
+    }
+
+    rpc Notify( google.protobuf.StringValue ) returns( google.protobuf.Empty ) {
+        option( phxrpc.CmdID ) = 2;
+        option( phxrpc.OptString ) = "m:";
+        option( phxrpc.Usage ) = "-m <msg>";
+    }
+}
+
