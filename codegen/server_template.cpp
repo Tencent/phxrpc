@@ -25,6 +25,7 @@ const char * PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
 #include <iostream>
 #include <memory>
 #include <unistd.h>
+#include <signal.h>
 #include "$DispatcherFile$.h"
 #include "$ServiceImplFile$.h"
 #include "$ServerConfigFile$.h"
@@ -74,6 +75,8 @@ int main( int argc, char * argv[] ) {
 			default: showUsage( argv[ 0 ] ); break;
 		}
 	}
+
+    assert(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
 
     //set your logfunc
     //phxrpc::setvlog(LogImpl);
