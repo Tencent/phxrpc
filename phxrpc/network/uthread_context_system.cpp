@@ -34,16 +34,10 @@ UThreadContextSystem :: UThreadContextSystem(size_t stack_size, UThreadFunc_t fu
 
     stack_ = (char *)calloc(1, stack_size_);
     assert(stack_ != nullptr);
-    if (UThreadProtectStack((void *)stack_, stack_size_) == 0) {
-        protect_page_ = STACK_PROTECT_PAGE; 
-    }
     Make(func, args);
 }
 
 UThreadContextSystem :: ~UThreadContextSystem() {
-    if (protect_page_ > 0) {
-        UThreadUnProtectStack(stack_, protect_page_);
-    }
     free(stack_);
 }
 
