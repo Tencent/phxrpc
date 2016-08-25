@@ -34,6 +34,7 @@ UThreadContextSystem :: UThreadContextSystem(size_t stack_size, UThreadFunc_t fu
 
     stack_ = (char *)calloc(1, stack_size_);
     assert(stack_ != nullptr);
+
     Make(func, args);
 }
 
