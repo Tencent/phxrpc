@@ -46,7 +46,7 @@ class UThreadCaller {
  public:
     UThreadCaller(UThreadEpollScheduler * uthread_scheduler, google::protobuf::MessageLite & request,
                   google::protobuf::MessageLite * response, ClientMonitor & client_monitor, const std::string & uri, int cmdid, 
-				  const Endpoint_t & ep, const int connect_timeout_ms, const int socket_timeout_ms, UThreadCallback callback, void * args);
+                  const Endpoint_t & ep, const int connect_timeout_ms, const int socket_timeout_ms, UThreadCallback callback, void * args);
     virtual ~UThreadCaller();
 
     void Close();
@@ -54,7 +54,7 @@ class UThreadCaller {
     virtual google::protobuf::MessageLite & GetRequest();
     virtual google::protobuf::MessageLite * GetResponse();
     const std::string & GetURI();
-	int GetCmdID();
+    int GetCmdID();
     UThreadEpollScheduler * Getuthread_scheduler();
     Endpoint_t * GetEP();
 
@@ -69,9 +69,9 @@ class UThreadCaller {
     UThreadEpollScheduler * uthread_scheduler_;
     google::protobuf::MessageLite * request_;
     google::protobuf::MessageLite * response_;
-	ClientMonitor & client_monitor_;
+    ClientMonitor & client_monitor_;
     std::string uri_;
-	int cmdid_;
+    int cmdid_;
     Endpoint_t ep_;
 
  public:
@@ -102,7 +102,7 @@ class UThreadMultiCaller {
  private:
     UThreadEpollScheduler uthread_scheduler_;
     std::vector<UThreadCaller *> uthread_caller_list_;
-	ClientMonitor & client_monitor_;
+    ClientMonitor & client_monitor_;
 };
 
 }

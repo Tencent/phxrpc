@@ -152,7 +152,7 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree * stree, FILE * write) {
 
     {
         fprintf(write, "%s :: %s( phxrpc::BaseTcpStream & socket, phxrpc::ClientMonitor & client_monitor )\n", 
-				clasname, clasname);
+                clasname, clasname);
 
         fprintf(write, "    : socket_( socket ), client_monitor_(client_monitor), keep_alive_(false)\n");
         fprintf(write, "{\n");
@@ -188,7 +188,7 @@ void ClientCodeRender::GenerateStubFunc(SyntaxTree * stree, SyntaxFunc * func, F
     fprintf(write, "{\n");
     fprintf(write, "    phxrpc::HttpCaller caller( socket_, client_monitor_ );\n");
     fprintf(write, "    caller.SetURI( \"/%s/%s\", %d );\n", stree->GetPackageName(), func->GetName(), 
-															 func->GetCmdID());
+                                                             func->GetCmdID());
     fprintf(write, "    caller.SetKeepAlive( keep_alive_ );\n");
     fprintf(write, "    return caller.Call( req, resp );\n");
 

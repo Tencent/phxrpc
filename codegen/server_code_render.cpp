@@ -78,32 +78,32 @@ void ServerCodeRender::GenerateServerConfigCpp(SyntaxTree * stree, FILE * write)
     fprintf(write, "\n");
 
     char classname[128] = { 0 };
-	char message_file[128] = {0};
+    char message_file[128] = {0};
     name_render_.GetServerConfigClasname(stree->GetName(), classname, sizeof(classname));
     name_render_.GetMessageFileName(stree->GetProtoFile(), message_file, sizeof(message_file));
 
     std::string content = PHXRPC_EPOLL_SERVER_CONFIG_CPP_TEMPLATE;
 
-	std::string package_name = "\"" + std::string(stree->GetPackageName()) + "\"";
+    std::string package_name = "\"" + std::string(stree->GetPackageName()) + "\"";
 
-	{
-		std::string message_name = "";
-		for( auto itr : *(stree->GetFuncList()) ) {
-			if ( std::string(itr.GetReq()->GetType()).find( stree->GetPackageName() ) != std::string::npos ) {
-				message_name = itr.GetReq()->GetType();
-				break;
-			} else if ( std::string(itr.GetResp()->GetType()).find( stree->GetPackageName() ) != std::string::npos ) {
-				message_name = itr.GetResp()->GetType();
-				break;
-			}
-		}
-		if( message_name != "" ) {
-			int package_name_len = strlen(stree->GetPackageName());
-			message_name = message_name.substr( package_name_len + 1, message_name.size() - package_name_len - 1 );
-			package_name = "\n" + std::string(stree->GetPackageName()) + "::" + message_name 
-						   + "::default_instance().GetDescriptor()->file()->package().c_str()";
-		}
-	}
+    {
+        std::string message_name = "";
+        for( auto itr : *(stree->GetFuncList()) ) {
+            if ( std::string(itr.GetReq()->GetType()).find( stree->GetPackageName() ) != std::string::npos ) {
+                message_name = itr.GetReq()->GetType();
+                break;
+            } else if ( std::string(itr.GetResp()->GetType()).find( stree->GetPackageName() ) != std::string::npos ) {
+                message_name = itr.GetResp()->GetType();
+                break;
+            }
+        }
+        if( message_name != "" ) {
+            int package_name_len = strlen(stree->GetPackageName());
+            message_name = message_name.substr( package_name_len + 1, message_name.size() - package_name_len - 1 );
+            package_name = "\n" + std::string(stree->GetPackageName()) + "::" + message_name 
+                           + "::default_instance().GetDescriptor()->file()->package().c_str()";
+        }
+    }
 
     StrTrim(&content);
     StrReplaceAll(&content, "$MessageFile$", message_file);

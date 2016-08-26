@@ -75,15 +75,15 @@ class SyntaxFunc : public SyntaxNode {
     void SetUsage(const char * usage);
     const char * GetUsage() const;
 
-	void SetCmdID(int32_t cmdid );
-	int32_t GetCmdID();
+    void SetCmdID(int32_t cmdid );
+    int32_t GetCmdID();
 
  private:
     SyntaxParam req_;
     SyntaxParam resp_;
     char opt_string_[_SYNTAX_DESC_LEN];
     char usage_[_SYNTAX_DESC_LEN];
-	int32_t cmdid_;
+    int32_t cmdid_;
 };
 
 //------------------------------------------------------------

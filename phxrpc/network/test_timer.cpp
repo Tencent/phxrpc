@@ -32,14 +32,14 @@ bool pass = true;
 
 int PopTimeout(Timer & timer, std::map<UThreadSocket_t *, uint64_t> & exist_timer,
         std::map<UThreadSocket_t *, uint64_t> & removed_timer) {
-	int next_timeout = 0;
-	while(true) {
+    int next_timeout = 0;
+    while(true) {
         next_timeout = timer.GetNextTimeout();
         if (next_timeout != 0) {
             return next_timeout;
         }
 
-		UThreadSocket_t * socket = timer.PopTimeout();
+        UThreadSocket_t * socket = timer.PopTimeout();
         uint64_t now_time = Timer::GetSteadyClockMS();
         if (removed_timer.find(socket) != end(removed_timer)) {
             pass = false;
@@ -57,34 +57,34 @@ int PopTimeout(Timer & timer, std::map<UThreadSocket_t *, uint64_t> & exist_time
         }
 
         free(socket);
-	}
-	return next_timeout;
+    }
+    return next_timeout;
 }
 
 int main(int argc, char ** argv)
 {
-	Timer timer;
+    Timer timer;
 
-	std::map<UThreadSocket_t *, uint64_t> exist_timer;
-	std::map<UThreadSocket_t *, uint64_t> removed_timer;
+    std::map<UThreadSocket_t *, uint64_t> exist_timer;
+    std::map<UThreadSocket_t *, uint64_t> removed_timer;
     std::vector<pair<UThreadSocket_t *, uint64_t> > need_remove;
 
-	int timer_obj_count = 100;
-	for (int i = 0; i < timer_obj_count; i++) {
-		uint64_t abs_time = Timer::GetSteadyClockMS() + (rand() % 500);
+    int timer_obj_count = 100;
+    for (int i = 0; i < timer_obj_count; i++) {
+        uint64_t abs_time = Timer::GetSteadyClockMS() + (rand() % 500);
 
         UThreadSocket_t * socket = NewUThreadSocket();
-		timer.AddTimer(abs_time, socket);
-		printf("add abstime %lu\n", abs_time);
+        timer.AddTimer(abs_time, socket);
+        printf("add abstime %lu\n", abs_time);
 
-		exist_timer[socket] = abs_time;
+        exist_timer[socket] = abs_time;
         if (need_remove.size() < (size_t)timer_obj_count / 2) {
             need_remove.push_back(make_pair(socket, abs_time));
         }
-	}
+    }
 
-	int next_timeout = 0;
-	while(next_timeout != -1) {
+    int next_timeout = 0;
+    while(next_timeout != -1) {
         if (!need_remove.empty()) {
             pair<UThreadSocket_t *, uint64_t> & p = need_remove[need_remove.size() - 1];
             timer.RemoveTimer(UThreadSocketTimerID(*p.first));
@@ -92,11 +92,11 @@ int main(int argc, char ** argv)
             need_remove.pop_back();
         }
 
-		next_timeout = PopTimeout(timer, exist_timer, removed_timer);
-		Timer::MsSleep(next_timeout);
-	}
+        next_timeout = PopTimeout(timer, exist_timer, removed_timer);
+        Timer::MsSleep(next_timeout);
+    }
 
-	printf("%s\n", pass ? "Pass..." : "NotPass...");
-	return 0;
+    printf("%s\n", pass ? "Pass..." : "NotPass...");
+    return 0;
 }
 

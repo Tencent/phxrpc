@@ -58,7 +58,7 @@ private:
 
 class UThreadEpollScheduler {
 public:
-    UThreadEpollScheduler(size_t stack_size, int maxTask);
+    UThreadEpollScheduler(size_t stack_size, int max_task);
     ~UThreadEpollScheduler();
 
     static UThreadEpollScheduler * Instance();

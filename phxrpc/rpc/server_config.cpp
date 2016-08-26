@@ -31,7 +31,7 @@ ServerConfig::ServerConfig() {
     port_ = -1;
     max_threads_ = 120;
     socket_timeout_ms_ = 5000;
-	memset(package_name_, 0, sizeof(package_name_)) ;
+    memset(package_name_, 0, sizeof(package_name_)) ;
 }
 
 ServerConfig::~ServerConfig() {
@@ -95,11 +95,11 @@ int ServerConfig::GetSocketTimeoutMS() const {
 }
 
 void ServerConfig::SetPackageName(const char * package_name) {
-	strncpy(package_name_,package_name, sizeof(package_name_) - 1);
+    strncpy(package_name_,package_name, sizeof(package_name_) - 1);
 }
 
 const char * ServerConfig :: GetPackageName() const {
-	return package_name_;
+    return package_name_;
 }
 
 //////////////////////////////////////////////////////

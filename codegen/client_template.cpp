@@ -30,7 +30,7 @@ class $ClientClass$
 public:
     static bool Init( const char * config_file );
 
-	static const char * GetPackageName();
+    static const char * GetPackageName();
 
 public:
     $ClientClass$();
@@ -65,25 +65,25 @@ bool $ClientClass$ :: Init( const char * config_file )
 }
 
 const char * $ClientClass$ :: GetPackageName() {
-	const char * ret = global_$ClientClassLower$_config_.GetPackageName();
-	if (strlen(ret) == 0) {
-		ret = "$PackageName$";
-	}
-	return ret;
+    const char * ret = global_$ClientClassLower$_config_.GetPackageName();
+    if (strlen(ret) == 0) {
+        ret = "$PackageName$";
+    }
+    return ret;
 }
 
 $ClientClass$ :: $ClientClass$()
 {
-	static std::mutex monitor_mutex;
-	if ( !global_$ClientClassLower$_monitor_.get() ) { 
-		monitor_mutex.lock();
-		if ( !global_$ClientClassLower$_monitor_.get() ) {
-			global_$ClientClassLower$_monitor_ = phxrpc::MonitorFactory::GetFactory()
-				->CreateClientMonitor( GetPackageName() );
-		}
-		global_$ClientClassLower$_config_.SetClientMonitor( global_$ClientClassLower$_monitor_ );
-		monitor_mutex.unlock();
-	}
+    static std::mutex monitor_mutex;
+    if ( !global_$ClientClassLower$_monitor_.get() ) { 
+        monitor_mutex.lock();
+        if ( !global_$ClientClassLower$_monitor_.get() ) {
+            global_$ClientClassLower$_monitor_ = phxrpc::MonitorFactory::GetFactory()
+                ->CreateClientMonitor( GetPackageName() );
+        }
+        global_$ClientClassLower$_config_.SetClientMonitor( global_$ClientClassLower$_monitor_ );
+        monitor_mutex.unlock();
+    }
 }
 
 $ClientClass$ :: ~$ClientClass$()
@@ -102,16 +102,16 @@ const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
 
     if(ep != nullptr) {
         phxrpc::BlockTcpStream socket;
-		bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
+        bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
                     global_$ClientClassLower$_config_.GetConnectTimeoutMS(), NULL, 0, 
-					*(global_$ClientClassLower$_monitor_.get()));
-		if ( open_ret ) {
+                    *(global_$ClientClassLower$_monitor_.get()));
+        if ( open_ret ) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
 
             $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
             return stub.$Func$(req, resp);
         } 
-	}
+    }
 
     return -1;
 }

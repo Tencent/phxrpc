@@ -109,7 +109,7 @@ int HshaServerStat :: TimeCost :: Cost() {
 
 HshaServerStat :: HshaServerStat(const HshaServerConfig * config, ServerMonitorPtr hsha_server_monitor ) :
     config_(config), thread_(&HshaServerStat::CalFunc, this), break_out_(false), 
-	hsha_server_monitor_(hsha_server_monitor) {
+    hsha_server_monitor_(hsha_server_monitor) {
     hold_fds_ = 0;
     accepted_fds_ = 0;
     accept_qps_ = 0;
@@ -117,12 +117,12 @@ HshaServerStat :: HshaServerStat(const HshaServerConfig * config, ServerMonitorP
     reject_qps_ = 0;
     queue_full_rejected_after_accepted_fds_ = 0;
     queue_full_rejected_after_accepted_qps_ = 0;
-	accept_fail_ = 0;
-	accept_fail_qps_ = 0;
+    accept_fail_ = 0;
+    accept_fail_qps_ = 0;
 
     io_read_requests_ = 0;
     io_read_request_qps_ = 0;
-	io_read_bytes_ = 0;
+    io_read_bytes_ = 0;
 
     io_write_responses_ = 0;
     io_write_response_qps_ = 0;
@@ -149,17 +149,17 @@ HshaServerStat :: HshaServerStat(const HshaServerConfig * config, ServerMonitorP
     rpc_time_costs_ = 0;
     rpc_time_costs_count_ = 0;
     rpc_avg_time_cost_per_second_ = 0;
-	rpc_time_cost_per_period_ = 0;
+    rpc_time_cost_per_period_ = 0;
 
     inqueue_wait_time_costs_ = 0;
     inqueue_wait_time_costs_count_ = 0;
     inqueue_avg_wait_time_costs_per_second_ = 0;
     inqueue_avg_wait_time_costs_per_second_cal_seq_ = 0;
-	inqueue_wait_time_costs_per_period_ = 0;
+    inqueue_wait_time_costs_per_period_ = 0;
 
     outqueue_wait_time_costs_ = 0;
     outqueue_wait_time_costs_count_ = 0;
-	outqueue_wait_time_costs_per_period_ = 0;
+    outqueue_wait_time_costs_per_period_ = 0;
     outqueue_avg_wait_time_costs_per_second_ = 0;
 
     enqueue_fast_rejects_ = 0;
@@ -169,8 +169,8 @@ HshaServerStat :: HshaServerStat(const HshaServerConfig * config, ServerMonitorP
 
     worker_drop_requests_ = 0;
     worker_drop_reqeust_qps_ = 0;
-	worker_time_costs_ = 0;
-	worker_time_costs_per_second_ = 0;
+    worker_time_costs_ = 0;
+    worker_time_costs_per_second_ = 0;
 }
 
 HshaServerStat :: ~HshaServerStat() {
@@ -180,33 +180,33 @@ HshaServerStat :: ~HshaServerStat() {
 }
 
 void HshaServerStat :: MonitorReport() {
-	//accept
-	hsha_server_monitor_->Accept( accept_qps_ );
-	hsha_server_monitor_->AcceptFail( accept_fail_qps_ );
-	hsha_server_monitor_->FastRejectAfterAccept( reject_qps_ );
+    //accept
+    hsha_server_monitor_->Accept( accept_qps_ );
+    hsha_server_monitor_->AcceptFail( accept_fail_qps_ );
+    hsha_server_monitor_->FastRejectAfterAccept( reject_qps_ );
 
-	//io
-	hsha_server_monitor_->ReadError( io_read_fail_qps_ );
-	hsha_server_monitor_->SendError( io_write_fail_qps_ );
-	hsha_server_monitor_->OutOfQueue( queue_full_rejected_after_accepted_qps_ );
-	hsha_server_monitor_->QueueDelay( rpc_time_cost_per_period_ );
-	hsha_server_monitor_->FastRejectAfterRead( enqueue_fast_reject_qps_ );
-	hsha_server_monitor_->RecvBytes( io_read_bytes_qps_ );
-	hsha_server_monitor_->SendBytes( io_write_bytes_qps_ );
-	hsha_server_monitor_->WaitInInQueue( inqueue_wait_time_costs_per_period_ );
-	hsha_server_monitor_->WaitInOutQueue( outqueue_wait_time_costs_per_period_ );
+    //io
+    hsha_server_monitor_->ReadError( io_read_fail_qps_ );
+    hsha_server_monitor_->SendError( io_write_fail_qps_ );
+    hsha_server_monitor_->OutOfQueue( queue_full_rejected_after_accepted_qps_ );
+    hsha_server_monitor_->QueueDelay( rpc_time_cost_per_period_ );
+    hsha_server_monitor_->FastRejectAfterRead( enqueue_fast_reject_qps_ );
+    hsha_server_monitor_->RecvBytes( io_read_bytes_qps_ );
+    hsha_server_monitor_->SendBytes( io_write_bytes_qps_ );
+    hsha_server_monitor_->WaitInInQueue( inqueue_wait_time_costs_per_period_ );
+    hsha_server_monitor_->WaitInOutQueue( outqueue_wait_time_costs_per_period_ );
 
-	//worker
-	hsha_server_monitor_->RequestCount( accept_qps_ );
-	hsha_server_monitor_->ResponseCount( io_write_response_qps_ );
-	hsha_server_monitor_->RequestCost( worker_time_costs_per_second_ );
-	hsha_server_monitor_->WrokerInQueueTimeout( worker_drop_reqeust_qps_ );
+    //worker
+    hsha_server_monitor_->RequestCount( accept_qps_ );
+    hsha_server_monitor_->ResponseCount( io_write_response_qps_ );
+    hsha_server_monitor_->RequestCost( worker_time_costs_per_second_ );
+    hsha_server_monitor_->WrokerInQueueTimeout( worker_drop_reqeust_qps_ );
 }
 
 void HshaServerStat :: CalFunc() {
-	while (!break_out_) {
-		std::unique_lock<std::mutex> lock(mutex_);
-		cv_.wait_for(lock, std::chrono::seconds(1));
+    while (!break_out_) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait_for(lock, std::chrono::seconds(1));
 
         //acceptor
         accept_qps_ = static_cast<int>(accepted_fds_);
@@ -215,8 +215,8 @@ void HshaServerStat :: CalFunc() {
         rejected_fds_ = 0;
         queue_full_rejected_after_accepted_qps_ = static_cast<int>(queue_full_rejected_after_accepted_fds_);
         queue_full_rejected_after_accepted_fds_ = 0;
-		accept_fail_qps_ = static_cast<int>(accept_fail_);
-		accept_fail_ = 0;
+        accept_fail_qps_ = static_cast<int>(accept_fail_);
+        accept_fail_ = 0;
 
         //io
         io_read_request_qps_ = static_cast<int>(io_read_requests_);
@@ -250,30 +250,30 @@ void HshaServerStat :: CalFunc() {
         worker_timeouts_ = 0;
 
         //time cost
-		rpc_time_cost_per_period_ = 0;
+        rpc_time_cost_per_period_ = 0;
         if (rpc_time_costs_count_ >= RPC_TIME_COST_CAL_RATE) {
             rpc_avg_time_cost_per_second_ = 
                 static_cast<long>(rpc_time_costs_) / rpc_time_costs_count_;
-			rpc_time_cost_per_period_ = static_cast<long>(rpc_time_costs_);
+            rpc_time_cost_per_period_ = static_cast<long>(rpc_time_costs_);
             rpc_time_costs_ = 0;
             rpc_time_costs_count_ = 0;
         }
 
-		inqueue_wait_time_costs_per_period_ = 0;
+        inqueue_wait_time_costs_per_period_ = 0;
         if (inqueue_wait_time_costs_count_ >= QUEUE_WAIT_TIME_COST_CAL_RATE) {
             inqueue_avg_wait_time_costs_per_second_ = 
                 static_cast<long>(inqueue_wait_time_costs_) / inqueue_wait_time_costs_count_;
-			inqueue_wait_time_costs_per_period_ = static_cast<long>(inqueue_wait_time_costs_);
+            inqueue_wait_time_costs_per_period_ = static_cast<long>(inqueue_wait_time_costs_);
             inqueue_wait_time_costs_ = 0;
             inqueue_wait_time_costs_count_ = 0;
             inqueue_avg_wait_time_costs_per_second_cal_seq_++;
         }
 
-		outqueue_wait_time_costs_per_period_ = 0;
+        outqueue_wait_time_costs_per_period_ = 0;
         if (outqueue_wait_time_costs_count_ >= QUEUE_WAIT_TIME_COST_CAL_RATE) {
             outqueue_avg_wait_time_costs_per_second_ = 
                 static_cast<long>(outqueue_wait_time_costs_) / outqueue_wait_time_costs_count_;
-			outqueue_wait_time_costs_per_period_ = static_cast<long>(outqueue_wait_time_costs_);
+            outqueue_wait_time_costs_per_period_ = static_cast<long>(outqueue_wait_time_costs_);
             outqueue_wait_time_costs_ = 0;
             outqueue_wait_time_costs_count_ = 0;
         }
@@ -284,10 +284,10 @@ void HshaServerStat :: CalFunc() {
         worker_drop_reqeust_qps_ = static_cast<int>(worker_drop_requests_);
         worker_drop_requests_ = 0;
 
-		worker_time_costs_per_second_ = static_cast<long>(worker_time_costs_);
-		worker_time_costs_ = 0;
+        worker_time_costs_per_second_ = static_cast<long>(worker_time_costs_);
+        worker_time_costs_ = 0;
 
-		MonitorReport();
+        MonitorReport();
 
         phxrpc::log(LOG_NOTICE, "[SERVER_STAT] hold_fds %d accept_qps %d accept_reject_qps %d queue_full_reject_qps %d"
                 " read_request_qps %d write_response_qps %d"
@@ -330,9 +330,9 @@ bool HshaServerQos :: CanEnqueue() {
 }
 
 void HshaServerQos :: CalFunc() {
-	while (!break_out_) {
-		std::unique_lock<std::mutex> lock(mutex_);
-		cv_.wait_for(lock, std::chrono::seconds(1));
+    while (!break_out_) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait_for(lock, std::chrono::seconds(1));
 
         //fast reject
         if (hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_cal_seq_
@@ -390,9 +390,9 @@ void Worker :: Func() {
 
         HttpResponse * response = new HttpResponse;
         if (queue_wait_time_ms < MAX_QUEUE_WAIT_TIME_COST) {
-    		HshaServerStat::TimeCost time_cost;
+            HshaServerStat::TimeCost time_cost;
             pool_->dispatch_(*request, response, &(pool_->dispatcher_args_));
-			pool_->hsha_server_stat_->worker_time_costs_ += time_cost.Cost();
+            pool_->hsha_server_stat_->worker_time_costs_ += time_cost.Cost();
         } else {
             pool_->hsha_server_stat_->worker_drop_requests_++;
         }
@@ -416,7 +416,7 @@ WorkerPool :: WorkerPool(UThreadEpollScheduler * scheduler, size_t thread_count,
         HshaServerStat * hsha_server_stat, Dispatch_t dispatch, void * args)
     : scheduler_(scheduler), data_flow_(data_flow), 
     hsha_server_stat_(hsha_server_stat), dispatch_(dispatch),
-	dispatcher_args_(hsha_server_stat_->hsha_server_monitor_, args ) {
+    dispatcher_args_(hsha_server_stat_->hsha_server_monitor_, args ) {
     for (size_t i = 0; i < thread_count; i++) {
         auto worker = new Worker(this);
         assert(worker != nullptr);
@@ -484,7 +484,7 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
             break;
         }
 
-		hsha_server_stat_->io_read_bytes_ += request->GetContent().size();
+        hsha_server_stat_->io_read_bytes_ += request->GetContent().size();
 
         if (!data_flow_->CanPushRequest(config_->GetMaxQueueLength())) {
             delete request;
@@ -527,7 +527,7 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
         HttpResponse * response = (HttpResponse *)UthreadGetArgs(*socket);
         HttpProto::FixRespHeaders(is_keep_alive, version.c_str(), response);
         socket_ret = HttpProto::SendResp(stream, *response);
-		hsha_server_stat_->io_write_bytes_ += response->GetContent().size();
+        hsha_server_stat_->io_write_bytes_ += response->GetContent().size();
         delete response;
 
         hsha_server_stat_->rpc_time_costs_count_++;
@@ -588,7 +588,7 @@ HshaServerUnit :: HshaServerUnit(HshaServer * hsha_server, int idx, int worker_t
         Dispatch_t dispatch, void * args) :
     hsha_server_(hsha_server),
     scheduler_(16 * 1024, 1000000), 
-	hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_, 
+    hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_, 
             &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_),
     worker_pool_(&scheduler_, worker_thread_count, &data_flow_, 
             &hsha_server_->hsha_server_stat_, dispatch, args),
@@ -671,8 +671,8 @@ HshaServer :: HshaServer(
         Dispatch_t dispatch, 
         void * args) : 
     config_(&config),
-	hsha_server_monitor_(MonitorFactory::GetFactory()->CreateServerMonitor(config.GetPackageName())),
-	hsha_server_stat_(&config, hsha_server_monitor_), 
+    hsha_server_monitor_(MonitorFactory::GetFactory()->CreateServerMonitor(config.GetPackageName())),
+    hsha_server_stat_(&config, hsha_server_monitor_), 
     hsha_server_qos_(&config, &hsha_server_stat_), 
     hsha_server_acceptor_(this) {
     size_t io_count = (size_t)config.GetIOThreadCount();

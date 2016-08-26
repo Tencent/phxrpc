@@ -46,17 +46,17 @@ public:
 
     int Call(const google::protobuf::MessageLite & request, google::protobuf::MessageLite * response);
 
-	void SetURI( const char * uri, int cmdid );
+    void SetURI( const char * uri, int cmdid );
 
     void SetKeepAlive( const bool keep_alive );
 
 private:
-	void MonitorReport( phxrpc::ClientMonitor & client_monitor, bool send_error, bool recv_error, 
-					    size_t send_size, size_t recv_size, uint64_t call_begin, uint64_t call_end );
+    void MonitorReport( phxrpc::ClientMonitor & client_monitor, bool send_error, bool recv_error, 
+                        size_t send_size, size_t recv_size, uint64_t call_begin, uint64_t call_end );
 private:
     BaseTcpStream & socket_;
-	ClientMonitor & client_monitor_;
-	int cmdid_;
+    ClientMonitor & client_monitor_;
+    int cmdid_;
 
     HttpRequest request_;
     HttpResponse response_;

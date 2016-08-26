@@ -46,22 +46,22 @@ HttpResponse & HttpCaller::GetResponse() {
 }
 
 void HttpCaller::MonitorReport( ClientMonitor & client_monitor, bool send_error, bool recv_error, size_t send_size, 
-								  size_t recv_size, uint64_t call_begin, uint64_t call_end ) {
+                                  size_t recv_size, uint64_t call_begin, uint64_t call_end ) {
 
-	if ( send_error ) {
-		client_monitor.SendError();
-	}
+    if ( send_error ) {
+        client_monitor.SendError();
+    }
 
-	if ( recv_error ) {
-		client_monitor.RecvError();
-	}
+    if ( recv_error ) {
+        client_monitor.RecvError();
+    }
 
-	client_monitor.SendBytes( send_size );
-	client_monitor.RecvBytes( recv_size );
-	client_monitor.RequestCost( call_begin, call_end );
-	if ( cmdid_ > 0 ) {
-		client_monitor.ClientCall( cmdid_, GetRequest().GetURI() );
-	}
+    client_monitor.SendBytes( send_size );
+    client_monitor.RecvBytes( recv_size );
+    client_monitor.RequestCost( call_begin, call_end );
+    if ( cmdid_ > 0 ) {
+        client_monitor.ClientCall( cmdid_, GetRequest().GetURI() );
+    }
 }
 
 int HttpCaller::Call(const google::protobuf::MessageLite & request, google::protobuf::MessageLite * response) {
@@ -69,12 +69,12 @@ int HttpCaller::Call(const google::protobuf::MessageLite & request, google::prot
         return -1;
     }
 
-	uint64_t call_begin = Timer::GetSteadyClockMS();
+    uint64_t call_begin = Timer::GetSteadyClockMS();
     request_.AddHeader(HttpMessage::HEADER_CONTENT_LENGTH, request_.GetContent().size());
-	HttpClient::PostStat post_stat;
+    HttpClient::PostStat post_stat;
     int ret = HttpClient::Post(socket_, request_, &response_, &post_stat);
-	MonitorReport( client_monitor_, post_stat.send_error_, post_stat.recv_error_, request_.GetContent().size(),
-				   response_.GetContent().size(), call_begin, Timer::GetSteadyClockMS() );
+    MonitorReport( client_monitor_, post_stat.send_error_, post_stat.recv_error_, request_.GetContent().size(),
+                   response_.GetContent().size(), call_begin, Timer::GetSteadyClockMS() );
 
     if (ret != 0) {
         return ret;
@@ -86,12 +86,12 @@ int HttpCaller::Call(const google::protobuf::MessageLite & request, google::prot
 
     const char * result = response_.GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_RESULT);
     ret = atoi(NULL == result ? "-1" : result);
-	return ret;
+    return ret;
 }
 
 void HttpCaller :: SetURI( const char * uri, int cmdid ) {
-	cmdid_ = cmdid;
-	GetRequest().SetURI( uri );
+    cmdid_ = cmdid;
+    GetRequest().SetURI( uri );
 }
 
 void HttpCaller :: SetKeepAlive( const bool keep_alive ) {

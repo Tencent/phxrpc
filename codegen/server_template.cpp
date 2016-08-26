@@ -38,10 +38,10 @@ using namespace std;
 
 void HttpDispatch( const phxrpc::HttpRequest & request, phxrpc::HttpResponse * response, phxrpc::DispatcherArgs_t * args ) {
 
-	ServiceArgs_t * service_args = (ServiceArgs_t *)(args->service_args);
+    ServiceArgs_t * service_args = (ServiceArgs_t *)(args->service_args);
 
-	$ServiceImplClass$ service( service_args );
-	$DispatcherClass$ dispatcher( service, args );
+    $ServiceImplClass$ service( service_args );
+    $DispatcherClass$ dispatcher( service, args );
 
     phxrpc::HttpDispatcher<$DispatcherClass$> http_dispatcher(
             dispatcher, $DispatcherClass$::GetURIFuncMap() );
@@ -52,11 +52,11 @@ void HttpDispatch( const phxrpc::HttpRequest & request, phxrpc::HttpResponse * r
 }
 
 void showUsage( const char * program ) {
-	printf( "\n" );
-	printf( "Usage: %s [-c <config>] [-v]\n", program );
-	printf( "\n" );
+    printf( "\n" );
+    printf( "Usage: %s [-c <config>] [-v]\n", program );
+    printf( "\n" );
 
-	exit( 0 );
+    exit( 0 );
 }
 
 void LogImpl(int priority, const char * format, va_list args) {
@@ -64,34 +64,34 @@ void LogImpl(int priority, const char * format, va_list args) {
 }
 
 int main( int argc, char * argv[] ) {
-	const char * config_file = NULL;
-	extern char *optarg ;
-	int c ;
-	while( ( c = getopt( argc, argv, "c:v" ) ) != EOF ) {
-		switch ( c ) {
-			case 'c' : config_file = optarg; break;
+    const char * config_file = NULL;
+    extern char *optarg ;
+    int c ;
+    while( ( c = getopt( argc, argv, "c:v" ) ) != EOF ) {
+        switch ( c ) {
+            case 'c' : config_file = optarg; break;
 
-			case 'v' :
-			default: showUsage( argv[ 0 ] ); break;
-		}
-	}
+            case 'v' :
+            default: showUsage( argv[ 0 ] ); break;
+        }
+    }
 
     assert(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
 
     //set your logfunc
     //phxrpc::setvlog(LogImpl);
-	//phxrpc::MonitorFactory::SetFactory( new YourSelfsMonitorFactory() );
+    //phxrpc::MonitorFactory::SetFactory( new YourSelfsMonitorFactory() );
 
-	if( NULL == config_file ) showUsage( argv[0] );
-	$ServerConfigClass$ config;
-	if( ! config.Read( config_file ) ) showUsage( argv[0] );
+    if( NULL == config_file ) showUsage( argv[0] );
+    $ServerConfigClass$ config;
+    if( ! config.Read( config_file ) ) showUsage( argv[0] );
 
-	ServiceArgs_t service_args;
-	service_args.config = &config;
+    ServiceArgs_t service_args;
+    service_args.config = &config;
 
-	phxrpc::HshaServer server( config.GetHshaServerConfig(), HttpDispatch, &service_args );
-	server.RunForever();
-	return 0;
+    phxrpc::HshaServer server( config.GetHshaServerConfig(), HttpDispatch, &service_args );
+    server.RunForever();
+    return 0;
 }
 
 )";
@@ -106,16 +106,16 @@ const char * PHXRPC_EPOLL_SERVER_CONFIG_HPP_TEMPLATE =
 class $ServerConfigClass$
 {
 public:
-	$ServerConfigClass$();
+    $ServerConfigClass$();
 
-	~$ServerConfigClass$();
+    ~$ServerConfigClass$();
 
-	bool Read( const char * config_file );
+    bool Read( const char * config_file );
 
-	const phxrpc::HshaServerConfig & GetHshaServerConfig();
+    const phxrpc::HshaServerConfig & GetHshaServerConfig();
 
 private:
-	phxrpc::HshaServerConfig ep_server_config_;
+    phxrpc::HshaServerConfig ep_server_config_;
 };
 
 )";
@@ -138,18 +138,18 @@ $ServerConfigClass$ :: ~$ServerConfigClass$()
 
 bool $ServerConfigClass$ :: Read( const char * config_file )
 {
-	bool ret = ep_server_config_.Read( config_file );
+    bool ret = ep_server_config_.Read( config_file );
 
-	if ( strlen( ep_server_config_.GetPackageName() ) == 0 ) {
-		ep_server_config_.SetPackageName( $PackageName$ );
-	}
+    if ( strlen( ep_server_config_.GetPackageName() ) == 0 ) {
+        ep_server_config_.SetPackageName( $PackageName$ );
+    }
 
-	return ret;
+    return ret;
 }
 
 const phxrpc::HshaServerConfig & $ServerConfigClass$ :: GetHshaServerConfig()
 {
-	return ep_server_config_;
+    return ep_server_config_;
 }
 
 )";

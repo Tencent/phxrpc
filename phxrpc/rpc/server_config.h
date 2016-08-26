@@ -48,8 +48,8 @@ public:
     void SetSocketTimeoutMS(int socket_timeout_ms);
     int GetSocketTimeoutMS() const;
 
-	void SetPackageName(const char * package_name);
-	const char * GetPackageName() const;
+    void SetPackageName(const char * package_name);
+    const char * GetPackageName() const;
 
 private:
     char bind_ip_[32];

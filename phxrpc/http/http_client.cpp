@@ -49,13 +49,13 @@ int HttpClient::Get(BaseTcpStream & socket, const HttpRequest & req, HttpRespons
 }
 
 int HttpClient::Post(BaseTcpStream & socket, const HttpRequest & req, HttpResponse * resp) {
-	PostStat stat;
-	int ret = Post( socket, req, resp, &stat );
-	return ret; 
+    PostStat stat;
+    int ret = Post( socket, req, resp, &stat );
+    return ret; 
 }
 
 int HttpClient::Post(BaseTcpStream & socket, const HttpRequest & req, HttpResponse * resp,
-					  PostStat * post_stat ) {
+                      PostStat * post_stat ) {
     int socket_ret = HttpProto::SendReqHeader(socket, "POST", req);
 
     if (socket_ret == 0) {
@@ -78,12 +78,12 @@ int HttpClient::Post(BaseTcpStream & socket, const HttpRequest & req, HttpRespon
             socket_ret = HttpProto::RecvBody(socket, resp);
         }
 
-		if (socket_ret != 0 && socket_ret != SocketStreamError_Normal_Closed) {
-			post_stat->recv_error_ = true;
-		}
+        if (socket_ret != 0 && socket_ret != SocketStreamError_Normal_Closed) {
+            post_stat->recv_error_ = true;
+        }
     } else {
         if (socket_ret != SocketStreamError_Normal_Closed) {
-		    post_stat->send_error_ = true;
+            post_stat->send_error_ = true;
             phxrpc::log(LOG_ERR, "ERR: sendReqBody fail");
         }
     }

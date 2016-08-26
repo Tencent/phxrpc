@@ -18,6 +18,13 @@ licenses applicable to the third-party components included within
 PhxRPC.
 
 A copy of the BSD 3-Clause License is included in this file.
+Other dependencies and licenses:
+
+Open Source Software Licensed under the BSD 3-Clause License:
+--------------------------------------------------------------------
+1. protobuf  3.0.0-beta-1
+Copyright 2014, Google Inc.  
+All rights reserved.
 
 Terms of the BSD 3-Clause License:
 --------------------------------------------------------------------

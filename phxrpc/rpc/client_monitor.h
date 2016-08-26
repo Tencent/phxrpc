@@ -30,29 +30,29 @@ namespace phxrpc {
 
 class ClientMonitor {
  public:
-	ClientMonitor();
+    ClientMonitor();
 
-	virtual ~ClientMonitor();
+    virtual ~ClientMonitor();
 
-	virtual void ClientConnect( bool result );
+    virtual void ClientConnect( bool result );
 
-	virtual void SendBytes( size_t bytes );
+    virtual void SendBytes( size_t bytes );
 
-	virtual void SendError();
+    virtual void SendError();
 
-	virtual void SendCount();
+    virtual void SendCount();
 
-	virtual void RecvBytes( size_t bytes );
+    virtual void RecvBytes( size_t bytes );
 
-	virtual void RecvCount();
+    virtual void RecvCount();
 
-	virtual void RecvError();
+    virtual void RecvError();
 
-	virtual void RequestCost( uint64_t begin_time, uint64_t end_time );
+    virtual void RequestCost( uint64_t begin_time, uint64_t end_time );
 
-	virtual void GetEndpointFail();
+    virtual void GetEndpointFail();
 
-	virtual void ClientCall( int cmd, const char * method_name );
+    virtual void ClientCall( int cmd, const char * method_name );
 };
 
 typedef std::shared_ptr<ClientMonitor> ClientMonitorPtr;

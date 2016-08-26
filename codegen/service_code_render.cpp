@@ -163,10 +163,10 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write)
     fprintf(write, "class %s;\n", config_name);
     fprintf(write, "\n");
 
-	fprintf(write, "typedef struct tagServiceArgs {\n");
-	fprintf(write, "	%s * config;\n", config_name);
-	fprintf(write, "	//You can add other arguments here and initiate in main().\n");
-	fprintf(write, "}ServiceArgs_t;\n");
+    fprintf(write, "typedef struct tagServiceArgs {\n");
+    fprintf(write, "    %s * config;\n", config_name);
+    fprintf(write, "    //You can add other arguments here and initiate in main().\n");
+    fprintf(write, "}ServiceArgs_t;\n");
     fprintf(write, "\n");
 
     fprintf(write, "class %s : public %s\n", clasname, base_name);
@@ -428,7 +428,7 @@ void ServiceCodeRender::GenerateDispatcherFunc(SyntaxTree * stree, SyntaxFunc * 
             clasname, func->GetName());
 
     fprintf(write, "{\n");
-    fprintf(write, "	dispatcher_args_->server_monitor->SvrCall(%d, \"%s\", 1);\n", func->GetCmdID(), func->GetName() );
+    fprintf(write, "    dispatcher_args_->server_monitor->SvrCall(%d, \"%s\", 1);\n", func->GetCmdID(), func->GetName() );
     fprintf(write, "\n");
 
     fprintf(write, "    int ret = 0;\n");

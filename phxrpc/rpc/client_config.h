@@ -50,11 +50,11 @@ class ClientConfig {
 
     int GetSocketTimeoutMS();
 
-	const char * GetPackageName() const;
+    const char * GetPackageName() const;
 
-	void SetClientMonitor( ClientMonitorPtr client_monitor );
+    void SetClientMonitor( ClientMonitorPtr client_monitor );
 
-	ClientMonitorPtr GetClientMonitor();
+    ClientMonitorPtr GetClientMonitor();
 
  private:
     std::vector<Endpoint_t> endpoints_;
@@ -62,9 +62,9 @@ class ClientConfig {
     int connect_timeout_ms_;
     int socket_timeout_ms_;
 
-	char package_name_[64];
+    char package_name_[64];
 
-	ClientMonitorPtr client_monitor_;
+    ClientMonitorPtr client_monitor_;
 };
 
 }

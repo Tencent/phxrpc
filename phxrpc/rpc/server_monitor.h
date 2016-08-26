@@ -29,43 +29,43 @@ namespace phxrpc {
 
 class ServerMonitor {
  public:
-	ServerMonitor();
+    ServerMonitor();
 
-	virtual ~ServerMonitor();
+    virtual ~ServerMonitor();
 
-	virtual void Accept( int count);
+    virtual void Accept( int count);
 
-	virtual void AcceptFail( int count );
+    virtual void AcceptFail( int count );
 
-	virtual void RequestCount( int count );
+    virtual void RequestCount( int count );
 
-	virtual void ResponseCount( int count );
+    virtual void ResponseCount( int count );
 
-	virtual void SendBytes( size_t bytes );
+    virtual void SendBytes( size_t bytes );
 
-	virtual void RecvBytes( size_t bytes );
+    virtual void RecvBytes( size_t bytes );
 
-	virtual void RequestCost( uint64_t cost_ms );
+    virtual void RequestCost( uint64_t cost_ms );
 
-	virtual void ReadError( int count );
+    virtual void ReadError( int count );
 
-	virtual void SendError( int count );
+    virtual void SendError( int count );
 
-	virtual void OutOfQueue( int count );
+    virtual void OutOfQueue( int count );
 
-	virtual void QueueDelay( uint64_t cost_ms );
+    virtual void QueueDelay( uint64_t cost_ms );
 
-	virtual void FastRejectAfterAccept( int count );
-	
-	virtual void FastRejectAfterRead( int count );
+    virtual void FastRejectAfterAccept( int count );
+    
+    virtual void FastRejectAfterRead( int count );
 
-	virtual void WrokerInQueueTimeout( int count );
+    virtual void WrokerInQueueTimeout( int count );
 
-	virtual void WaitInInQueue( uint64_t cost_ms );
+    virtual void WaitInInQueue( uint64_t cost_ms );
 
-	virtual void WaitInOutQueue( uint64_t cost_ms );
+    virtual void WaitInOutQueue( uint64_t cost_ms );
 
-	virtual void SvrCall( int cmdid, const char * method_name, int count );
+    virtual void SvrCall( int cmdid, const char * method_name, int count );
 };
 
 typedef std::shared_ptr<ServerMonitor> ServerMonitorPtr;

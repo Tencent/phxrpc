@@ -31,14 +31,14 @@ namespace phxrpc {
 
 UThreadCaller::UThreadCaller(UThreadEpollScheduler * uthread_scheduler, google::protobuf::MessageLite & request,
                              google::protobuf::MessageLite * response, ClientMonitor & client_monitor, const std::string & uri, int cmdid,
-							 const Endpoint_t & ep, const int connect_timeout_ms, const int socket_timeout_ms, UThreadCallback callback,
+                             const Endpoint_t & ep, const int connect_timeout_ms, const int socket_timeout_ms, UThreadCallback callback,
                              void * args)
         : uthread_scheduler_(uthread_scheduler),
           request_(&request),
           response_(response),
-		  client_monitor_(client_monitor),
+          client_monitor_(client_monitor),
           uri_(uri),
-		  cmdid_(cmdid),
+          cmdid_(cmdid),
           ep_(ep),
           mconnect_timeout_ms(connect_timeout_ms),
           msocket_timeout_ms(socket_timeout_ms),
@@ -63,7 +63,7 @@ const std::string & UThreadCaller::GetURI() {
 }
 
 int UThreadCaller::GetCmdID() {
-	return cmdid_;
+    return cmdid_;
 }
 
 UThreadEpollScheduler * UThreadCaller::Getuthread_scheduler() {
@@ -93,9 +93,9 @@ void UThreadCaller::Call(void * args) {
 
     UThreadTcpStream socket;
     Endpoint_t * ep = uthread_caller->GetEP();
-	bool open_ret = phxrpc::UThreadTcpUtils::Open(uthread_caller->Getuthread_scheduler(), &socket, ep->ip, ep->port,
+    bool open_ret = phxrpc::UThreadTcpUtils::Open(uthread_caller->Getuthread_scheduler(), &socket, ep->ip, ep->port,
                                       uthread_caller->mconnect_timeout_ms );
-	if ( open_ret ) {
+    if ( open_ret ) {
         socket.SetTimeout(uthread_caller->msocket_timeout_ms);
         phxrpc::HttpCaller caller(socket, uthread_caller->client_monitor_);
         caller.GetRequest().SetURI(uthread_caller->GetURI().c_str());
@@ -103,7 +103,7 @@ void UThreadCaller::Call(void * args) {
     } else {
         uthread_caller->SetRet(-1);
     }
-	uthread_caller->client_monitor_.ClientConnect( open_ret );
+    uthread_caller->client_monitor_.ClientConnect( open_ret );
 
     uthread_caller->Callback();
 }
@@ -139,7 +139,7 @@ void UThreadMultiCaller::AddCaller(google::protobuf::MessageLite & request, goog
                                    const std::string & uri, int cmdid, const Endpoint_t & ep, const int connect_timeout_ms,
                                    const int socket_timeout_ms, UThreadCallback callback, void * args) {
     UThreadCaller * caller = new UThreadCaller(&uthread_scheduler_, request, response, client_monitor_, uri, cmdid,
-												ep, connect_timeout_ms, socket_timeout_ms, callback, args);
+                                                ep, connect_timeout_ms, socket_timeout_ms, callback, args);
     assert(NULL != caller);
     uthread_caller_list_.push_back(caller);
 

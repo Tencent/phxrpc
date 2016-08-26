@@ -34,18 +34,18 @@ namespace phxrpc {
 ClientConfig::ClientConfig() {
     connect_timeout_ms_ = 200;
     socket_timeout_ms_ = 5000;
-	memset(package_name_, 0, sizeof(package_name_));
+    memset(package_name_, 0, sizeof(package_name_));
 }
 
 ClientConfig::~ClientConfig() {
 }
 
 void ClientConfig :: SetClientMonitor( ClientMonitorPtr client_monitor ) {
-	client_monitor_ = client_monitor;
+    client_monitor_ = client_monitor;
 }
 
 ClientMonitorPtr ClientConfig :: GetClientMonitor() {
-	return client_monitor_;
+    return client_monitor_;
 }
 
 bool ClientConfig::Read(const char * config_file) {
@@ -57,7 +57,7 @@ bool ClientConfig::Read(const char * config_file) {
     int count = 0;
     bool succ = true;
     succ &= config.ReadItem("Server", "ServerCount", &count);
-	succ &= config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
+    succ &= config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
     if (!succ) {
         log(LOG_ERR, "Config::%s key ServerCount | PackageName not found", __func__);
         return false;
@@ -93,12 +93,12 @@ const Endpoint_t * ClientConfig::GetRandom() const {
     if (endpoints_.size() > 0) {
         ret = &(endpoints_[random() % endpoints_.size()]);
     }
-	
-	if ( !ret ) {
-		if ( client_monitor_.get() ) {
-			client_monitor_->GetEndpointFail();
-		}
-	}
+    
+    if ( !ret ) {
+        if ( client_monitor_.get() ) {
+            client_monitor_->GetEndpointFail();
+        }
+    }
     return ret;
 }
 
@@ -106,14 +106,14 @@ const Endpoint_t * ClientConfig::GetByIndex(const size_t index) const {
     const Endpoint_t * ret = NULL;
 
     if (index < endpoints_.size()) {
-		ret = &(endpoints_[index]);
+        ret = &(endpoints_[index]);
     }
 
-	if ( !ret ) {
-		if ( client_monitor_.get() ) {
-			client_monitor_->GetEndpointFail();
-		}
-	}
+    if ( !ret ) {
+        if ( client_monitor_.get() ) {
+            client_monitor_->GetEndpointFail();
+        }
+    }
     return ret;
 }
 
@@ -126,7 +126,7 @@ int ClientConfig::GetSocketTimeoutMS() {
 }
 
 const char * ClientConfig :: GetPackageName() const {
-	return package_name_;
+    return package_name_;
 }
 
 }

@@ -26,15 +26,15 @@ See the AUTHORS file for names of contributors.
 namespace phxrpc {
 
 typedef struct tagDispatcherArgs {
-	phxrpc::ServerMonitorPtr server_monitor;
-	void * service_args;
+    phxrpc::ServerMonitorPtr server_monitor;
+    void * service_args;
 
-	tagDispatcherArgs() : service_args(NULL) {
-	}
+    tagDispatcherArgs() : service_args(NULL) {
+    }
 
-	tagDispatcherArgs( phxrpc::ServerMonitorPtr monitor, void * args ) :
-		server_monitor(monitor), service_args(args) {
-	}
+    tagDispatcherArgs( phxrpc::ServerMonitorPtr monitor, void * args ) :
+        server_monitor(monitor), service_args(args) {
+    }
 }DispatcherArgs_t;
 
 }

@@ -65,7 +65,7 @@ const char * SyntaxParam::GetType() const {
 SyntaxFunc::SyntaxFunc() {
     memset(opt_string_, 0, sizeof(opt_string_));
     memset(usage_, 0, sizeof(usage_));
-	cmdid_ = -1;
+    cmdid_ = -1;
 }
 
 SyntaxFunc::~SyntaxFunc() {
@@ -104,11 +104,11 @@ const char * SyntaxFunc::GetUsage() const {
 }
 
 void SyntaxFunc::SetCmdID(int32_t cmdid) {
-	cmdid_ = cmdid;
+    cmdid_ = cmdid;
 }
 
 int32_t SyntaxFunc::GetCmdID() {
-	return cmdid_;
+    return cmdid_;
 }
 
 //====================================================================

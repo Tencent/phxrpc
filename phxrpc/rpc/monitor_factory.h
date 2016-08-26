@@ -34,17 +34,17 @@ typedef std::shared_ptr<ServerMonitor> ServerMonitorPtr;
 
 class MonitorFactory {
  public:
-	MonitorFactory();
+    MonitorFactory();
 
-	virtual ~MonitorFactory();
+    virtual ~MonitorFactory();
 
-	virtual ClientMonitorPtr CreateClientMonitor( const char * package_name );
-	virtual ServerMonitorPtr CreateServerMonitor( const char * package_name );
+    virtual ClientMonitorPtr CreateClientMonitor( const char * package_name );
+    virtual ServerMonitorPtr CreateServerMonitor( const char * package_name );
 
  public:
-	static void SetFactory( MonitorFactory * factory );
+    static void SetFactory( MonitorFactory * factory );
 
-	static MonitorFactory * GetFactory();
+    static MonitorFactory * GetFactory();
 
 };
 

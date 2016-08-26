@@ -30,17 +30,17 @@ class ClientMonitor;
 
 class HttpClient {
  public:
-	 struct PostStat {
-		 bool send_error_;
-		 bool recv_error_;
+     struct PostStat {
+         bool send_error_;
+         bool recv_error_;
 
-		 PostStat(): send_error_(false), recv_error_(false) {
-		 }
+         PostStat(): send_error_(false), recv_error_(false) {
+         }
 
-		 PostStat( bool send_error, bool recv_error ) :
-				   send_error_(send_error), recv_error_(recv_error) {
-		 }
-	 };
+         PostStat( bool send_error, bool recv_error ) :
+                   send_error_(send_error), recv_error_(recv_error) {
+         }
+     };
 
  public:
     enum {
@@ -52,7 +52,7 @@ class HttpClient {
 
     // @return true : socket ok, false : socket error
     static int Post(BaseTcpStream & socket, const HttpRequest & req, HttpResponse * resp, 
-				PostStat * post_stat );
+                PostStat * post_stat );
     static int Post(BaseTcpStream & socket, const HttpRequest & req, HttpResponse * resp);
 
     // @return true : socket ok, false : socket error

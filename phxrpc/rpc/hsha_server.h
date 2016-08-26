@@ -95,7 +95,7 @@ public:
     };
 
 private:
-	void MonitorReport();
+    void MonitorReport();
 
     friend class HshaServerIO;
     friend class WorkerPool;
@@ -107,7 +107,7 @@ private:
     std::condition_variable cv_;
     std::thread thread_;
     bool break_out_;
-	ServerMonitorPtr hsha_server_monitor_;
+    ServerMonitorPtr hsha_server_monitor_;
 
     std::atomic_int hold_fds_;
     std::atomic_int accepted_fds_;
@@ -116,8 +116,8 @@ private:
     int reject_qps_;
     std::atomic_int queue_full_rejected_after_accepted_fds_;
     int queue_full_rejected_after_accepted_qps_;
-	std::atomic_int accept_fail_;
-	int accept_fail_qps_;
+    std::atomic_int accept_fail_;
+    int accept_fail_qps_;
 
     std::atomic_int io_read_requests_;
     int io_read_request_qps_;
@@ -150,18 +150,18 @@ private:
     std::atomic_long rpc_time_costs_;
     std::atomic_int rpc_time_costs_count_;
     int rpc_avg_time_cost_per_second_;
-	int rpc_time_cost_per_period_;
+    int rpc_time_cost_per_period_;
 
     std::atomic_long inqueue_wait_time_costs_;
     std::atomic_int inqueue_wait_time_costs_count_;
     int inqueue_avg_wait_time_costs_per_second_;
     int inqueue_avg_wait_time_costs_per_second_cal_seq_;
-	long inqueue_wait_time_costs_per_period_;
+    long inqueue_wait_time_costs_per_period_;
 
     std::atomic_long outqueue_wait_time_costs_;
     std::atomic_int outqueue_wait_time_costs_count_;
     int outqueue_avg_wait_time_costs_per_second_;
-	long outqueue_wait_time_costs_per_period_;
+    long outqueue_wait_time_costs_per_period_;
 
     std::atomic_int enqueue_fast_rejects_;
     int enqueue_fast_reject_qps_;
@@ -170,8 +170,8 @@ private:
 
     std::atomic_int worker_drop_requests_;
     int worker_drop_reqeust_qps_;
-	std::atomic_long worker_time_costs_;
-	long worker_time_costs_per_second_;
+    std::atomic_long worker_time_costs_;
+    long worker_time_costs_per_second_;
 };
 
 
@@ -308,7 +308,7 @@ public:
     void RunForever();
 
     const HshaServerConfig * config_;
-	ServerMonitorPtr hsha_server_monitor_;
+    ServerMonitorPtr hsha_server_monitor_;
     HshaServerStat hsha_server_stat_;
     HshaServerQos hsha_server_qos_;
     HshaServerAcceptor hsha_server_acceptor_;
