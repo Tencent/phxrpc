@@ -65,6 +65,7 @@ PhxRPC在ServerIO以及Client并发连接管理上使用了ucontext，而boost�
 下面是sample目录下的proto文件样例。
 
 ```c++
+syntax = "proto3";
 package search;
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
