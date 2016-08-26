@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package search;
 
@@ -15,14 +15,14 @@ enum SiteType {
     UNKNOWN = 3;
 }
 message Site {
-    required string url = 1;
-    required string title = 2;
-    required SiteType type = 3;
-    optional string summary = 4;
+    string url = 1;
+    string title = 2;
+    SiteType type = 3;
+    string summary = 4;
 }
 
 message SearchRequest {
-    required string query = 1;
+    string query = 1;
 }
 message SearchResult {
     repeated Site sites = 1;
