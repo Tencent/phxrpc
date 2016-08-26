@@ -1,12 +1,12 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package phxrpc;
 
 import "google/protobuf/descriptor.proto";
 
 extend google.protobuf.MethodOptions {
-    optional int32 CmdID = 2000000;
-    optional string OptString = 2000001;
-    optional string Usage = 2000002;
+    int32 CmdID = 2000000;
+    string OptString = 2000001;
+    string Usage = 2000002;
 }
 
