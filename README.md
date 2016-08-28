@@ -58,7 +58,7 @@ PhxRPC在ServerIO以及Client并发连接管理上使用了ucontext，而boost�
 进入PhxRPC根目录。
 
     make (默认是-O2编译，如需编译debug版，执行 make debug=y)
-    make boost (可选，编译PhxRPC的boost优化插件，编译之前先准备放置好boost库)  
+    make boost (可选，编译PhxRPC的boost优化插件，编译之前先准备好boost库)  
  
 # 如何使用
 #### 编写proto文件
@@ -78,13 +78,13 @@ enum SiteType {
     UNKNOWN = 3;
 }
 message Site {
-    required string url = 1;
-    required string title = 2;
-    required SiteType type = 3;
-    optional string summary = 4;
+    string url = 1;
+    string title = 2;
+    SiteType type = 3;
+    tring summary = 4;
 }
 message SearchRequest {
-    required string query = 1;
+    string query = 1;
 }
 message SearchResult {
     repeated Site sites = 1;
