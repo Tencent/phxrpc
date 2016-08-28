@@ -8,7 +8,7 @@
   - 使用Protobuf作为IDL用于描述RPC接口以及通信数据结构。
   - 基于Protobuf文件自动生成Client以及Server接口，用于Client的构建，以及Server的实现。
   - 半同步半异步模式，采用独立多IO线程，通过Epoll管理请求的接入以及读写，工作线程采用固定线程池。IO线程与工作线程通过内存队列进行交互。
-  - 提供完善的过载保护，无需配置阀值，支持动态自适应拒绝请求。
+  - 提供完善的过载保护，无需配置阈值，支持动态自适应拒绝请求。
   - 提供简易的Client/Server配置读入方式。
   - 基于lambda函数实现并发访问Server，可以非常方便地实现Google提出的 [Backup Requests](http://static.googleusercontent.com/media/research.google.com/zh-CN//people/jeff/Berkeley-Latency-Mar2012.pdf) 模式。
 
