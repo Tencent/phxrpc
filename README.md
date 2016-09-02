@@ -2,7 +2,10 @@
 
 **PhxRPC是微信后台团队推出的一个非常简洁小巧的RPC框架，编译生成的库只有450K。**
 
-作者： Sifan Liu (stephenliu@tencent.com), Haochuan Cui (lynncui@tencent.com) 和 Duokai Huang (mariohuang@tencent.com)
+
+作者： Sifan Liu, Haochuan Cui 和 Duokai Huang
+
+联系我们：phxteam@tencent.com
 
 # 总览
   - 使用Protobuf作为IDL用于描述RPC接口以及通信数据结构。
