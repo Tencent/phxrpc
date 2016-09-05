@@ -58,7 +58,7 @@ private:
 
 class UThreadEpollScheduler {
 public:
-    UThreadEpollScheduler(size_t stack_size, int max_task);
+    UThreadEpollScheduler(size_t stack_size, int max_task, const bool need_stack_protect = true);
     ~UThreadEpollScheduler();
 
     static UThreadEpollScheduler * Instance();
@@ -95,7 +95,7 @@ private:
     void StatEpollwaitEvents(const int event_count);
 
 private:
-    UThreadRuntime * runtime_;
+    UThreadRuntime runtime_;
     int max_task_;
     TaskQueue todo_list_;
     int epoll_fd_;
@@ -126,6 +126,7 @@ private:
 };
 
 #define uthread_begin phxrpc::UThreadEpollScheduler _uthread_scheduler(64 * 1024, 300);
+#define uthread_begin_withargs(stack_size, max_task) phxrpc::UThreadEpollScheduler _uthread_scheduler(stack_size, max_task);
 #define uthread_s _uthread_scheduler
 #define uthread_t phxrpc::__uthread(_uthread_scheduler)-
 #define uthread_end _uthread_scheduler.Run();
@@ -162,13 +163,13 @@ UThreadSocket_t * NewUThreadSocket();
 
 void UThreadSetArgs(UThreadSocket_t & socket, void * args);
 
-void * UthreadGetArgs(UThreadSocket_t & socket);
+void * UThreadGetArgs(UThreadSocket_t & socket);
 
-void UthreadWait(UThreadSocket_t & socket, int timeout_ms);
+void UThreadWait(UThreadSocket_t & socket, int timeout_ms);
 
-void UthreadLazyDestory(UThreadSocket_t & socket);
+void UThreadLazyDestory(UThreadSocket_t & socket);
 
-bool IsUthreadDestory(UThreadSocket_t & socket);
+bool IsUThreadDestory(UThreadSocket_t & socket);
 
 };
 

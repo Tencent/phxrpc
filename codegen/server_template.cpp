@@ -168,6 +168,7 @@ PackageName = $PackageName$
 MaxConnections = 800000
 MaxQueueLength = 20480
 FastRejectThresholdMS = 20
+FastRejectAdjustRate = 5
 
 [ServerTimeout]
 SocketTimeoutMS = 5000

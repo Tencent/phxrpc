@@ -26,9 +26,19 @@ See the AUTHORS file for names of contributors.
 
 namespace phxrpc {
 
-#define STACK_PROTECT_PAGE 1 
+class UThreadStackMemory {
+public:
+    UThreadStackMemory(const size_t stack_size, const bool need_protect = true);
+    ~UThreadStackMemory();
 
-int UThreadProtectStack(void * stack_top, size_t stack_size);
-int UThreadUnProtectStack(void * stack_top, int page);
+    void * top();
+    size_t size();
+
+private:
+    void * raw_stack_;
+    void * stack_;
+    size_t stack_size_;
+    int need_protect_;
+};
 
 } //namespace phxrpc

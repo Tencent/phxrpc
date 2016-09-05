@@ -28,31 +28,27 @@ See the AUTHORS file for names of contributors.
 
 namespace phxrpc {
 
-UThreadContextSystem :: UThreadContextSystem(size_t stack_size, UThreadFunc_t func, void * args, UThreadDoneCallback_t callback)
-    : func_(func), args_(args), stack_(nullptr), stack_size_(stack_size), 
-    protect_page_(0), callback_(callback) {
-
-    stack_ = (char *)calloc(1, stack_size_);
-    assert(stack_ != nullptr);
-
+UThreadContextSystem :: UThreadContextSystem(size_t stack_size, UThreadFunc_t func, void * args, 
+        UThreadDoneCallback_t callback, const bool need_stack_protect)
+    : func_(func), args_(args), stack_(stack_size, need_stack_protect), callback_(callback) {
     Make(func, args);
 }
 
 UThreadContextSystem :: ~UThreadContextSystem() {
-    free(stack_);
 }
 
 UThreadContext * UThreadContextSystem :: DoCreate(size_t stack_size, 
-        UThreadFunc_t func, void * args, UThreadDoneCallback_t callback) {
-    return new UThreadContextSystem(stack_size, func, args, callback);
+        UThreadFunc_t func, void * args, UThreadDoneCallback_t callback,
+        const bool need_stack_protect) {
+    return new UThreadContextSystem(stack_size, func, args, callback, need_stack_protect);
 }
 
 void UThreadContextSystem :: Make(UThreadFunc_t func, void * args) {
     func_ = func;
     args_ = args;
     getcontext(&context_);
-    context_.uc_stack.ss_sp = stack_;
-    context_.uc_stack.ss_size = stack_size_;
+    context_.uc_stack.ss_sp = stack_.top();
+    context_.uc_stack.ss_size = stack_.size();
     context_.uc_stack.ss_flags = 0;
     context_.uc_link = GetMainContext();
     uintptr_t ptr = (uintptr_t)this;

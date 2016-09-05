@@ -108,6 +108,7 @@ HshaServerConfig :: HshaServerConfig()
     : max_connections_(800000), 
     max_queue_length_(20480), 
     fast_reject_threshold_ms_(20),
+    fast_reject_adjust_rate_(5),
     io_thread_count_(3) {
 }
 
@@ -119,6 +120,7 @@ bool HshaServerConfig :: DoRead(Config & config) {
     config.ReadItem("Server", "IOThreadCount", &io_thread_count_, 3);
     config.ReadItem("Server", "MaxQueueLength", &max_queue_length_, 20480);
     config.ReadItem("Server", "FastRejectThresholdMS", &fast_reject_threshold_ms_, 20);
+    config.ReadItem("Server", "FastRejectAdjustRate", &fast_reject_adjust_rate_, 5);
     return true;
 }
 
@@ -144,6 +146,14 @@ void HshaServerConfig :: SetFastRejectThresholdMS(const int fast_reject_threshol
 
 int HshaServerConfig :: GetFastRejectThresholdMS() const {
     return fast_reject_threshold_ms_;
+}
+
+void HshaServerConfig :: SetFastRejectAdjustRate(const int fast_reject_adjust_rate) {
+    fast_reject_adjust_rate_ = fast_reject_adjust_rate;
+}
+
+int HshaServerConfig :: GetFastRejectAdjustRate() const {
+    return fast_reject_adjust_rate_;
 }
 
 void HshaServerConfig :: SetIOThreadCount(const int io_thread_count) {
