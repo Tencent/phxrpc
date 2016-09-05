@@ -54,6 +54,9 @@ UThreadStackMemory :: ~UThreadStackMemory() {
     if (need_protect_) {
         assert(mprotect(raw_stack_, page_size, PROT_READ | PROT_WRITE) == 0);
         assert(mprotect((void *)((char *)raw_stack_ + stack_size_ + page_size), page_size, PROT_READ | PROT_WRITE) == 0);
+        assert(munmap(raw_stack_, stack_size_ + page_size * 2) == 0);
+    } else {
+        assert(munmap(raw_stack_, stack_size_) == 0);
     }
 }
 
