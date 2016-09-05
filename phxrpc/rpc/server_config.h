@@ -75,6 +75,9 @@ public:
     void SetFastRejectThresholdMS(const int fast_reject_threshold_ms);
     int GetFastRejectThresholdMS() const;
 
+    void SetFastRejectAdjustRate(const int fast_reject_adjust_rate);
+    int GetFastRejectAdjustRate() const;
+
     void SetIOThreadCount(const int io_thread_count);
     int GetIOThreadCount() const;
 
@@ -82,6 +85,7 @@ private:
     int max_connections_;
     int max_queue_length_;
     int fast_reject_threshold_ms_;
+    int fast_reject_adjust_rate_;
     int io_thread_count_;
 };
 

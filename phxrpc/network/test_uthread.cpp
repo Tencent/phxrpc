@@ -67,7 +67,7 @@ void execute(UThreadRuntime & runtime, size_t count) {
 }
 
 void run(size_t count) {
-    UThreadRuntime runtime(64 * 1024);
+    UThreadRuntime runtime(64 * 1024, false);
 
     execute(runtime, count);
 

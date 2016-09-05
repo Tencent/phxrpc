@@ -31,7 +31,7 @@ class UThreadContext;
 typedef std::function< void(void *) > UThreadFunc_t;
 typedef std::function< void() > UThreadDoneCallback_t;
 typedef std::function< UThreadContext* 
-    (size_t, UThreadFunc_t, void *, UThreadDoneCallback_t) > ContextCreateFunc_t;
+    (size_t, UThreadFunc_t, void *, UThreadDoneCallback_t, const bool) > ContextCreateFunc_t;
 
 class UThreadContext {
 public:
@@ -39,7 +39,8 @@ public:
     virtual ~UThreadContext() { }
 
     static UThreadContext * Create(size_t stack_size, 
-            UThreadFunc_t func, void * args, UThreadDoneCallback_t callback);
+            UThreadFunc_t func, void * args, 
+            UThreadDoneCallback_t callback, const bool need_stack_protect);
     static void SetContextCreateFunc(ContextCreateFunc_t context_create_func);
     static ContextCreateFunc_t GetContextCreateFunc();
 

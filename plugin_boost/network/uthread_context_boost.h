@@ -36,11 +36,13 @@ public:
 
 class UThreadContextBoost : public UThreadContext {
 public:
-    UThreadContextBoost(size_t stack_size, UThreadFunc_t func, void * args, UThreadDoneCallback_t callback);
+    UThreadContextBoost(size_t stack_size, UThreadFunc_t func, void * args, 
+            UThreadDoneCallback_t callback, const bool need_stack_protect);
     ~UThreadContextBoost();
 
     static UThreadContext * DoCreate(size_t stack_size, 
-            UThreadFunc_t func, void * args, UThreadDoneCallback_t callback);
+            UThreadFunc_t func, void * args, UThreadDoneCallback_t callback,
+            const bool need_stack_protect);
 
     void Make(UThreadFunc_t func, void * args) override;
     bool Resume() override;
@@ -54,9 +56,7 @@ private:
     boost::context::fcontext_t context_;
     UThreadFunc_t func_;
     void * args_;
-    char * stack_;
-    size_t stack_size_;
-    int protect_page_;
+    UThreadStackMemory stack_;
     UThreadDoneCallback_t callback_;
 };
 

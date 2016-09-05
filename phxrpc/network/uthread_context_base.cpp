@@ -26,9 +26,10 @@ namespace phxrpc {
 ContextCreateFunc_t UThreadContext::context_create_func_ = nullptr;
 
 UThreadContext * UThreadContext :: Create(size_t stack_size, 
-        UThreadFunc_t func, void * args, UThreadDoneCallback_t callback) {
+        UThreadFunc_t func, void * args, 
+        UThreadDoneCallback_t callback, const bool need_stack_protect) {
     if (context_create_func_ != nullptr) {
-        return context_create_func_(stack_size, func, args, callback);
+        return context_create_func_(stack_size, func, args, callback, need_stack_protect);
     }
     return nullptr;
 }

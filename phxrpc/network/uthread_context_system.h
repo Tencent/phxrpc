@@ -27,16 +27,19 @@ See the AUTHORS file for names of contributors.
 #include <assert.h>
 
 #include "uthread_context_base.h"
+#include "uthread_context_util.h"
 
 namespace phxrpc {
 
 class UThreadContextSystem : public UThreadContext {
 public:
-    UThreadContextSystem(size_t stack_size, UThreadFunc_t func, void * args, UThreadDoneCallback_t callback);
+    UThreadContextSystem(size_t stack_size, UThreadFunc_t func, void * args, 
+            UThreadDoneCallback_t callback, const bool need_stack_protect);
     ~UThreadContextSystem();
 
     static UThreadContext * DoCreate(size_t stack_size, 
-            UThreadFunc_t func, void * args, UThreadDoneCallback_t callback);
+            UThreadFunc_t func, void * args, UThreadDoneCallback_t callback,
+            const bool need_stack_protect);
 
     void Make(UThreadFunc_t func, void * args) override;
     bool Resume() override;
@@ -50,9 +53,7 @@ private:
     ucontext_t context_;
     UThreadFunc_t func_;
     void * args_;
-    char * stack_;
-    size_t stack_size_;
-    int protect_page_;
+    UThreadStackMemory stack_;
     UThreadDoneCallback_t callback_;
 };
 

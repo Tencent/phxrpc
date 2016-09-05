@@ -102,9 +102,8 @@ enum UThreadEpollREventStatus {
     UThreadEpollREvent_Close = -2,
 };
 
-UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task) :
-    epoll_wake_up_(this) {
-    runtime_ = new UThreadRuntime(stack_size);
+UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task, const bool need_stack_protect) :
+    runtime_(stack_size, need_stack_protect), epoll_wake_up_(this) {
     max_task_ = max_task;
 
     epoll_fd_ = epoll_create(max_task_);
@@ -125,8 +124,6 @@ UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task) :
 }
 
 UThreadEpollScheduler::~UThreadEpollScheduler() {
-    delete runtime_;
-
     close(epoll_fd_);
 }
 
@@ -148,11 +145,11 @@ void UThreadEpollScheduler :: SetHandlerAcceptedFdFunc(UThreadHanderAcceptedFdFu
 }
 
 bool UThreadEpollScheduler::YieldTask() {
-    return runtime_->Yield();
+    return runtime_.Yield();
 }
 
 int UThreadEpollScheduler::GetCurrUThread() {
-    return runtime_->GetCurrUThread();
+    return runtime_.GetCurrUThread();
 }
 
 UThreadSocket_t * UThreadEpollScheduler::CreateSocket(int fd, int socket_timeout_ms, 
@@ -181,8 +178,8 @@ UThreadSocket_t * UThreadEpollScheduler::CreateSocket(int fd, int socket_timeout
 void UThreadEpollScheduler::ConsumeTodoList() {
     while (!todo_list_.empty()) {
         auto & it = todo_list_.front();
-        int id = runtime_->Create(it.first, it.second);
-        runtime_->Resume(id);
+        int id = runtime_.Create(it.first, it.second);
+        runtime_.Resume(id);
 
         todo_list_.pop();
     }
@@ -203,7 +200,7 @@ void UThreadEpollScheduler :: ResumeAll(int flag) {
     std::vector<UThreadSocket_t*> exist_socket_list = timer_.GetSocketList();
     for (auto & socket : exist_socket_list) {
         socket->waited_events = flag;
-        runtime_->Resume(socket->uthread_id);
+        runtime_.Resume(socket->uthread_id);
     }
 }
 
@@ -231,21 +228,21 @@ bool UThreadEpollScheduler::Run() {
 
     int next_timeout = timer_.GetNextTimeout();
 
-    for (; (run_forever_) || (!runtime_->IsAllDone());) {
+    for (; (run_forever_) || (!runtime_.IsAllDone());) {
         int nfds = epoll_wait(epoll_fd_, events, max_task_, 4);
         if (nfds != -1) {
             for (int i = 0; i < nfds; i++) {
                 UThreadSocket_t * socket = (UThreadSocket_t*) events[i].data.ptr;
                 socket->waited_events = events[i].events;
 
-                runtime_->Resume(socket->uthread_id);
+                runtime_.Resume(socket->uthread_id);
             }
 
             //for server mode
             if (active_socket_func_ != nullptr) {
                 UThreadSocket_t * socket = nullptr;
                 while ((socket = active_socket_func_()) != nullptr) {
-                    runtime_->Resume(socket->uthread_id);
+                    runtime_.Resume(socket->uthread_id);
                 }
             }
 
@@ -298,7 +295,7 @@ void UThreadEpollScheduler::DealwithTimeout(int & next_timeout) {
 
         UThreadSocket_t * socket = timer_.PopTimeout();
         socket->waited_events = UThreadEpollREvent_Timeout;
-        runtime_->Resume(socket->uthread_id);
+        runtime_.Resume(socket->uthread_id);
     }
 }
 
@@ -503,22 +500,22 @@ void UThreadSetArgs(UThreadSocket_t & socket, void * args) {
     socket.args = args;
 }
 
-void * UthreadGetArgs(UThreadSocket_t & socket) {
+void * UThreadGetArgs(UThreadSocket_t & socket) {
     return socket.args;
 }
 
-void UthreadWait(UThreadSocket_t & socket, int timeout_ms) {
+void UThreadWait(UThreadSocket_t & socket, int timeout_ms) {
     socket.uthread_id = socket.scheduler->GetCurrUThread();
     socket.scheduler->AddTimer(&socket, timeout_ms);
     socket.scheduler->YieldTask();
     socket.scheduler->RemoveTimer(socket.timer_id);
 }
 
-void UthreadLazyDestory(UThreadSocket_t & socket) {
+void UThreadLazyDestory(UThreadSocket_t & socket) {
     socket.uthread_id = -1;
 }
 
-bool IsUthreadDestory(UThreadSocket_t & socket) {
+bool IsUThreadDestory(UThreadSocket_t & socket) {
     return socket.uthread_id == -1;
 }
 

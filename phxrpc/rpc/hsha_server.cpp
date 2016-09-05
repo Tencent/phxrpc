@@ -341,13 +341,14 @@ void HshaServerQos :: CalFunc() {
             int avg_queue_wait_time = (hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_
                     + hsha_server_stat_->outqueue_avg_wait_time_costs_per_second_) / 2;
 
+            int rate = config_->GetFastRejectAdjustRate();
             if (avg_queue_wait_time > config_->GetFastRejectThresholdMS()) {
                 if (enqueue_reject_rate_ != 99) {
-                    enqueue_reject_rate_ = enqueue_reject_rate_ + 5 > 99 ? 99 : enqueue_reject_rate_ + 5;
+                    enqueue_reject_rate_ = enqueue_reject_rate_ + rate > 99 ? 99 : enqueue_reject_rate_ + rate;
                 }
             } else {
                 if (enqueue_reject_rate_ != 0) {
-                    enqueue_reject_rate_ = enqueue_reject_rate_ - 5 < 0 ? 0 : enqueue_reject_rate_ - 5;
+                    enqueue_reject_rate_ = enqueue_reject_rate_ - rate < 0 ? 0 : enqueue_reject_rate_ - rate;
                 }
             }
             inqueue_avg_wait_time_costs_per_second_cal_last_seq_ =
@@ -508,15 +509,15 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
         data_flow_->PushRequest((void *)socket, request);
         UThreadSetArgs(*socket, nullptr);
 
-        UthreadWait(*socket, config_->GetSocketTimeoutMS());
-        if (UthreadGetArgs(*socket) == nullptr) {
+        UThreadWait(*socket, config_->GetSocketTimeoutMS());
+        if (UThreadGetArgs(*socket) == nullptr) {
             //timeout
             hsha_server_stat_->worker_timeouts_++;
             hsha_server_stat_->rpc_time_costs_count_++;
 
             //because have enqueue, so socket will be closed after pop.
             socket = stream.DetachSocket(); 
-            UthreadLazyDestory(*socket);
+            UThreadLazyDestory(*socket);
 
             //phxrpc::log(LOG_ERR, "%s timeout, fd %d sockettimeoutms %d", 
                     //__func__, accepted_fd, config_->GetSocketTimeoutMS());
@@ -524,7 +525,7 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
         }
 
         hsha_server_stat_->io_write_responses_++;
-        HttpResponse * response = (HttpResponse *)UthreadGetArgs(*socket);
+        HttpResponse * response = (HttpResponse *)UThreadGetArgs(*socket);
         HttpProto::FixRespHeaders(is_keep_alive, version.c_str(), response);
         socket_ret = HttpProto::SendResp(stream, *response);
         hsha_server_stat_->io_write_bytes_ += response->GetContent().size();
@@ -560,7 +561,7 @@ UThreadSocket_t * HshaServerIO :: ActiveSocketFunc() {
         hsha_server_stat_->outqueue_wait_time_costs_count_++;
 
         UThreadSocket_t * socket = (UThreadSocket_t *)args;
-        if (socket != nullptr && IsUthreadDestory(*socket)) {
+        if (socket != nullptr && IsUThreadDestory(*socket)) {
             //socket aready timeout.
             //phxrpc::log(LOG_ERR, "%s socket aready timeout", __func__);
             UThreadClose(*socket);
@@ -587,7 +588,7 @@ void HshaServerIO :: RunForever() {
 HshaServerUnit :: HshaServerUnit(HshaServer * hsha_server, int idx, int worker_thread_count, 
         Dispatch_t dispatch, void * args) :
     hsha_server_(hsha_server),
-    scheduler_(16 * 1024, 1000000), 
+    scheduler_(8 * 1024, 1000000, false), 
     hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_, 
             &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_),
     worker_pool_(&scheduler_, worker_thread_count, &data_flow_, 
