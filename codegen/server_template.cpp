@@ -216,7 +216,7 @@ $ToolMainFile$: $ToolFile$.o $ToolImplFile$.o $ToolMainFile$.o
 $MessageFile$.cc: $MessageFile$.h
 
 $MessageFile$.h: $ProtoFile$
-	$(PROTOBUF_ROOT)/src/protoc -I$(PROTOBUF_ROOT)/src --cpp_out=. -I$(PHXRPC_ROOT) -I. $^
+	$(PROTOBUF_ROOT)/bin/protoc -I$(PROTOBUF_ROOT)/include --cpp_out=. -I$(PHXRPC_ROOT) -I. $^
 
 ########## client ##########
 
