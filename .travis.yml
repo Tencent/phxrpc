@@ -1,4 +1,8 @@
+language: cpp
+compiler: g++
 git:
     submodules: false
 script:
     - ./build.sh
+notifications:
+    email: true
