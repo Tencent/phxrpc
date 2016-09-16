@@ -19,8 +19,9 @@ phxrpc-$(version).src.tar.gz:
 
 clean:
 	@( rm -rf lib/*; )
-	@( cd plugin_boost; make clean )
 	@( cd phxrpc; make clean )
 	@( cd codegen; make clean )
 	@( cd sample; test -f Makefile && make clean )
+	@( cd plugin_boost; make clean )
+	@( cd plugin_darwin; make clean )
 

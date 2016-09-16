@@ -22,7 +22,6 @@ See the AUTHORS file for names of contributors.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -33,6 +32,12 @@ See the AUTHORS file for names of contributors.
 #include <assert.h>
 #include <vector>
 #include <limits>
+
+#ifdef __APPLE__
+	#include "epoll-darwin.h"
+#else
+	#include <sys/epoll.h>
+#endif
 
 #include "uthread_epoll.h"
 #include "socket_stream_base.h"

@@ -24,8 +24,6 @@ See the AUTHORS file for names of contributors.
 #include <vector>
 #include <map>
 #include <queue>
-
-#include <sys/epoll.h>
 #include <arpa/inet.h>
 
 #include "uthread_runtime.h"
