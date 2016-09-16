@@ -8,6 +8,8 @@
 
 想了解更多, 以及更详细的编译手册，请进入[中文WIKI](https://github.com/tencent-wechat/phxrpc/wiki)，和扫描右侧二维码关注我们的公众号
 
+PhxRPC[![Build Status](https://travis-ci.org/tencent-wechat/phxrpc.png)](https://travis-ci.org/tencent-wechat/phxrpc)
+
 # 总览
   - 使用Protobuf作为IDL用于描述RPC接口以及通信数据结构。
   - 基于Protobuf文件自动生成Client以及Server接口，用于Client的构建，以及Server的实现。
