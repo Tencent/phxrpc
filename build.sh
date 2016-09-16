@@ -13,7 +13,7 @@ if [ ! -f protobuf/bin/protoc ]; then
 	cd protobuf-3.0.0
 
 	./configure --prefix=`pwd`/../protobuf
-	make
+	make -j2
 	make install
 
 	cd ../

@@ -32,7 +32,7 @@ LINKER = $(CC)
 LINT = lint -c
 RM = /bin/rm -f
 
-CFLAGS = -stdlib=libc++ -std=c++11 -Wall -D_REENTRANT -D_GNU_SOURCE -D_XOPEN_SOURCE -fPIC -m64 $(OPT) \
+CFLAGS = -std=c++11 -Wall -D_REENTRANT -D_GNU_SOURCE -D_XOPEN_SOURCE -fPIC -m64 $(OPT) \
 		 -I$(PROTOBUF_ROOT)/include \
 		 -I$(PHXRPC_ROOT) \
 
