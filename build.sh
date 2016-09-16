@@ -6,7 +6,7 @@ cd third_party;
 
 if [ ! -f protobuf/bin/protoc ]; then
 	if [ ! -f protobuf-cpp-3.0.0.tar.gz ]; then
-		wget https://github.com/google/protobuf/releases/download/v3.0.2/protobuf-cpp-3.0.0.tar.gz
+		wget https://github.com/google/protobuf/releases/download/v3.0.0/protobuf-cpp-3.0.0.tar.gz
 	fi	
 
 	tar zxvf protobuf-cpp-3.0.0.tar.gz
