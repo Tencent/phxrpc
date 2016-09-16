@@ -1,0 +1,4 @@
+git:
+    submodules: false
+script:
+    - ./build.sh
