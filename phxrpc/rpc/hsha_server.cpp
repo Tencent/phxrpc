@@ -626,6 +626,7 @@ void HshaServerAcceptor :: LoopAccept(const char * bind_ip, const int port) {
 
     printf("listen succ, ip %s port %d\n", bind_ip, port);
 
+#ifndef __APPLE__
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(0, &mask);
@@ -634,6 +635,7 @@ void HshaServerAcceptor :: LoopAccept(const char * bind_ip, const int port) {
     if (ret != 0) {
         printf("sched_setaffinity fail\n");
     }
+#endif
 
     while (true) {
         struct sockaddr_in addr;
