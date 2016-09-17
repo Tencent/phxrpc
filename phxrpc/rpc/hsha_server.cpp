@@ -588,7 +588,7 @@ void HshaServerIO :: RunForever() {
 HshaServerUnit :: HshaServerUnit(HshaServer * hsha_server, int idx, int worker_thread_count, 
         Dispatch_t dispatch, void * args) :
     hsha_server_(hsha_server),
-    scheduler_(8 * 1024, 1000000, false), 
+    scheduler_(32 * 1024, 1000000, false), 
     hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_, 
             &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_),
     worker_pool_(&scheduler_, worker_thread_count, &data_flow_, 
