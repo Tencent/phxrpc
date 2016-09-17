@@ -2,6 +2,8 @@
 set -e  # exit immediately on error
 set -x  # display all commands
 
+mkdir -p third_party
+
 cd third_party;
 
 if [ ! -f protobuf/bin/protoc ]; then
