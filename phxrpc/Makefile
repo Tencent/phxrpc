@@ -12,7 +12,7 @@ LIB_FILE_OBJS = file/log_utils.o file/file_utils.o file/opt_map.o file/config.o
 
 LIB_RPC_OBJS = rpc/phxrpc.pb.o rpc/http_caller.o rpc/server_config.o rpc/client_config.o \
 		   rpc/socket_stream_phxrpc.o rpc/uthread_caller.o rpc/client_monitor.o rpc/server_monitor.o \
-		   rpc/monitor_factory.o rpc/hsha_server.o \
+		   rpc/monitor_factory.o rpc/hsha_server.o rpc/server_base.o
 
 ifeq ($(OS),Darwin)
 	CFLAGS += -I$(PHXRPC_ROOT)/plugin_darwin/network

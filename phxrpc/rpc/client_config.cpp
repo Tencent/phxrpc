@@ -57,11 +57,12 @@ bool ClientConfig::Read(const char * config_file) {
     int count = 0;
     bool succ = true;
     succ &= config.ReadItem("Server", "ServerCount", &count);
-    succ &= config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
     if (!succ) {
-        log(LOG_ERR, "Config::%s key ServerCount | PackageName not found", __func__);
+        log(LOG_ERR, "Config::%s key ServerCount not found", __func__);
         return false;
     }
+
+    config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
 
     for (int i = 0; i < count; i++) {
         char section[64] = { 0 };

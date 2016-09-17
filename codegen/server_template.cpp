@@ -53,7 +53,7 @@ void HttpDispatch( const phxrpc::HttpRequest & request, phxrpc::HttpResponse * r
 
 void showUsage( const char * program ) {
     printf( "\n" );
-    printf( "Usage: %s [-c <config>] [-v]\n", program );
+    printf( "Usage: %s [-c <config>] [-d] [-v]\n", program );
     printf( "\n" );
 
     exit( 0 );
@@ -65,16 +65,20 @@ void LogImpl(int priority, const char * format, va_list args) {
 
 int main( int argc, char * argv[] ) {
     const char * config_file = NULL;
+    bool daemonize = false;;
     extern char *optarg ;
     int c ;
-    while( ( c = getopt( argc, argv, "c:v" ) ) != EOF ) {
+    while( ( c = getopt( argc, argv, "c:vd" ) ) != EOF ) {
         switch ( c ) {
             case 'c' : config_file = optarg; break;
+            case 'd' : daemonize = true; break;
 
             case 'v' :
             default: showUsage( argv[ 0 ] ); break;
         }
     }
+
+    if( daemonize ) phxrpc::ServerUtils::Daemonize();
 
     assert(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
 

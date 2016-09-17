@@ -37,4 +37,10 @@ typedef struct tagDispatcherArgs {
     }
 }DispatcherArgs_t;
 
+class ServerUtils {
+public:
+    static void Daemonize();
+};
+
 }
+
