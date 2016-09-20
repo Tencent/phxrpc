@@ -171,8 +171,8 @@ SyntaxFunc * SyntaxTree::FindFunc(const char * name) {
     return ret;
 }
 
-char * SyntaxTree::ToLower(register char *s) {
-    register char *ret = s;
+char * SyntaxTree::ToLower(char *s) {
+    char *ret = s;
 
     for (; *s != '\0'; ++s)
         *s = tolower(*s);
@@ -180,8 +180,8 @@ char * SyntaxTree::ToLower(register char *s) {
     return ret;
 }
 
-char * SyntaxTree::ToUpper(register char *s) {
-    register char * ret = s;
+char * SyntaxTree::ToUpper(char *s) {
+    char * ret = s;
 
     for (; *s != '\0'; s++)
         *s = toupper(*s);

@@ -40,7 +40,7 @@ void HttpDispatch( const phxrpc::HttpRequest & request, phxrpc::HttpResponse * r
 
     ServiceArgs_t * service_args = (ServiceArgs_t *)(args->service_args);
 
-    $ServiceImplClass$ service( service_args );
+    $ServiceImplClass$ service( * service_args );
     $DispatcherClass$ dispatcher( service, args );
 
     phxrpc::HttpDispatcher<$DispatcherClass$> http_dispatcher(
@@ -260,6 +260,7 @@ clean:
 	@($(RM) $(TARGETS))
 	@($(RM) *.o)
 	@($(RM) phxrpc_*)
+	@($(RM) *.pb.*)
 
 )";
 
