@@ -172,7 +172,7 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write)
     fprintf(write, "class %s : public %s\n", clasname, base_name);
     fprintf(write, "{\n");
     fprintf(write, "public:\n");
-    fprintf(write, "    %s( ServiceArgs_t * app_args );\n", clasname);
+    fprintf(write, "    %s( ServiceArgs_t & args );\n", clasname);
     fprintf(write, "    virtual ~%s();\n", clasname);
     fprintf(write, "\n");
 
@@ -186,7 +186,7 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write)
     }
 
     fprintf(write, "private:\n");
-    fprintf(write, "    const %s & config_;\n", config_name);
+    fprintf(write, "    ServiceArgs_t & args_;\n" );
 
     fprintf(write, "};\n");
 
@@ -219,8 +219,8 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree * stree, FILE * write)
     name_render_.GetServiceImplClasname(stree->GetName(), clasname, sizeof(clasname));
     name_render_.GetServerConfigClasname(stree->GetName(), config_name, sizeof(config_name));
 
-    fprintf(write, "%s :: %s( ServiceArgs_t * app_args )\n", clasname, clasname);
-    fprintf(write, "    : config_( *(app_args->config) )\n");
+    fprintf(write, "%s :: %s( ServiceArgs_t & args )\n", clasname, clasname);
+    fprintf(write, "    : args_( args )\n");
     fprintf(write, "{\n");
     fprintf(write, "}\n");
     fprintf(write, "\n");
