@@ -48,6 +48,8 @@ bool ServerConfig::Read(const char * config_file) {
     succ &= config.ReadItem("Server", "Port", &port_);
     succ &= config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
     config.ReadItem("Server", "MaxThreads", &max_threads_, 20);
+    config.ReadItem("Log", "LogDir", log_dir_, sizeof(log_dir_), "~/log");
+    config.ReadItem("Log", "LogLevel", &log_level_, LOG_ERR);
     config.ReadItem("ServerTimeout", "SocketTimeoutMS", &socket_timeout_ms_, 5000);
 
     if (succ) {
@@ -100,6 +102,21 @@ void ServerConfig::SetPackageName(const char * package_name) {
 
 const char * ServerConfig :: GetPackageName() const {
     return package_name_;
+}
+
+const char * ServerConfig :: GetLogDir() const
+{
+    return log_dir_;
+}
+
+void ServerConfig :: SetLogLevel( int log_level )
+{
+    log_level_ = log_level;
+}
+
+int ServerConfig :: GetLogLevel() const
+{
+    return log_level_;
 }
 
 //////////////////////////////////////////////////////

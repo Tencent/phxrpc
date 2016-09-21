@@ -1,0 +1,11 @@
+*.o
+*.a
+*.pb.*
+*_dispatcher.*
+*_stub.*
+*_service.*
+*_tool.*
+*_main
+third_party/*
+sbin/*
+
