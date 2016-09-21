@@ -99,6 +99,8 @@ const Endpoint_t * ClientConfig::GetRandom() const {
         if ( client_monitor_.get() ) {
             client_monitor_->GetEndpointFail();
         }
+
+        log( LOG_ERR, "GetRandom fail, list.size %lu", endpoints_.size() );
     }
     return ret;
 }
