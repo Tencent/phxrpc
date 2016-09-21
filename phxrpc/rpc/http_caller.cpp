@@ -27,6 +27,7 @@ See the AUTHORS file for names of contributors.
 
 #include "phxrpc/network.h"
 #include "phxrpc/http.h"
+#include "phxrpc/file.h"
 
 namespace phxrpc {
 
@@ -77,6 +78,7 @@ int HttpCaller::Call(const google::protobuf::MessageLite & request, google::prot
                    response_.GetContent().size(), call_begin, Timer::GetSteadyClockMS() );
 
     if (ret != 0) {
+        phxrpc::log( LOG_ERR, "ERROR: httpcall %d", ret );
         return ret;
     }
 
@@ -86,6 +88,11 @@ int HttpCaller::Call(const google::protobuf::MessageLite & request, google::prot
 
     const char * result = response_.GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_RESULT);
     ret = atoi(NULL == result ? "-1" : result);
+
+    if( ret < 0 ) {
+        phxrpc::log( LOG_ERR, "ERROR: httpcall( %s ) %d", request_.GetURI(), ret );
+    }
+
     return ret;
 }
 
