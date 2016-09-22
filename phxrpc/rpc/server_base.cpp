@@ -19,28 +19,30 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#pragma once
+#include "server_base.h"
 
-#include "server_monitor.h"
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
 
 namespace phxrpc {
 
-typedef struct tagDispatcherArgs {
-    phxrpc::ServerMonitorPtr server_monitor;
-    void * service_args;
+void ServerUtils :: Daemonize() {
+    int fd;
 
-    tagDispatcherArgs() : service_args(NULL) {
+    if (fork() != 0) exit(0); /* parent exits */
+    setsid(); /* create a new session */
+
+    /* Every output goes to /dev/null. If Redis is daemonized but
+     * the 'logfile' is set to 'stdout' in the configuration file
+     * it will not log at all. */
+    if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+        dup2(fd, STDIN_FILENO);
+        dup2(fd, STDOUT_FILENO);
+        dup2(fd, STDERR_FILENO);
+        if (fd > STDERR_FILENO) close(fd);
     }
-
-    tagDispatcherArgs( phxrpc::ServerMonitorPtr monitor, void * args ) :
-        server_monitor(monitor), service_args(args) {
-    }
-}DispatcherArgs_t;
-
-class ServerUtils {
-public:
-    static void Daemonize();
-};
+}
 
 }
 

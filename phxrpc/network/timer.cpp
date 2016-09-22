@@ -29,6 +29,7 @@ See the AUTHORS file for names of contributors.
 #include "uthread_epoll.h"
 #include <math.h>
 #include <chrono>
+#include <errno.h>
 
 using namespace std;
 

@@ -26,6 +26,10 @@ See the AUTHORS file for names of contributors.
 
 namespace phxrpc {
 
+#ifdef __APPLE__
+	#define MAP_ANONYMOUS MAP_ANON
+#endif
+
 UThreadStackMemory :: UThreadStackMemory(const size_t stack_size, const bool need_protect) :
     raw_stack_(nullptr), stack_(nullptr), need_protect_(need_protect) {
     int page_size = getpagesize();

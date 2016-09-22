@@ -108,7 +108,7 @@ int HshaServerStat :: TimeCost :: Cost() {
 }
 
 HshaServerStat :: HshaServerStat(const HshaServerConfig * config, ServerMonitorPtr hsha_server_monitor ) :
-    config_(config), thread_(&HshaServerStat::CalFunc, this), break_out_(false), 
+    thread_(&HshaServerStat::CalFunc, this), break_out_(false), 
     hsha_server_monitor_(hsha_server_monitor) {
     hold_fds_ = 0;
     accepted_fds_ = 0;
@@ -436,8 +436,8 @@ WorkerPool :: ~WorkerPool() {
 
 HshaServerIO :: HshaServerIO(int idx, UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
         DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos)
-    : idx_(idx), scheduler_(scheduler), config_(config), 
-    data_flow_(data_flow), listen_fd_(-1), hsha_server_stat_(hsha_server_stat), 
+    : scheduler_(scheduler), config_(config), 
+    data_flow_(data_flow), hsha_server_stat_(hsha_server_stat), 
     hsha_server_qos_(hsha_server_qos){
 }
 
@@ -588,7 +588,11 @@ void HshaServerIO :: RunForever() {
 HshaServerUnit :: HshaServerUnit(HshaServer * hsha_server, int idx, int worker_thread_count, 
         Dispatch_t dispatch, void * args) :
     hsha_server_(hsha_server),
+#ifndef __APPLE__
     scheduler_(8 * 1024, 1000000, false), 
+#else
+    scheduler_(32 * 1024, 1000000, false), 
+#endif
     hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_, 
             &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_),
     worker_pool_(&scheduler_, worker_thread_count, &data_flow_, 
@@ -626,6 +630,7 @@ void HshaServerAcceptor :: LoopAccept(const char * bind_ip, const int port) {
 
     printf("listen succ, ip %s port %d\n", bind_ip, port);
 
+#ifndef __APPLE__
     cpu_set_t mask;
     CPU_ZERO(&mask);
     CPU_SET(0, &mask);
@@ -634,6 +639,7 @@ void HshaServerAcceptor :: LoopAccept(const char * bind_ip, const int port) {
     if (ret != 0) {
         printf("sched_setaffinity fail\n");
     }
+#endif
 
     while (true) {
         struct sockaddr_in addr;

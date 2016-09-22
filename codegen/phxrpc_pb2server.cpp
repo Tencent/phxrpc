@@ -45,7 +45,6 @@ void PrintHelp(const char * program) {
     printf(" Usage: -f <Proto file>             # Proto File\n");
     printf("        -d <dir>                    # destination file dir\n");
     printf("        -I <dir>                    # include path dir\n");
-    printf("        -e                          # epoll server\n");
     printf("        -v                          # print this screen\n");
     printf("\n");
 
@@ -81,7 +80,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 
@@ -97,7 +96,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 
@@ -113,7 +112,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 
@@ -129,7 +128,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 
@@ -144,7 +143,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 }

@@ -51,12 +51,19 @@ public:
     void SetPackageName(const char * package_name);
     const char * GetPackageName() const;
 
+    const char * GetLogDir() const;
+
+    void SetLogLevel( int log_level );
+    int GetLogLevel() const;
+
 private:
     char bind_ip_[32];
     int port_;
     int max_threads_;
     int socket_timeout_ms_;
     char package_name_[64];
+    char log_dir_[128];
+    int log_level_;
 };
 
 class HshaServerConfig : public ServerConfig {

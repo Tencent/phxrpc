@@ -105,7 +105,7 @@ void Proto2Tool(const char * program, const char * pb_file, const char * dir_pat
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 
@@ -122,7 +122,7 @@ void Proto2Tool(const char * program, const char * pb_file, const char * dir_pat
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 
@@ -139,7 +139,7 @@ void Proto2Tool(const char * program, const char * pb_file, const char * dir_pat
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 }
