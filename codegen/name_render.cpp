@@ -72,8 +72,8 @@ const char * NameRender::GetMessageFileName(const char *name, char * dest, int s
     return dest;
 }
 
-char * NameRender::ToLower(register char *s) {
-    register char *ret = s;
+char * NameRender::ToLower(char *s) {
+    char *ret = s;
 
     for (; *s != '\0'; ++s)
         *s = tolower(*s);
@@ -81,8 +81,8 @@ char * NameRender::ToLower(register char *s) {
     return ret;
 }
 
-char * NameRender::ToUpper(register char *s) {
-    register char * ret = s;
+char * NameRender::ToUpper(char *s) {
+    char * ret = s;
 
     for (; *s != '\0'; s++)
         *s = toupper(*s);

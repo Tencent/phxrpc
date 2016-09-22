@@ -67,7 +67,7 @@ bool UThreadContextSystem :: Yield() {
 }
 
 ucontext_t * UThreadContextSystem :: GetMainContext() {
-    static thread_local ucontext_t main_context;
+    static __thread ucontext_t main_context;
     return &main_context;
 }
 

@@ -21,26 +21,40 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "server_monitor.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-namespace phxrpc {
+#include <stdint.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
-typedef struct tagDispatcherArgs {
-    phxrpc::ServerMonitorPtr server_monitor;
-    void * service_args;
+#define EPOLLIN 0x001
+#define EPOLLOUT 0x004
+#define EPOLLERR 0x008
+#define EPOLLHUP 0x010
 
-    tagDispatcherArgs() : service_args(NULL) {
-    }
+#define EPOLL_CTL_ADD 1
+#define EPOLL_CTL_DEL 2
+#define EPOLL_CTL_MOD 3
 
-    tagDispatcherArgs( phxrpc::ServerMonitorPtr monitor, void * args ) :
-        server_monitor(monitor), service_args(args) {
-    }
-}DispatcherArgs_t;
+typedef union epoll_data {
+	void *ptr;
+	int fd;
+	uint32_t u32;
+	uint64_t u64;
+} epoll_data_t;
 
-class ServerUtils {
-public:
-    static void Daemonize();
+struct epoll_event {
+	uint32_t events;
+	epoll_data_t data;
 };
 
+int epoll_create(int);
+int epoll_ctl(int, int, int, struct epoll_event *);
+int epoll_wait(int, struct epoll_event *, int, int);
+
+#ifdef __cplusplus
 }
+#endif
 

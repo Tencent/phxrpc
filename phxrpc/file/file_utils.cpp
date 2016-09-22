@@ -34,9 +34,17 @@ See the AUTHORS file for names of contributors.
 namespace phxrpc {
 
 bool FileUtils::ReadFile(const char * path, std::string * content) {
+
+    char newpath[ 1024 ] = { 0 };
+    if( '~' == path[0] ) {
+        snprintf( newpath, sizeof( newpath ), "%s%s", getenv( "HOME" ), path + 1 );
+    } else {
+        snprintf( newpath, sizeof( newpath ), "%s", path );
+    }
+
     bool ret = false;
 
-    int fd = ::open(path, O_RDONLY);
+    int fd = ::open(newpath, O_RDONLY);
     if (fd >= 0) {
         struct stat file_stat;
         if (0 == fstat(fd, &file_stat)) {
@@ -49,12 +57,12 @@ bool FileUtils::ReadFile(const char * path, std::string * content) {
                             (unsigned long long) file_stat.st_size, errno, strerror(errno));
             }
         } else {
-            phxrpc::log(LOG_ERR, "WARN: stat %s fail, errno %d, %s", path, errno, strerror(errno));
+            phxrpc::log(LOG_ERR, "WARN: stat %s fail, errno %d, %s", newpath, errno, strerror(errno));
         }
 
         close(fd);
     } else {
-        phxrpc::log(LOG_ERR, "WARN: open %s fail, errno %d, %s", path, errno, strerror(errno));
+        phxrpc::log(LOG_ERR, "WARN: open %s fail, errno %d, %s", newpath, errno, strerror(errno));
     }
 
     return ret;

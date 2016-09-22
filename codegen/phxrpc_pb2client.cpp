@@ -140,7 +140,7 @@ void Proto2Client(const char * program, const char * proto_file, const char * di
 
             printf("\n%s: Build %s file ... done\n", program, filename);
         } else {
-            printf("\n%s: %s is exist, ip\n", program, filename);
+            printf("\n%s: %s is exist, skip\n", program, filename);
         }
     }
 }

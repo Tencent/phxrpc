@@ -6,12 +6,13 @@ where-am-i = $(abspath $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
 
 PHXRPC_ROOT=$(dir $(call where-am-i))
 
+OS := $(shell uname)
+
 PROTOBUF_ROOT=$(PHXRPC_ROOT)/third_party/protobuf
 BOOST_ROOT=$(PHXRPC_ROOT)/third_party/boost
 
 PLUGIN_BOOST_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_ROOT)/lib/ -lphxrpc_plugin_boost \
-							   -Wl,--no-whole-archive -L$(BOOST_ROOT)/lib/ -lboost_context
-
+		-Wl,--no-whole-archive -L$(BOOST_ROOT)/lib/ -lboost_context
 
 #--------------------------------------------------------------------
 
@@ -31,7 +32,7 @@ LINKER = $(CC)
 LINT = lint -c
 RM = /bin/rm -f
 
-CFLAGS = -std=c++11 -Wall -D_REENTRANT -D_GNU_SOURCE -fPIC -m64 $(OPT) \
+CFLAGS = -std=c++11 -Wall -D_REENTRANT -D_GNU_SOURCE -D_XOPEN_SOURCE -fPIC -m64 $(OPT) \
 		 -I$(PROTOBUF_ROOT)/include \
 		 -I$(PHXRPC_ROOT) \
 
