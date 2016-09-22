@@ -110,7 +110,7 @@ int HttpProto::SendReqHeader(BaseTcpStream & socket, const char * method, const 
         socket << name << ": " << val << "\r\n";
     }
 
-    if (req.GetContent().size() >= 0) {
+    if (req.GetContent().size() > 0) {
         if (NULL == req.GetHeaderValue(HttpMessage::HEADER_CONTENT_LENGTH)) {
             socket << HttpMessage::HEADER_CONTENT_LENGTH << ": " << req.GetContent().size() << "\r\n";
         }
@@ -166,7 +166,7 @@ int HttpProto::SendResp(BaseTcpStream & socket, const HttpResponse & resp) {
         socket << resp.GetHeaderName(i) << ": " << resp.GetHeaderValue(i) << "\r\n";
     }
 
-    if (resp.GetContent().size() >= 0) {
+    if (resp.GetContent().size() > 0) {
         if (NULL == resp.GetHeaderValue(HttpMessage::HEADER_CONTENT_LENGTH)) {
             socket << HttpMessage::HEADER_CONTENT_LENGTH << ": " << resp.GetContent().size() << "\r\n";
         }

@@ -102,7 +102,6 @@ private:
     friend class Worker;
     friend class HshaServerQos;
     friend class HshaServerAcceptor;
-    const HshaServerConfig * config_;
     std::mutex mutex_;
     std::condition_variable cv_;
     std::thread thread_;
@@ -252,11 +251,9 @@ public:
     UThreadSocket_t * ActiveSocketFunc();
 
 private:
-    int idx_;
     UThreadEpollScheduler * scheduler_;
     const HshaServerConfig * config_;
     DataFlow * data_flow_;
-    int listen_fd_;
     HshaServerStat * hsha_server_stat_;
     HshaServerQos * hsha_server_qos_;
 
