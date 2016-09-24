@@ -21,6 +21,18 @@ if [ ! -f protobuf/bin/protoc ]; then
 	cd ../
 fi
 
+if [ ! -f easyloggingpp/easylogging++.h ]; then
+    if [ ! -f 9.84.tar.gz ]; then
+        wget https://github.com/easylogging/easyloggingpp/archive/9.84.tar.gz
+    fi
+
+    tar zxvf 9.84.tar.gz
+
+    mkdir -p easyloggingpp
+
+    cp easyloggingpp-9.84/src/easylogging++.h  easyloggingpp
+fi
+
 cd ..
 
 make

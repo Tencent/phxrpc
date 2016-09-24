@@ -4,6 +4,7 @@ version = 0.8.0
 all:
 	@( cd phxrpc; make )
 	@( cd codegen; make )
+	@( cd plugin_elpp/file; make )
 	@( cd sample; test -f Makefile || ./regen.sh; make )
 
 boost:
@@ -24,4 +25,5 @@ clean:
 	@( cd sample; test -f Makefile && make clean )
 	@( cd plugin_boost; make clean )
 	@( cd plugin_darwin; make clean )
+	@( cd plugin_elpp/file; make clean )
 

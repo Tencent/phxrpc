@@ -11,8 +11,16 @@ OS := $(shell uname)
 PROTOBUF_ROOT=$(PHXRPC_ROOT)/third_party/protobuf
 BOOST_ROOT=$(PHXRPC_ROOT)/third_party/boost
 
-PLUGIN_BOOST_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_ROOT)/lib/ -lphxrpc_plugin_boost \
-		-Wl,--no-whole-archive -L$(BOOST_ROOT)/lib/ -lboost_context
+ifeq ($(OS),Darwin)
+	PLUGIN_BOOST_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_boost.a \
+			-L$(BOOST_ROOT)/lib/ -lboost_context
+	PLUGIN_ELPP_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_elpp.a
+else
+	PLUGIN_BOOST_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_ROOT)/lib/ -lphxrpc_plugin_boost \
+			-Wl,--no-whole-archive -L$(BOOST_ROOT)/lib/ -lboost_context
+	PLUGIN_ELPP_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_ROOT)/lib/ -lphxrpc_plugin_elpp \
+			-Wl,--no-whole-archive
+endif
 
 #--------------------------------------------------------------------
 
