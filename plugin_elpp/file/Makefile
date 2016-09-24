@@ -16,7 +16,7 @@ libphxrpc_plugin_elpp.a: $(LIB_OBJS)
 	mkdir -p $(PHXRPC_ROOT)/lib; cp $@ $(PHXRPC_ROOT)/lib 
 
 test_elpp_plugin: test_elpp_plugin.o
-	$(LINKER) -o $@ $^ $(PLUGIN_ELPP_LDFLAGS) -Wl,-force_load,libphxrpc_plugin_elpp.a $(LDFLAGS)
+	$(LINKER) -o $@ $^ $(PLUGIN_ELPP_LDFLAGS) $(LDFLAGS)
 
 clean:
 	@( $(RM) $(TARGETS) )
