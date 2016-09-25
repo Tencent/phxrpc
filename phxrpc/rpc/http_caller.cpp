@@ -126,7 +126,7 @@ int HttpCaller::Call(const google::protobuf::MessageLite & request, google::prot
                 __func__, resp_qos_info);
 
         if(get_remote_host) {
-            char * pos = strstr(resp_qos_info, "_");
+            char * pos = (char*)strstr(resp_qos_info, "_");
             if(pos) {
                 (*pos) = '\0';
                 int svr_business_priority = atoi(resp_qos_info); 
