@@ -5,7 +5,10 @@ LIB_OBJS = elpp_plugin.o
 
 TARGETS = libphxrpc_plugin_elpp.a test_elpp_plugin
 
-CFLAGS := -DELPP_NO_DEFAULT_LOG_FILE -I$(PHXRPC_ROOT)/third_party $(CFLAGS)
+CFLAGS := -DELPP_NO_DEFAULT_LOG_FILE \
+	-DELPP_DISABLE_DEFAULT_CRASH_HANDLING \
+	-DELPP_THREAD_SAFE \
+	-I$(PHXRPC_ROOT)/third_party $(CFLAGS)
 
 LDFLAGS := -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS)
 
