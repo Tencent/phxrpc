@@ -153,7 +153,7 @@ bool FastRejectQoSMgr::IsReject(const char * http_header_qos_value) {
         return false;
     }
 
-    char * pos = strstr(http_header_qos_value, "_");
+    char * pos = (char*)strstr(http_header_qos_value, "_");
     if(!pos) {
         return false;
     }
@@ -285,7 +285,7 @@ bool FastRejectQoSMgr::IsRejectCliReq(const char * req_qos_info,
         return false;
     }
 
-    char * pos = strstr(req_qos_info, "_");
+    char * pos = (char*)strstr(req_qos_info, "_");
     if(!pos) {
         return false;
     }
