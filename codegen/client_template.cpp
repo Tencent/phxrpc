@@ -109,6 +109,7 @@ const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
 
             $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+            stub.SetConfig(&global_$ClientClassLower$_config_);
             return stub.$Func$(req, resp);
         } 
     }
@@ -134,6 +135,7 @@ const char * PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE =
                             global_$ClientClassLower$_config_.GetConnectTimeoutMS(), *(global_$ClientClassLower$_monitor_.get()))) { 
                     socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
                     $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+                    stub.SetConfig(&global_$ClientClassLower$_config_);
                     int this_ret = stub.PHXEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;

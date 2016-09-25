@@ -56,6 +56,8 @@ class ClientConfig {
 
     ClientMonitorPtr GetClientMonitor();
 
+    bool IsEnableClientFastReject();
+
  private:
     std::vector<Endpoint_t> endpoints_;
 
@@ -63,6 +65,8 @@ class ClientConfig {
     int socket_timeout_ms_;
 
     char package_name_[64];
+
+    int is_enable_cli_fr_;
 
     ClientMonitorPtr client_monitor_;
 };

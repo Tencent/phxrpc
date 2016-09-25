@@ -127,6 +127,11 @@ HshaServerConfig :: HshaServerConfig()
     fast_reject_threshold_ms_(20),
     fast_reject_adjust_rate_(5),
     io_thread_count_(3) {
+        fast_reject_type_ = FASTREJECT_TYPE_RANDOM;
+        qos_user_priority_cnt_ = 1024;
+        qos_user_priority_elevate_percent_ = 5;
+        qos_user_priority_lower_percent_ = 2;
+        memset(qos_business_priority_conf_file_, 0x0, sizeof(qos_business_priority_conf_file_));
 }
 
 HshaServerConfig :: ~HshaServerConfig() {
@@ -138,6 +143,13 @@ bool HshaServerConfig :: DoRead(Config & config) {
     config.ReadItem("Server", "MaxQueueLength", &max_queue_length_, 20480);
     config.ReadItem("Server", "FastRejectThresholdMS", &fast_reject_threshold_ms_, 20);
     config.ReadItem("Server", "FastRejectAdjustRate", &fast_reject_adjust_rate_, 5);
+    config.ReadItem("Server", "FastRejectType", &fast_reject_type_, FASTREJECT_TYPE_RANDOM);
+    config.ReadItem("Server", "FastRejectQoSBusinessPriorityConfFile", qos_business_priority_conf_file_,
+            sizeof(qos_business_priority_conf_file_), "");
+    config.ReadItem("Server", "FastRejectQoSUserPriorityCnt", &qos_user_priority_cnt_, 1024);
+    config.ReadItem("Server", "FastRejectQoSUserPriorityElevatePercent", &qos_user_priority_elevate_percent_, 5);
+    config.ReadItem("Server", "FastRejectQoSUserPriorityLowerPercent", &qos_user_priority_lower_percent_, 2);
+ 
     return true;
 }
 
@@ -180,5 +192,47 @@ void HshaServerConfig :: SetIOThreadCount(const int io_thread_count) {
 int HshaServerConfig :: GetIOThreadCount() const {
     return io_thread_count_;
 }
+void HshaServerConfig :: SetQoSBusinessPriorityConfFile(const char * qos_business_priority_conf_file) {
+    snprintf(qos_business_priority_conf_file_, sizeof(qos_business_priority_conf_file_), "%s", 
+            qos_business_priority_conf_file);
+}
+
+const char * HshaServerConfig :: GetQoSBusinessPriorityConfFile() const {
+    return qos_business_priority_conf_file_;
+}
+
+void HshaServerConfig :: SetUserPriorityCnt(const int qos_user_priority_cnt) {
+    qos_user_priority_cnt_ = qos_user_priority_cnt;
+}
+
+int HshaServerConfig :: GetUserPriorityCnt() const {
+    return qos_user_priority_cnt_;
+}
+
+void HshaServerConfig :: SetUserPriorityElevatePercent(const int qos_user_priority_elevate_percent) {
+    qos_user_priority_elevate_percent_ = qos_user_priority_elevate_percent;
+}
+
+int HshaServerConfig :: GetUserPriorityElevatePercent() const {
+    return qos_user_priority_elevate_percent_;
+}
+
+void HshaServerConfig :: SetUserPriorityLowerPercent(const int qos_user_priority_lower_percent) {
+    qos_user_priority_lower_percent_ = qos_user_priority_lower_percent;
+}
+
+int HshaServerConfig :: GetUserPriorityLowerPercent() const {
+    return qos_user_priority_lower_percent_;
+}
+
+void HshaServerConfig :: SetFastRejectType(const int fast_reject_type) {
+    fast_reject_type_ = fast_reject_type;
+}
+
+int HshaServerConfig :: GetFastRejectType() const {
+    return fast_reject_type_;
+}
+
+
 
 }

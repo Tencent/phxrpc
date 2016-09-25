@@ -312,6 +312,14 @@ HshaServerQos :: HshaServerQos(const HshaServerConfig * config, HshaServerStat *
     thread_(&HshaServerQos::CalFunc, this), break_out_(false) {
     enqueue_reject_rate_ = 0;
     inqueue_avg_wait_time_costs_per_second_cal_last_seq_ = 0;
+    fast_reject_type_ = config->GetFastRejectType();
+
+    if(fast_reject_type_ == HshaServerConfig::FASTREJECT_TYPE_QOS) {
+        qos_mgr_.Init(config->GetQoSBusinessPriorityConfFile(), 
+                config->GetUserPriorityCnt(),
+                config->GetUserPriorityElevatePercent(),
+                config->GetUserPriorityLowerPercent());
+    }
 }
 
 HshaServerQos :: ~HshaServerQos() {
@@ -324,9 +332,30 @@ bool HshaServerQos :: CanAccept() {
     return static_cast<int>(hsha_server_stat_->hold_fds_) < config_->GetMaxConnections();
 }
 
-bool HshaServerQos :: CanEnqueue() {
-    static std::default_random_engine e_rand((int)time(nullptr));
-    return ((int)(e_rand() % 100)) >= enqueue_reject_rate_;
+bool HshaServerQos :: CanEnqueue(const char * http_header_qos_value) {
+    if(fast_reject_type_ == HshaServerConfig::FASTREJECT_TYPE_QOS) {
+        return !qos_mgr_.IsReject(http_header_qos_value);
+    } else {
+        static std::default_random_engine e_rand((int)time(nullptr));
+        return ((int)(e_rand() % 100)) >= enqueue_reject_rate_;
+    }
+}
+
+void HshaServerQos :: SetQoSInfo(HttpResponse * response) {
+    if(fast_reject_type_ == HshaServerConfig::FASTREJECT_TYPE_QOS) {
+        int business_priority = 0;
+        int user_priority = 0;
+        if(0 == qos_mgr_.GetQoSInfo(&business_priority, &user_priority)) {
+            char qos_info[512];
+            snprintf(qos_info, sizeof(qos_info), "%d_%d",
+                    business_priority, user_priority);
+
+            phxrpc::log(LOG_DEBUG, "[SERVER_QOS] %s resp qos_info %s", __func__, qos_info);
+
+            response->AddHeader(HttpMessage::HEADER_X_PHXRPC_QOS_RESP,
+                    qos_info);
+        }
+    } 
 }
 
 void HshaServerQos :: CalFunc() {
@@ -341,16 +370,27 @@ void HshaServerQos :: CalFunc() {
             int avg_queue_wait_time = (hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_
                     + hsha_server_stat_->outqueue_avg_wait_time_costs_per_second_) / 2;
 
+            //phxrpc::log(LOG_DEBUG, "[SERVER_QOS] avg_queue_wait_time %d", avg_queue_wait_time);
+
             int rate = config_->GetFastRejectAdjustRate();
             if (avg_queue_wait_time > config_->GetFastRejectThresholdMS()) {
-                if (enqueue_reject_rate_ != 99) {
-                    enqueue_reject_rate_ = enqueue_reject_rate_ + rate > 99 ? 99 : enqueue_reject_rate_ + rate;
+                if(fast_reject_type_ == HshaServerConfig::FASTREJECT_TYPE_QOS) {
+                    qos_mgr_.ElevatePriority();
+                } else {
+                    if (enqueue_reject_rate_ != 99) {
+                        enqueue_reject_rate_ = enqueue_reject_rate_ + rate > 99 ? 99 : enqueue_reject_rate_ + rate;
+                    }
                 }
             } else {
-                if (enqueue_reject_rate_ != 0) {
-                    enqueue_reject_rate_ = enqueue_reject_rate_ - rate < 0 ? 0 : enqueue_reject_rate_ - rate;
+                if(fast_reject_type_ == HshaServerConfig::FASTREJECT_TYPE_QOS) {
+                    qos_mgr_.LowerPriority();
+                } else {
+                    if (enqueue_reject_rate_ != 0) {
+                        enqueue_reject_rate_ = enqueue_reject_rate_ - rate < 0 ? 0 : enqueue_reject_rate_ - rate;
+                    }
                 }
             }
+
             inqueue_avg_wait_time_costs_per_second_cal_last_seq_ =
                 hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_cal_seq_;
         }
@@ -364,8 +404,8 @@ void HshaServerQos :: CalFunc() {
 
 ////////////////////////////////////////
 
-Worker :: Worker(WorkerPool * pool)
-    : pool_(pool), shut_down_(false), thread_(&Worker::Func, this) {
+Worker :: Worker(WorkerPool * pool, int worker_idx)
+    : worker_idx_(worker_idx), pool_(pool), shut_down_(false), thread_(&Worker::Func, this) {
 }
 
 Worker :: ~Worker() {
@@ -373,6 +413,9 @@ Worker :: ~Worker() {
 }
 
 void Worker :: Func() {
+
+    lb_stat_attach(worker_idx_);
+
     while (!shut_down_) {
         pool_->hsha_server_stat_->worker_idles_++;
 
@@ -388,6 +431,9 @@ void Worker :: Func() {
         pool_->hsha_server_stat_->inqueue_pop_requests_++;
         pool_->hsha_server_stat_->inqueue_wait_time_costs_ += queue_wait_time_ms;
         pool_->hsha_server_stat_->inqueue_wait_time_costs_count_++;
+
+        const char * http_header_qos_value = request->GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_QOS_REQ);
+        FastRejectQoSMgr::SetReqQoSInfo(http_header_qos_value);
 
         HttpResponse * response = new HttpResponse;
         if (queue_wait_time_ms < MAX_QUEUE_WAIT_TIME_COST) {
@@ -413,13 +459,13 @@ void Worker :: Shutdown() {
 
 ////////////////////////////////////////
 
-WorkerPool :: WorkerPool(UThreadEpollScheduler * scheduler, size_t thread_count, DataFlow * data_flow, 
+WorkerPool :: WorkerPool(UThreadEpollScheduler * scheduler, int io_idx, size_t thread_count, DataFlow * data_flow, 
         HshaServerStat * hsha_server_stat, Dispatch_t dispatch, void * args)
     : scheduler_(scheduler), data_flow_(data_flow), 
     hsha_server_stat_(hsha_server_stat), dispatch_(dispatch),
     dispatcher_args_(hsha_server_stat_->hsha_server_monitor_, args ) {
     for (size_t i = 0; i < thread_count; i++) {
-        auto worker = new Worker(this);
+        auto worker = new Worker(this, io_idx * thread_count + i);
         assert(worker != nullptr);
         worker_list_.push_back(worker);
     }
@@ -434,11 +480,11 @@ WorkerPool :: ~WorkerPool() {
 
 ////////////////////////////////////////
 
-HshaServerIO :: HshaServerIO(int idx, UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
+HshaServerIO :: HshaServerIO(UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
         DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos)
     : scheduler_(scheduler), config_(config), 
     data_flow_(data_flow), hsha_server_stat_(hsha_server_stat), 
-    hsha_server_qos_(hsha_server_qos){
+    hsha_server_qos_(hsha_server_qos) {
 }
 
 HshaServerIO :: ~HshaServerIO() {
@@ -493,11 +539,13 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
             break;
         }
 
-        if (!hsha_server_qos_->CanEnqueue()) {
+        const char * http_header_qos_value = request->GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_QOS_REQ);
+
+        if (!hsha_server_qos_->CanEnqueue(http_header_qos_value)) {
             //fast reject don't cal rpc_time_cost;
             delete request;
             hsha_server_stat_->enqueue_fast_rejects_++;
-            //phxrpc::log(LOG_ERR, "%s fast reject, can't enqueue, fd %d", __func__, accepted_fd);
+            phxrpc::log(LOG_ERR, "%s fast reject, can't enqueue, fd %d", __func__, accepted_fd);
             break;
         }
 
@@ -527,6 +575,8 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
         hsha_server_stat_->io_write_responses_++;
         HttpResponse * response = (HttpResponse *)UThreadGetArgs(*socket);
         HttpProto::FixRespHeaders(is_keep_alive, version.c_str(), response);
+        hsha_server_qos_->SetQoSInfo(response);
+
         socket_ret = HttpProto::SendResp(stream, *response);
         hsha_server_stat_->io_write_bytes_ += response->GetContent().size();
         delete response;
@@ -593,9 +643,10 @@ HshaServerUnit :: HshaServerUnit(HshaServer * hsha_server, int idx, int worker_t
 #else
     scheduler_(32 * 1024, 1000000, false), 
 #endif
-    hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_, 
+    scheduler_(64 * 1024, 1000000, false), 
+    hsha_server_io_(&scheduler_, hsha_server_->config_, &data_flow_, 
             &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_),
-    worker_pool_(&scheduler_, worker_thread_count, &data_flow_, 
+    worker_pool_(&scheduler_, idx, worker_thread_count, &data_flow_, 
             &hsha_server_->hsha_server_stat_, dispatch, args),
     thread_(&HshaServerUnit::RunFunc, this) {
 }
@@ -688,7 +739,15 @@ HshaServer :: HshaServer(
     if (worker_thread_count < io_count) {
         io_count = worker_thread_count;
     }
+
     size_t worker_thread_count_per_io = worker_thread_count / io_count;
+    lb_stat_run(io_count * worker_thread_count_per_io,
+            10000,
+            config.GetQoSBusinessPriorityConfFile(), 
+            config.GetUserPriorityCnt(),
+            config.GetUserPriorityElevatePercent(),
+            config.GetUserPriorityLowerPercent());
+
     for (size_t i = 0; i < io_count; i++) {
         if (i == io_count - 1) {
             worker_thread_count_per_io = worker_thread_count - (worker_thread_count_per_io * (io_count - 1));

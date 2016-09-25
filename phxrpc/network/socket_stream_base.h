@@ -58,6 +58,7 @@ public:
     void NewRdbuf(BaseTcpStreamBuf * buf);
 
     bool GetRemoteHost(char * ip, size_t size, int * port = NULL);
+    bool GetRemoteHost(unsigned int * ip, int * port);
 
     std::istream & getlineWithTrimRight(char * line, size_t size);
 

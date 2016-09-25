@@ -65,6 +65,7 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree * stree, FILE * write) {
     fprintf(write, "namespace phxrpc {\n");
     fprintf(write, "    class BaseTcpStream;\n");
     fprintf(write, "    class ClientMonitor;\n");
+    fprintf(write, "    class ClientConfig;\n");
     fprintf(write, "}\n");
 
     fprintf(write, "\n");
@@ -81,6 +82,7 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree * stree, FILE * write) {
         fprintf(write, "\n");
 
         fprintf(write, "    void SetKeepAlive( const bool keep_alive );\n\n");
+        fprintf(write, "    void SetConfig( phxrpc::ClientConfig * config );\n\n");
 
         SyntaxFuncVector * flist = stree->GetFuncList();
         SyntaxFuncVector::iterator fit = flist->begin();
@@ -95,6 +97,7 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree * stree, FILE * write) {
         fprintf(write, "private:\n");
         fprintf(write, "    phxrpc::BaseTcpStream & socket_;\n");
         fprintf(write, "    phxrpc::ClientMonitor & client_monitor_;\n");
+        fprintf(write, "    phxrpc::ClientConfig * client_config_;\n");
         fprintf(write, "    bool keep_alive_;\n");
 
         fprintf(write, "};\n");
@@ -136,6 +139,7 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree * stree, FILE * write) {
     fprintf(write, "*/\n");
     fprintf(write, "\n");
 
+    fprintf(write, "#include \"phxrpc/file.h\"\n");
     fprintf(write, "#include \"phxrpc/rpc.h\"\n");
     fprintf(write, "#include \"phxrpc/network.h\"\n");
 
@@ -154,7 +158,7 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree * stree, FILE * write) {
         fprintf(write, "%s :: %s( phxrpc::BaseTcpStream & socket, phxrpc::ClientMonitor & client_monitor )\n", 
                 clasname, clasname);
 
-        fprintf(write, "    : socket_( socket ), client_monitor_(client_monitor), keep_alive_(false)\n");
+        fprintf(write, "    : socket_( socket ), client_monitor_(client_monitor), client_config_(NULL), keep_alive_(false)\n");
         fprintf(write, "{\n");
         fprintf(write, "}\n");
         fprintf(write, "\n");
@@ -169,6 +173,13 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree * stree, FILE * write) {
         fprintf(write, "    keep_alive_ = keep_alive;\n");
         fprintf(write, "}\n");
         fprintf(write, "\n");
+
+        fprintf(write, "void %s :: SetConfig( phxrpc::ClientConfig * config )\n", clasname );
+        fprintf(write, "{\n");
+        fprintf(write, "    client_config_ = config;\n");
+        fprintf(write, "}\n");
+        fprintf(write, "\n");
+
 
         SyntaxFuncVector * flist = stree->GetFuncList();
         SyntaxFuncVector::iterator fit = flist->begin();
@@ -190,6 +201,10 @@ void ClientCodeRender::GenerateStubFunc(SyntaxTree * stree, SyntaxFunc * func, F
     fprintf(write, "    caller.SetURI( \"/%s/%s\", %d );\n", stree->GetPackageName(), func->GetName(), 
                                                              func->GetCmdID());
     fprintf(write, "    caller.SetKeepAlive( keep_alive_ );\n");
+
+    fprintf(write, "    if(client_config_) {\n");
+    fprintf(write, "        caller.SetIsEnableCliFr( client_config_->IsEnableClientFastReject() );\n");
+    fprintf(write, "    }\n");
     fprintf(write, "    return caller.Call( req, resp );\n");
 
     fprintf(write, "}\n");

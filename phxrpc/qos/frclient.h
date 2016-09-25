@@ -21,28 +21,28 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include <string>
-#include <vector>
+#include "lbfrtablemgr.h"
 
 namespace phxrpc {
 
-class Config {
+class FRClient
+{
 public:
-    Config();
-    ~Config();
+    static FRClient * GetDefault();
+    FRClient();
+    ~FRClient();
 
-    bool InitConfig(const char * path);
-    bool ReadItem(const char * section, const char * key, char * value, size_t size, const char * default_value);
-    bool ReadItem(const char * section, const char * key, int * value, const int default_value);
+    int Init();
 
-    bool ReadItem(const char * section, const char * key, char * value, size_t size);
-    bool ReadItem(const char * section, const char * key, int * value);
-
-    bool GetSection(const char * name,
-            std::vector<std::string> * section);
+    bool IsSvrBlocked(const uint32_t ip, const uint32_t port,
+            const char * req_qos_info);
 private:
-    int TrimCStr( char * src_str );
-    std::string content_;
+
+    bool is_init_;
+    LBFastRejectLevelTableMgr table_mgr_;
 };
 
+
+
 }
+
