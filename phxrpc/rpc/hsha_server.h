@@ -22,6 +22,7 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include <map>
+#include <random>
 #include <thread>
 #include <functional>
 #include <atomic>
@@ -35,6 +36,7 @@ See the AUTHORS file for names of contributors.
 #include "phxrpc/http.h"
 #include "server_base.h"
 #include "server_monitor.h"
+#include "phxrpc/qos.h"
 
 namespace phxrpc {
 
@@ -183,7 +185,9 @@ public:
 
     void CalFunc();
     bool CanAccept();
-    bool CanEnqueue();
+    bool CanEnqueue(const char * http_header_qos_value);
+
+    void SetQoSInfo(HttpResponse * response);
 
 private:
     const HshaServerConfig * config_;
@@ -194,19 +198,22 @@ private:
     bool break_out_;
     int enqueue_reject_rate_;
     int inqueue_avg_wait_time_costs_per_second_cal_last_seq_;
+    int fast_reject_type_;
+    FastRejectQoSMgr qos_mgr_;
 };
 
 //////////////////////////////////
 
 class Worker {
 public:
-    Worker(WorkerPool * pool);
+    Worker(WorkerPool * pool, int worker_idx);
     ~Worker();
 
     void Func(); 
     void Shutdown();
 
 private:
+    int worker_idx_;
     WorkerPool * pool_;
     bool shut_down_;
     std::thread thread_;
@@ -218,7 +225,7 @@ typedef std::function< void(const HttpRequest &, HttpResponse *, DispatcherArgs_
 
 class WorkerPool {
 public:
-    WorkerPool(UThreadEpollScheduler * scheduler, size_t thread_count, DataFlow * data_flow, 
+    WorkerPool(UThreadEpollScheduler * scheduler, int io_idx, size_t thread_count, DataFlow * data_flow, 
             HshaServerStat * hsha_server_stat, Dispatch_t dispatch, void * args);
     ~WorkerPool();
 
@@ -236,7 +243,7 @@ private:
 
 class HshaServerIO {
 public:
-    HshaServerIO(int idx, UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
+    HshaServerIO(UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
             DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos);
     ~HshaServerIO();
 

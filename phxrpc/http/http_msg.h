@@ -37,6 +37,8 @@ class HttpMessage {
     static const char * HEADER_SERVER;
 
     static const char * HEADER_X_PHXRPC_RESULT;
+    static const char * HEADER_X_PHXRPC_QOS_REQ;
+    static const char * HEADER_X_PHXRPC_QOS_RESP;
 
  public:
     HttpMessage(int type);

@@ -34,6 +34,7 @@ namespace phxrpc {
 ClientConfig::ClientConfig() {
     connect_timeout_ms_ = 200;
     socket_timeout_ms_ = 5000;
+    is_enable_cli_fr_ = 0;
     memset(package_name_, 0, sizeof(package_name_));
 }
 
@@ -82,6 +83,8 @@ bool ClientConfig::Read(const char * config_file) {
     config.ReadItem("ClientTimeout", "ConnectTimeoutMS", &connect_timeout_ms_);
     config.ReadItem("ClientTimeout", "SocketTimeoutMS", &socket_timeout_ms_);
 
+    config.ReadItem("Server", "EnableClientFastReject", &is_enable_cli_fr_);
+
     if (endpoints_.size() == 0) {
         log(LOG_ERR, "Config::%s no endpoints", __func__);
     }
@@ -126,6 +129,10 @@ int ClientConfig::GetConnectTimeoutMS() {
 
 int ClientConfig::GetSocketTimeoutMS() {
     return socket_timeout_ms_;
+}
+
+bool ClientConfig::IsEnableClientFastReject() {
+    return is_enable_cli_fr_ == 0?false:true;
 }
 
 const char * ClientConfig :: GetPackageName() const {
