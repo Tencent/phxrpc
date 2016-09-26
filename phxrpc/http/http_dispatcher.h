@@ -23,8 +23,11 @@ See the AUTHORS file for names of contributors.
 
 #include <map>
 #include <string>
+#include <exception>
 
 #include "http_msg.h"
+
+#include "phxrpc/file.h"
 
 namespace phxrpc {
 
@@ -50,7 +53,12 @@ class HttpDispatcher {
         typename URIFuncMap::const_iterator iter = uri_func_map_.find(request.GetURI());
 
         if (uri_func_map_.end() != iter) {
-            ret = (dispatcher_.*iter->second)(request, response);
+            try {
+                ret = (dispatcher_.*iter->second)(request, response);
+            } catch( const std::exception & e ) {
+                phxrpc::log( LOG_ERR, "exception caught: %s", e.what() );
+                ret = -1;
+            }
         }
 
         response->AddHeader(HttpMessage::HEADER_X_PHXRPC_RESULT, ret);
