@@ -11,10 +11,17 @@ OS := $(shell uname)
 PROTOBUF_ROOT=$(PHXRPC_ROOT)/third_party/protobuf
 BOOST_ROOT=$(PHXRPC_ROOT)/third_party/boost
 
+REDIS_CLIENT_INCLUDE = -I$(PHXRPC_ROOT)/third_party/hiredis \
+  	-I$(PHXRPC_ROOT)/third_party/
+
+REDIS_CLIENT_LIBRARY = -L$(PHXRPC_ROOT)/third_party/r3c/ -lr3c \
+  	-L$(PHXRPC_ROOT)/third_party/hiredis -lhiredis
+
+
 ifeq ($(OS),Darwin)
-	PLUGIN_BOOST_LDFLAGS = -Wl,-force_load,$(PHXRPC_ROOT)/lib/libphxrpc_plugin_boost.a \
+	PLUGIN_BOOST_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_boost.a \
 			-L$(BOOST_ROOT)/lib/ -lboost_context
-	PLUGIN_ELPP_LDFLAGS = -Wl,-force_load,$(PHXRPC_ROOT)/lib/libphxrpc_plugin_elpp.a
+	PLUGIN_ELPP_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_elpp.a
 else
 	PLUGIN_BOOST_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_ROOT)/lib/ -lphxrpc_plugin_boost \
 			-Wl,--no-whole-archive -L$(BOOST_ROOT)/lib/ -lboost_context
@@ -29,7 +36,7 @@ ifeq ($(debug),y)
 	OPT = -g2
 else
 # (2) Production
-	OPT = -O2
+	OPT = -o2
 endif
 
 CC = gcc
@@ -41,10 +48,10 @@ LINT = lint -c
 RM = /bin/rm -f
 
 CFLAGS = -std=c++11 -Wall -D_REENTRANT -D_GNU_SOURCE -D_XOPEN_SOURCE -fPIC -m64 $(OPT) \
-		 -I$(PROTOBUF_ROOT)/include \
+		 -I$(PROTOBUF_ROOT)/include $(REDIS_CLIENT_INCLUDE) \
 		 -I$(PHXRPC_ROOT) \
 
-LDFLAGS = -L$(PROTOBUF_ROOT)/lib/ $(PROTOBUF_ROOT)/lib/libprotobuf.a \
+LDFLAGS = -L$(PROTOBUF_ROOT)/lib/ $(REDIS_CLIENT_LIBRARY) $(PROTOBUF_ROOT)/lib/libprotobuf.a \
 		  -lstdc++ -lpthread -lm
 
 PBFLAGS = -I $(PROTOBUF_ROOT)/include -I $(PHXRPC_ROOT)

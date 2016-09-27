@@ -12,8 +12,9 @@ LIB_FILE_OBJS = file/log_utils.o file/file_utils.o file/opt_map.o file/config.o
 
 LIB_QOS_OBJS = qos/lbfrdefine.o qos/lbfrtablemgr.o qos/priority_config.o qos/qosmgr.o qos/lb_stat_helper.o qos/frclient.o
 
+LIB_REDIS_OBJS = redis/redis_client_factory.o 
 
-LIB_RPC_OBJS = rpc/phxrpc.pb.o rpc/http_caller.o rpc/server_config.o rpc/client_config.o \
+LIB_RPC_OBJS = rpc/phxrpc.pb.o rpc/rwlock_mgr.o rpc/http_caller.o rpc/server_config.o rpc/client_config.o rpc/client_config_registry.o \
 		   rpc/socket_stream_phxrpc.o rpc/uthread_caller.o rpc/client_monitor.o rpc/server_monitor.o \
 		   rpc/monitor_factory.o rpc/hsha_server.o rpc/server_base.o
 
@@ -22,7 +23,7 @@ ifeq ($(OS),Darwin)
 	LIB_NETWORK_OBJS += ../plugin_darwin/network/epoll-darwin.o
 endif
 
-LIB_OBJS = $(LIB_RPC_OBJS) $(LIB_QOS_OBJS) $(LIB_HTTP_OBJS) $(LIB_NETWORK_OBJS) $(LIB_FILE_OBJS) \
+LIB_OBJS = $(LIB_RPC_OBJS) $(LIB_REDIS_OBJS) $(LIB_QOS_OBJS) $(LIB_HTTP_OBJS) $(LIB_NETWORK_OBJS) $(LIB_FILE_OBJS) \
 
 TARGETS = libphxrpc.a
 

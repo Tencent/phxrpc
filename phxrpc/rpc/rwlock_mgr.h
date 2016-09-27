@@ -19,31 +19,51 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
+
 #pragma once
+#include <pthread.h>
 
-#include <string>
-#include <vector>
+namespace phxrpc
+{
 
-namespace phxrpc {
+enum enRWLockType
+{
+	RWLockWriteLock = 1,
+	RWLockReadLock = 2
+};
 
-class Config {
+class RWLockMgr
+{
 public:
-    Config();
-    ~Config();
+	
+    RWLockMgr();
 
-    bool InitConfig(const char * path);
-    void SetContent(const std::string & content);
-    bool ReadItem(const char * section, const char * key, char * value, size_t size, const char * default_value);
-    bool ReadItem(const char * section, const char * key, int * value, const int default_value);
+	~RWLockMgr();
+	
+	void ReadLock();
+	void WriteLock();
+	int TryReadLock();
+	int TryWriteLock();
+	void ReadUnLock();
+	void WriteUnLock();
 
-    bool ReadItem(const char * section, const char * key, char * value, size_t size);
-    bool ReadItem(const char * section, const char * key, int * value);
-
-    bool GetSection(const char * name,
-            std::vector<std::string> * section);
 private:
-    int TrimCStr( char * src_str );
-    std::string content_;
+	pthread_rwlock_t * lock_;
+};
+
+
+class RWLockGuard
+{
+public:
+	RWLockGuard(RWLockMgr * lock, int type);
+	~RWLockGuard();
+
+	void UnLock();
+private:
+
+	RWLockMgr * lock_;
+	int type_;
+	bool is_unlock_;
 };
 
 }

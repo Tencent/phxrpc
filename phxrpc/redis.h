@@ -21,29 +21,6 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include <string>
-#include <vector>
 
-namespace phxrpc {
+#include "redis/redis_client_factory.h"
 
-class Config {
-public:
-    Config();
-    ~Config();
-
-    bool InitConfig(const char * path);
-    void SetContent(const std::string & content);
-    bool ReadItem(const char * section, const char * key, char * value, size_t size, const char * default_value);
-    bool ReadItem(const char * section, const char * key, int * value, const int default_value);
-
-    bool ReadItem(const char * section, const char * key, char * value, size_t size);
-    bool ReadItem(const char * section, const char * key, int * value);
-
-    bool GetSection(const char * name,
-            std::vector<std::string> * section);
-private:
-    int TrimCStr( char * src_str );
-    std::string content_;
-};
-
-}

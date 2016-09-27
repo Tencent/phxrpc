@@ -27,8 +27,6 @@ See the AUTHORS file for names of contributors.
 #include "client_monitor.h"
 #include "monitor_factory.h"
 
-#include "phxrpc/file.h"
-
 namespace phxrpc {
 
 ClientConfig::ClientConfig() {
@@ -49,14 +47,12 @@ ClientMonitorPtr ClientConfig :: GetClientMonitor() {
     return client_monitor_;
 }
 
-bool ClientConfig::Read(const char * config_file) {
-    Config config;
-    if (!config.InitConfig(config_file)) {
-        return false;
-    }
-
+bool ClientConfig::Parse(Config & config) {
     int count = 0;
     bool succ = true;
+
+    endpoints_.clear();
+
     succ &= config.ReadItem("Server", "ServerCount", &count);
     if (!succ) {
         log(LOG_ERR, "Config::%s key ServerCount not found", __func__);
@@ -89,6 +85,20 @@ bool ClientConfig::Read(const char * config_file) {
         log(LOG_ERR, "Config::%s no endpoints", __func__);
     }
     return endpoints_.size() > 0;
+}
+
+bool ClientConfig::Read(const char * config_file) {
+    Config config;
+    if (!config.InitConfig(config_file)) {
+        return false;
+    }
+    return Parse(config);
+}
+
+bool ClientConfig::Read(const std::string & content) {
+    Config config;
+    config.SetContent(content);
+    return Parse(config);
 }
 
 const Endpoint_t * ClientConfig::GetRandom() const {
