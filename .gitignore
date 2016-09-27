@@ -6,6 +6,5 @@
 *_service.*
 *_tool.*
 *_main
-third_party/*
 sbin/*
 sample/*
