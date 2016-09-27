@@ -5,7 +5,7 @@ set -x  # display all commands
 mkdir -p etc
 mkdir -p sbin
 mkdir -p third_party
-cp ./Makefile.third_party third_party/Makefile
+cp ./Makefile.third_party third_party/Makefile 
 
 cd third_party;
 
