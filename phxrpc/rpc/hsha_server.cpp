@@ -289,7 +289,7 @@ void HshaServerStat :: CalFunc() {
 
         MonitorReport();
 
-        phxrpc::log(LOG_NOTICE, "[SERVER_STAT] hold_fds %d accept_qps %d accept_reject_qps %d queue_full_reject_qps %d"
+        phxrpc::log(LOG_DEBUG, "[SERVER_STAT] hold_fds %d accept_qps %d accept_reject_qps %d queue_full_reject_qps %d"
                 " read_request_qps %d write_response_qps %d"
                 " inqueue_push_qps %d rpc_time_cost_avg %d"
                 " inqueue_wait_time_avg %d outqueue_wait_time_qvg %d"
@@ -395,7 +395,7 @@ void HshaServerQos :: CalFunc() {
                 hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_cal_seq_;
         }
 
-        phxrpc::log(LOG_NOTICE, "[SERVER_QOS] accept_reject_qps %d queue_full_reject_qps %d"
+        phxrpc::log(LOG_DEBUG, "[SERVER_QOS] accept_reject_qps %d queue_full_reject_qps %d"
                 " fast_reject_qps %d fast_reject_rate %d",
                 hsha_server_stat_->reject_qps_, hsha_server_stat_->queue_full_rejected_after_accepted_qps_,
                 hsha_server_stat_->enqueue_fast_reject_qps_, enqueue_reject_rate_);

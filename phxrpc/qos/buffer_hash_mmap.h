@@ -36,6 +36,10 @@ See the AUTHORS file for names of contributors.
 
 namespace phxrpc {
 
+#ifdef __APPLE__
+	#define MAP_ANONYMOUS MAP_ANON
+#endif
+
 /*
 	slot: pos
 	item: hash,key
