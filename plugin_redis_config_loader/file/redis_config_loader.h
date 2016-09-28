@@ -23,6 +23,7 @@ See the AUTHORS file for names of contributors.
 
 #include <stdarg.h>
 #include "phxrpc/rpc.h"
+#include "r3c/r3c.h"
 
 namespace phxrpc {
 
@@ -33,6 +34,8 @@ public:
     virtual ~RedisClientConfigLoader();
 protected:
     virtual int GetConfigContent(const char * package_name, std::string * content);
+
+    r3c::CRedisClient * client_;
 };
 
 }

@@ -20,9 +20,9 @@ See the AUTHORS file for names of contributors.
 */
 
 
+#include <string>
 #include "phxrpc/file.h"
 #include "r3c/r3c.h"
-#include "redis_client_factory.h"
 #include "redis_config_loader.h"
 
 namespace phxrpc {
@@ -30,6 +30,31 @@ namespace phxrpc {
 static RedisClientConfigLoader g_redis_client_config_loader;
 
 RedisClientConfigLoader::RedisClientConfigLoader() {
+
+    phxrpc::ClientConfig config;
+
+    if( config.Read("/home/qspace/etc/minichat/client/redis_client.conf") ) {
+
+        std::string nodes;
+
+        char buff[ 128 ] = { 0 };
+
+        for( size_t i = 0; ; i++ ) {
+            const phxrpc::Endpoint_t * ep = config.GetByIndex( i );
+
+            if( NULL == ep ) break;
+            snprintf( buff, sizeof( buff ), "%s:%d", ep->ip, ep->port );
+
+            if( i > 0 ) nodes.append( "," );
+            nodes.append( buff );
+        }
+        client_ = new r3c::CRedisClient( nodes );
+    } else {
+        log(LOG_ERR, "RedisClientConfigLoader::%s read redis client config %s failed",
+                __func__, "/home/qspace/etc/minichat/client/redis_client.conf");
+        client_ = NULL;
+    }
+
     ClientConfigRegistry::GetDefault()->SetClientConfigLoader(this);
 }
 
@@ -42,17 +67,14 @@ int RedisClientConfigLoader::GetConfigContent(const char * package_name, std::st
         return -1;
     }
 
-    r3c::CRedisClient * client = RedisClientFactory::GetDefault()->Get();
-
-    if(!client) {
-        log(LOG_ERR, "RedisClientConfigLoader::%s get redis client for %s failed",
-                __func__, package_name);
+    if(!client_) {
         return -1;
     }
 
+
     std::string key = std::string("cliconf:") + std::string(package_name);
 
-    if(client->get(key, content)) {
+    if(client_->get(key, content)) {
         log(LOG_DEBUG, "RedisClientConfigLoader::%s get content for %s success len %zu",
                 __func__, package_name, content->size());
 

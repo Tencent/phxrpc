@@ -1,7 +1,7 @@
 
 include ../../phxrpc.mk
 
-LIB_OBJS = redis_client_factory.o redis_config_loader.o
+LIB_OBJS = redis_config_loader.o 
 
 TARGETS = libphxrpc_plugin_redis_config_loader.a 
 
