@@ -63,6 +63,12 @@ void log(int priority, const char * format, ...) {
     va_end(args);
 }
 
+void vlog(int priority, const char * format, va_list args) {
+    if( priority > global_priority_ ) return;
+
+    global_vlog_(priority, format, args);
+}
+
 void setvlog(vlog_t vlog) {
     global_vlog_ = vlog;
 }
