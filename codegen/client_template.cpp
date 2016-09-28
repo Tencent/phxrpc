@@ -29,32 +29,18 @@ const char * PHXRPC_CLIENT_HPP_TEMPLATE =
 class $ClientClass$Register
 {
 public:
-
-    static $ClientClass$Register * GetDefault();
-
     $ClientClass$Register();
     ~$ClientClass$Register();
-
-    int Register();
-private:
-    bool is_registered_;
 };
 
 class $ClientClass$
 {
-public:
-    static bool Init( const char * config_file );
-
-    static const char * GetPackageName();
-
 public:
     $ClientClass$();
     ~$ClientClass$();
 
 $ClientClassFuncDeclarations$
 private:
-    void CheckConfig();
-
     std::string package_name_;
     phxrpc::ClientConfig * config_;
 };
@@ -77,72 +63,21 @@ const char * PHXRPC_CLIENT_CPP_TEMPLATE =
 #include "phxrpc/file.h"
 #include "phxrpc/rpc.h"
 
-static phxrpc::ClientConfig global_$ClientClassLower$_config_;
 static phxrpc::ClientMonitorPtr global_$ClientClassLower$_monitor_;
-static bool g_$ClientClassLower$_is_use_registry = true;
 
-$ClientClass$Register * $ClientClass$Register::GetDefault() {
-    static $ClientClass$Register $ClientClassLower$_register;
-    return &$ClientClassLower$_register;
-}
+static $ClientClass$Register g_$ClientClassLower$_register;
 
 $ClientClass$Register::$ClientClass$Register() {
-    is_registered_ = false;
+    phxrpc::ClientConfigRegistry::GetDefault()->Register("$PackageName$");
 }
 
 $ClientClass$Register::~$ClientClass$Register() {
-
-}
-
-int $ClientClass$Register::Register() {
-    if(is_registered_) {
-        return 0;
-    }
-
-    int ret = phxrpc::ClientConfigRegistry::GetDefault()->Register("search");
-    if(0 != ret) {
-        phxrpc::log(LOG_ERR, "$ClientClass$Register::%s Register %s failed", __func__, "search");
-        return -1;
-    }
-
-    is_registered_ = true;
-    return 0;
-}
-
-bool $ClientClass$ :: Init( const char * config_file )
-{
-    g_$ClientClassLower$_is_use_registry = false;
-    return global_$ClientClassLower$_config_.Read( config_file );
-}
-
-const char * $ClientClass$ :: GetPackageName() {
-    const char * ret = global_$ClientClassLower$_config_.GetPackageName();
-    if (strlen(ret) == 0) {
-        ret = "$PackageName$";
-    }
-    return ret;
-}
-
-void $ClientClass$ :: CheckConfig() {
-    if(g_$ClientClassLower$_is_use_registry) {
-        if(0 == $ClientClass$Register::GetDefault()->Register()) { 
-            config_ = phxrpc::ClientConfigRegistry::GetDefault()->GetConfig("$PackageName$");
-        } else {
-            config_ = NULL;
-        }
-    } else {
-        config_ = &global_$ClientClassLower$_config_;
-    }
 }
 
 $ClientClass$ :: $ClientClass$()
 {
-    if(g_$ClientClassLower$_is_use_registry) {
-        package_name_ = std::string("$PackageName$");
-    } else {
-        package_name_ = std::string(GetPackageName());
-    }
-    CheckConfig();
+    package_name_ = std::string("$PackageName$");
+    config_ = phxrpc::ClientConfigRegistry::GetDefault()->GetConfig("$PackageName$");
     if(!config_) {
         return;
     }
@@ -171,7 +106,6 @@ $ClientClassFuncs$
 const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
         R"(
 {
-    CheckConfig();
     if(!config_) {
         phxrpc::log(LOG_ERR, "%s %s config is NULL", __func__, package_name_.c_str());
         return -1;
@@ -201,7 +135,6 @@ const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
 const char * PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE =
         R"(
 {
-    CheckConfig();
     if(!config_) {
         phxrpc::log(LOG_ERR, "%s %s config is NULL", __func__, package_name_.c_str());
         return -1;

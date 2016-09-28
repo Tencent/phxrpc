@@ -17,13 +17,14 @@ public:
     RedisClientFactory();
     ~RedisClientFactory();
 
-    int Init(const char * config_file);
+    int Init();
 
     r3c::CRedisClient * Get();
 
 private:
     bool is_init_;
     std::string nodes_;
+    std::string config_path_;
 };
 
 }

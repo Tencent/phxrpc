@@ -21,6 +21,8 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
+#include <thread>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <pthread.h>
@@ -47,11 +49,20 @@ typedef struct _CliConfigItem {
 
 } CliConfigItem;
 
+
+class ClientConfigLoader
+{
+public:
+    ClientConfigLoader() {};
+    virtual ~ClientConfigLoader() {};
+    virtual int GetConfigContent(const char * package_name, std::string * content) = 0;
+};
+
 class ClientConfigRegistry
 {
 public:
     static ClientConfigRegistry * GetDefault();
-    static void SetDefaultClientConfigRegistry(ClientConfigRegistry * registry);
+    void SetClientConfigLoader(ClientConfigLoader * loader);
 
     ClientConfigRegistry();
     ~ClientConfigRegistry();
@@ -66,25 +77,26 @@ public:
 
 protected:
     virtual int LoadConfig(const char * package_name, CliConfigItem * item);
-    virtual int GetConfigContent(const char * package_name, std::string * content) = 0;
 
     virtual void Reset();
 
 private:
+    bool is_init_;
+    std::thread thread_;
+
     std::unordered_map<std::string, CliConfigItem*> config_map_;
-    RWLockMgr rwlock_;
     int stop_;
     int reload_interval_;
+    ClientConfigLoader * loader_;
+    std::mutex mutex_;
 };
 
 
-class LocalFileClienctConfigRegistry : public ClientConfigRegistry
+class LocalFileClienctConfigLoader : public ClientConfigLoader
 {
 public:
-    static LocalFileClienctConfigRegistry * GetDefault();
-
-    LocalFileClienctConfigRegistry();
-    ~LocalFileClienctConfigRegistry();
+    LocalFileClienctConfigLoader();
+    virtual ~LocalFileClienctConfigLoader();
 
     void SetClientConfigFileLocation(const char * location);
 
@@ -94,20 +106,6 @@ protected:
 private:
     std::string location_;
 };
-
-
-class RedisClientConfigRegistry : public ClientConfigRegistry
-{
-public:
-    static RedisClientConfigRegistry * GetDefault();
-
-    RedisClientConfigRegistry();
-    ~RedisClientConfigRegistry();
-
-protected:
-    virtual int GetConfigContent(const char * package_name, std::string * content);
-};
-
 
 }
 

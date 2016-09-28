@@ -21,34 +21,50 @@ See the AUTHORS file for names of contributors.
 
 
 #include <memory>
+#include <thread>
 #include <unistd.h>
 #include <linux/limits.h>
 
 #include "phxrpc/file.h"
-#include "phxrpc/redis.h"
 #include "client_config_registry.h"
-#include "r3c/r3c.h"
 
 namespace phxrpc {
 
-static ClientConfigRegistry * g_default_registry = NULL;
-
 ClientConfigRegistry * ClientConfigRegistry::GetDefault() {
-    return g_default_registry;
-
+    static ClientConfigRegistry * registry = new ClientConfigRegistry();
+    return registry;
 }
 
-void ClientConfigRegistry::SetDefaultClientConfigRegistry(ClientConfigRegistry * registry) {
-    g_default_registry = registry;
+void ClientConfigRegistry::SetClientConfigLoader(ClientConfigLoader * loader) {
+    if(loader) {
+
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        delete loader_;
+        loader_ = loader;
+        int ret = 0;
+        for(auto & it : config_map_) {
+            const std::string & package_name = it.first;
+            CliConfigItem * item = it.second;
+
+            ret = LoadConfig(package_name.c_str(), item);
+            log(LOG_ERR, "ClientConfigRegistry::%s LoadConfig for %s ret %d",
+                    __func__, package_name.c_str(), ret);
+        }
+    }
 }
 
-ClientConfigRegistry::ClientConfigRegistry() {
+ClientConfigRegistry::ClientConfigRegistry() : is_init_(false),  thread_(&ClientConfigRegistry::Run, this) {
     stop_ = 0;
-    reload_interval_ = 60;
+    reload_interval_ = 1;
+    LocalFileClienctConfigLoader * local_loader = new LocalFileClienctConfigLoader();
+    local_loader->SetClientConfigFileLocation("/home/qspace/etc/minichat/client"); //FIXME hardcode
+    loader_ = local_loader;
+    is_init_ = true;
 }
 
 ClientConfigRegistry::~ClientConfigRegistry() {
-
+    thread_.join();
 }
 
 void ClientConfigRegistry::SetReloadInterval(int reload_interval) {
@@ -56,7 +72,6 @@ void ClientConfigRegistry::SetReloadInterval(int reload_interval) {
 }
 
 void ClientConfigRegistry::Reset() {
-    RWLockGuard lock_guard(&rwlock_, RWLockWriteLock);
     for(auto & it : config_map_) {
         CliConfigItem * item = it.second;
         item->Reset();
@@ -67,7 +82,6 @@ void ClientConfigRegistry::Reset() {
 }
 
 int ClientConfigRegistry::Register(const char * package_name) {
-    RWLockGuard lock_guard(&rwlock_, RWLockWriteLock);
     auto it = config_map_.find(std::string(package_name));
     if(it == config_map_.end()) {
         CliConfigItem * item = new CliConfigItem();
@@ -77,9 +91,6 @@ int ClientConfigRegistry::Register(const char * package_name) {
         int ret = LoadConfig(package_name, item);
         if(0 != ret) {
             log(LOG_ERR, "ClientConfigRegistry::%s LoadConfig for %s failed", __func__, package_name);
-            item->Reset();
-            delete item;
-            return -1;
         }
         config_map_[std::string(package_name)] = item;
     }
@@ -87,7 +98,6 @@ int ClientConfigRegistry::Register(const char * package_name) {
 }
 
 ClientConfig * ClientConfigRegistry::GetConfig(const char * package_name) {
-    RWLockGuard lock_guard(&rwlock_, RWLockReadLock);
     auto it = config_map_.find(std::string(package_name));
     if(it == config_map_.end()) {
         log(LOG_ERR, "ClientConfigRegistry::%s package %s not registered", __func__, package_name);
@@ -100,7 +110,7 @@ ClientConfig * ClientConfigRegistry::GetConfig(const char * package_name) {
 
 int ClientConfigRegistry::LoadConfig(const char * package_name, CliConfigItem * item) {
     std::string content;
-    int ret = GetConfigContent(package_name, &content);
+    int ret = loader_->GetConfigContent(package_name, &content);
     if(0 != ret) {
         log(LOG_ERR, "ClientConfigRegistry::%s GetConfigContent for %s failed", __func__, package_name);
         return -1;
@@ -120,16 +130,22 @@ int ClientConfigRegistry::LoadConfig(const char * package_name, CliConfigItem * 
 
 void ClientConfigRegistry::Run() {
 
+    while(!is_init_) {
+        sleep(1);
+    }
+
     time_t last_reload_timestamp = time(NULL);
 
     while(!stop_) {
         sleep(1);
+
         time_t curr_time = time(NULL);
         if((curr_time - last_reload_timestamp) > reload_interval_) {
 
+            std::lock_guard<std::mutex> lock(mutex_);
+
             std::unordered_map<std::string, CliConfigItem*> config_map;
             {
-                RWLockGuard lock_guard(&rwlock_, RWLockReadLock);
                 config_map = config_map_;
             }
 
@@ -154,31 +170,26 @@ void ClientConfigRegistry::Stop() {
 
 //----------------------------------------------------------------------------
 
-LocalFileClienctConfigRegistry * LocalFileClienctConfigRegistry::GetDefault() {
-    static LocalFileClienctConfigRegistry registry;
-    return & registry;
-}
-
-LocalFileClienctConfigRegistry::LocalFileClienctConfigRegistry() {
+LocalFileClienctConfigLoader::LocalFileClienctConfigLoader() {
 
 }
 
-LocalFileClienctConfigRegistry::~LocalFileClienctConfigRegistry() {
+LocalFileClienctConfigLoader::~LocalFileClienctConfigLoader() {
 
 }
 
-void LocalFileClienctConfigRegistry::SetClientConfigFileLocation(const char * location) {
+void LocalFileClienctConfigLoader::SetClientConfigFileLocation(const char * location) {
     location_ = std::string(location);
 }
 
 
-int LocalFileClienctConfigRegistry::GetConfigContent(const char * package_name, std::string * content) {
+int LocalFileClienctConfigLoader::GetConfigContent(const char * package_name, std::string * content) {
     if(!content) {
         return -1;
     }
     std::unique_ptr<char []> file_path(new char[PATH_MAX]);
     if(!file_path.get()) {
-        log(LOG_ERR, "LocalFileClienctConfigRegistry::%s new file_path failed errno %d", __func__, errno);
+        log(LOG_ERR, "LocalFileClienctConfigLoader::%s new file_path failed errno %d", __func__, errno);
         return -1;
     }
 
@@ -187,51 +198,13 @@ int LocalFileClienctConfigRegistry::GetConfigContent(const char * package_name, 
 
     if(!FileUtils::ReadFile(file_path.get(), content)) {
         content->clear();
-        log(LOG_ERR, "LocalFileClienctConfigRegistry::%s read file %s failed", __func__, file_path.get());
+        log(LOG_ERR, "LocalFileClienctConfigLoader::%s read file %s failed", __func__, file_path.get());
         return -1;
     } else {
-        log(LOG_DEBUG, "LocalFileClienctConfigRegistry::%s read file %s success", __func__, file_path.get());
+        log(LOG_DEBUG, "LocalFileClienctConfigLoader::%s read file %s success", __func__, file_path.get());
     }
     return 0;
 }
-
-//----------------------------------------------------------------------------
-
-RedisClientConfigRegistry * RedisClientConfigRegistry::GetDefault() {
-   static RedisClientConfigRegistry registry;
-   return &registry;
-}
-
-RedisClientConfigRegistry::RedisClientConfigRegistry() {
-
-}
-
-RedisClientConfigRegistry::~RedisClientConfigRegistry() {
-
-}
-
-int RedisClientConfigRegistry::GetConfigContent(const char * package_name, std::string * content) {
-    if(!content) {
-        return -1;
-    }
-
-    r3c::CRedisClient * client = RedisClientFactory::GetDefault()->Get();
-
-    std::string key = std::string("cliconf:") + std::string(package_name);
-
-    if(client->get(key, content)) {
-        log(LOG_DEBUG, "RedisClientConfigRegistry::%s get content for %s success len %zu",
-                __func__, package_name, content->size());
-
-        return 0;
-    } else {
-        log(LOG_ERR, "RedisClientConfigRegistry::%s get content for %s failed",
-                __func__, package_name);
-        content->clear();
-        return -1;
-    }
-}
-
 
 }
 

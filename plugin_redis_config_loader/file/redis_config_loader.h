@@ -21,6 +21,19 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
+#include <stdarg.h>
+#include "phxrpc/rpc.h"
 
-#include "redis/redis_client_factory.h"
+namespace phxrpc {
+
+class RedisClientConfigLoader : public ClientConfigLoader
+{
+public:
+    RedisClientConfigLoader();
+    virtual ~RedisClientConfigLoader();
+protected:
+    virtual int GetConfigContent(const char * package_name, std::string * content);
+};
+
+}
 

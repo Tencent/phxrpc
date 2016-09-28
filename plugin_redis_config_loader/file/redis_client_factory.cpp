@@ -17,6 +17,7 @@ RedisClientFactory * RedisClientFactory::GetDefault() {
 RedisClientFactory :: RedisClientFactory()
 {
     is_init_ = false;
+    config_path_ = std::string("/home/qspace/etc/minichat/client/redis_client.conf");
 }
 
 RedisClientFactory :: ~RedisClientFactory()
@@ -25,20 +26,15 @@ RedisClientFactory :: ~RedisClientFactory()
 }
 
 
-int RedisClientFactory :: Init(const char * config_file) 
+int RedisClientFactory :: Init() 
 {
-    char path[ 1024 ] = { 0 };
-    if( '~' == config_file[0] ) {
-        snprintf( path, sizeof( path ), "%s%s", getenv( "HOME" ), config_file + 1 );
-    } else {
-        snprintf( path, sizeof( path ), "%s", config_file );
+    if(is_init_) {
+        return 0;
     }
-
-    phxrpc::log( LOG_DEBUG, "read config %s", path );
 
     phxrpc::ClientConfig config;
 
-    if( config.Read( path ) ) {
+    if( config.Read( config_path_.c_str() ) ) {
         char buff[ 128 ] = { 0 };
 
         for( size_t i = 0; ; i++ ) {
@@ -59,7 +55,7 @@ int RedisClientFactory :: Init(const char * config_file)
 
 r3c::CRedisClient * RedisClientFactory :: Get()
 {
-    if(!is_init_) {
+    if(0 != Init()) {
         return NULL;
     }
 
