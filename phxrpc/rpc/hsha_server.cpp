@@ -541,39 +541,43 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
 
         const char * http_header_qos_value = request->GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_QOS_REQ);
 
+        HttpResponse * response = nullptr;
         if (!hsha_server_qos_->CanEnqueue(http_header_qos_value)) {
             //fast reject don't cal rpc_time_cost;
             delete request;
             hsha_server_stat_->enqueue_fast_rejects_++;
             phxrpc::log(LOG_ERR, "%s fast reject, can't enqueue, fd %d", __func__, accepted_fd);
-            break;
-        }
 
-        //if have enqueue, request will be deleted after pop.
-        bool is_keep_alive = request->IsKeepAlive();
-        std::string version = string(request->GetVersion() != nullptr ? request->GetVersion() : "");
+            response = new HttpResponse;
+            response->AddHeader(HttpMessage::HEADER_X_PHXRPC_RESULT, -206);
 
-        hsha_server_stat_->inqueue_push_requests_++;
-        data_flow_->PushRequest((void *)socket, request);
-        UThreadSetArgs(*socket, nullptr);
+        } else {
+            //if have enqueue, request will be deleted after pop.
+            bool is_keep_alive = request->IsKeepAlive();
+            std::string version = string(request->GetVersion() != nullptr ? request->GetVersion() : "");
 
-        UThreadWait(*socket, config_->GetSocketTimeoutMS());
-        if (UThreadGetArgs(*socket) == nullptr) {
-            //timeout
-            hsha_server_stat_->worker_timeouts_++;
-            hsha_server_stat_->rpc_time_costs_count_++;
+            hsha_server_stat_->inqueue_push_requests_++;
+            data_flow_->PushRequest((void *)socket, request);
+            UThreadSetArgs(*socket, nullptr);
 
-            //because have enqueue, so socket will be closed after pop.
-            socket = stream.DetachSocket(); 
-            UThreadLazyDestory(*socket);
+            UThreadWait(*socket, config_->GetSocketTimeoutMS());
+            if (UThreadGetArgs(*socket) == nullptr) {
+                //timeout
+                hsha_server_stat_->worker_timeouts_++;
+                hsha_server_stat_->rpc_time_costs_count_++;
 
-            //phxrpc::log(LOG_ERR, "%s timeout, fd %d sockettimeoutms %d", 
-                    //__func__, accepted_fd, config_->GetSocketTimeoutMS());
-            break;
+                //because have enqueue, so socket will be closed after pop.
+                socket = stream.DetachSocket(); 
+                UThreadLazyDestory(*socket);
+
+                //phxrpc::log(LOG_ERR, "%s timeout, fd %d sockettimeoutms %d", 
+                //__func__, accepted_fd, config_->GetSocketTimeoutMS());
+                break;
+            }
+            response = (HttpResponse *)UThreadGetArgs(*socket);
         }
 
         hsha_server_stat_->io_write_responses_++;
-        HttpResponse * response = (HttpResponse *)UThreadGetArgs(*socket);
         HttpProto::FixRespHeaders(is_keep_alive, version.c_str(), response);
         hsha_server_qos_->SetQoSInfo(response);
 
