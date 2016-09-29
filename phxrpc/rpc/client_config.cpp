@@ -129,6 +129,8 @@ const Endpoint_t * ClientConfig::GetByIndex(const size_t index) const {
         if ( client_monitor_.get() ) {
             client_monitor_->GetEndpointFail();
         }
+
+        log( LOG_ERR, "GetByIndex fail, list.size %lu", endpoints_.size() );
     }
     return ret;
 }
