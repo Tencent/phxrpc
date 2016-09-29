@@ -26,7 +26,6 @@ See the AUTHORS file for names of contributors.
 #include <string>
 #include <unordered_map>
 #include <pthread.h>
-#include "rwlock_mgr.h"
 #include "client_config.h"
 
 namespace phxrpc {
