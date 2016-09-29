@@ -23,7 +23,12 @@ See the AUTHORS file for names of contributors.
 #include <memory>
 #include <thread>
 #include <unistd.h>
+
+#ifdef __APPLE__
+#include <sys/syslimits.h>
+#else
 #include <linux/limits.h>
+#endif
 
 #include "phxrpc/file.h"
 #include "client_config_registry.h"
