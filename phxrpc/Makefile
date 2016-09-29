@@ -14,7 +14,7 @@ LIB_QOS_OBJS = qos/lbfrdefine.o qos/lbfrtablemgr.o qos/priority_config.o qos/qos
 
 LIB_REDIS_OBJS = redis/redis_client_factory.o 
 
-LIB_RPC_OBJS = rpc/phxrpc.pb.o rpc/rwlock_mgr.o rpc/http_caller.o rpc/server_config.o rpc/client_config.o rpc/client_config_registry.o \
+LIB_RPC_OBJS = rpc/phxrpc.pb.o rpc/http_caller.o rpc/server_config.o rpc/client_config.o rpc/client_config_registry.o \
 		   rpc/socket_stream_phxrpc.o rpc/uthread_caller.o rpc/client_monitor.o rpc/server_monitor.o \
 		   rpc/monitor_factory.o rpc/hsha_server.o rpc/server_base.o
 
