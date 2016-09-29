@@ -3,7 +3,7 @@ include ../../phxrpc.mk
 
 LIB_OBJS = redis_config_loader.o 
 
-TARGETS = libphxrpc_plugin_redis_config_loader.a 
+TARGETS = libphxrpc_plugin_redis_config_loader.a add_conf_tools
 
 REDIS_CLIENT_INCLUDE = -I$(PHXRPC_ROOT)/third_party/hiredis \
   	-I$(PHXRPC_ROOT)/third_party/
@@ -20,6 +20,9 @@ all: $(TARGETS)
 libphxrpc_plugin_redis_config_loader.a: $(LIB_OBJS)
 	$(AR) $@ $^
 	mkdir -p $(PHXRPC_ROOT)/lib; cp $@ $(PHXRPC_ROOT)/lib 
+
+add_conf_tools: add_conf_tools.o 
+	$(LINKER) $^  $(LDFLAGS) -o $@
 
 clean:
 	@( $(RM) $(TARGETS) )

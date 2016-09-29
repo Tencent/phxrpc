@@ -40,7 +40,7 @@ class ClientConfig {
  public:
     ClientConfig();
 
-    ~ClientConfig();
+    virtual ~ClientConfig();
 
     bool Read(const char * config_file);
     bool Read(const std::string & content);
@@ -61,8 +61,8 @@ class ClientConfig {
 
     bool IsEnableClientFastReject();
 
- private:
-    bool Parse(Config & config);
+ protected:
+    virtual bool Parse(Config & config);
 
     std::vector<Endpoint_t> endpoints_;
 

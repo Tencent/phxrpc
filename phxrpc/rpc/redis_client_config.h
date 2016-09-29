@@ -21,16 +21,31 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "rpc/client_config.h"
-#include "rpc/redis_client_config.h"
-#include "rpc/client_config_registry.h"
-#include "rpc/server_config.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/hsha_server.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
-#include "rpc/http_caller.h"
-#include "rpc/client_monitor.h"
-#include "rpc/server_monitor.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/server_base.h"
+#include <string>
+#include <vector>
+#include <memory>
+#include <sys/types.h>
+
+#include "phxrpc/file.h"
+#include "phxrpc/rpc.h"
+
+namespace phxrpc {
+
+class RedisClientConfig : public ClientConfig {
+ public:
+    RedisClientConfig();
+
+    virtual ~RedisClientConfig();
+
+    std::string GetNodes();
+
+ protected:
+    virtual bool Parse(Config & config);
+
+    int svr_cnt_;
+    int svr_port_;
+    std::string nodes_;
+};
+
+}
+

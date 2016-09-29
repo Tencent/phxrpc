@@ -21,10 +21,97 @@ See the AUTHORS file for names of contributors.
 
 #include <cstring>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+
 #include "server_config.h"
 #include "phxrpc/file.h"
 
 namespace phxrpc {
+
+static __thread struct sockaddr_in g_innerip_addr;
+char * GetInnerIP()
+{
+	int sock_fd;
+	static char addr[32] = { "" };
+    char tmp_addr[32] = {""};
+
+	struct in_addr my_addr[2];
+	struct ifreq stIfreq[10];
+	const char *innerip_list[] = {
+		"10.0.0.0", "10.255.255.255",
+        "100.64.0.0", "100.127.255.255",
+		"172.16.0.0", "172.31.255.255",
+		"192.168.0.0", "192.168.255.255",
+		"169.254.0.0", "169.254.255.255"
+	};
+
+    memset(&g_innerip_addr, 0x0, sizeof(struct sockaddr_in));
+
+	if (-1 == (sock_fd = socket(PF_INET, SOCK_DGRAM, 0)))
+	{
+		return addr;
+	}       
+
+	struct ifconf ifc;
+	memset(&ifc, 0, sizeof(ifc));
+	ifc.ifc_len = sizeof(stIfreq);
+	ifc.ifc_req = stIfreq;
+	ioctl(sock_fd, SIOCGIFCONF, &ifc);
+
+    bool is_eth1 = false;
+    bool is_get_innerip = false;
+
+	for(size_t i=0; i < ifc.ifc_len / sizeof(ifreq); i++)
+	{
+		sockaddr_in staddr;
+		memcpy(&staddr, &ifc.ifc_req[i].ifr_addr, sizeof(staddr));
+
+        if(0 == strncasecmp(ifc.ifc_req[i].ifr_name, "eth1", strlen("eth1"))) {
+            is_eth1 = true;
+        }
+
+        if(!is_eth1 && is_get_innerip) {
+            continue;
+        }
+
+		for(size_t j=0; j < sizeof(innerip_list) / sizeof(innerip_list[0]) / 2; j++)
+		{
+			inet_aton(innerip_list[j*2], &my_addr[0]);
+			my_addr[0].s_addr = htonl(my_addr[0].s_addr);
+			inet_aton(innerip_list[j*2+1], &my_addr[1]);
+			my_addr[1].s_addr = htonl(my_addr[1].s_addr);
+
+			unsigned long lTmp = htonl(staddr.sin_addr.s_addr);
+			if(lTmp >= my_addr[0].s_addr && lTmp <= my_addr[1].s_addr)
+			{
+                memcpy(&g_innerip_addr, &staddr, sizeof(struct sockaddr_in));
+                if(is_eth1) {
+                    inet_ntop(AF_INET, &staddr.sin_addr, addr, sizeof(addr));
+                    close(sock_fd);
+                    return addr;
+                } 
+                is_get_innerip = true;
+                memset(tmp_addr, 0x0, sizeof(tmp_addr));
+                inet_ntop(AF_INET, &staddr.sin_addr, tmp_addr, sizeof(tmp_addr));
+            }
+		}
+        is_eth1 = false;
+	}
+
+    memcpy(addr, tmp_addr, sizeof(tmp_addr));
+	close(sock_fd);
+	return addr;
+}
+
 
 ServerConfig::ServerConfig() {
     memset(bind_ip_, 0, sizeof(bind_ip_));
@@ -53,6 +140,11 @@ bool ServerConfig::Read(const char * config_file) {
     config.ReadItem("ServerTimeout", "SocketTimeoutMS", &socket_timeout_ms_, 5000);
 
     if (succ) {
+
+        if(0 == strcasecmp(bind_ip_, "$innerip")) {
+            snprintf(bind_ip_, sizeof(bind_ip_), "%s", GetInnerIP());
+        }
+
         return DoRead(config);
     } else {
         log(LOG_ERR, "Config::%s key BindIP | Port | PackageName not found", __func__);

@@ -26,13 +26,6 @@ const char * PHXRPC_CLIENT_HPP_TEMPLATE =
 #include "$MessageFile$.h"
 #include "phxrpc/rpc.h"
 
-class $ClientClass$Register
-{
-public:
-    $ClientClass$Register();
-    ~$ClientClass$Register();
-};
-
 class $ClientClass$
 {
 public:
@@ -65,14 +58,18 @@ const char * PHXRPC_CLIENT_CPP_TEMPLATE =
 
 static phxrpc::ClientMonitorPtr global_$ClientClassLower$_monitor_;
 
+class $ClientClass$Register
+{
+public:
+    $ClientClass$Register() {
+        phxrpc::ClientConfigRegistry::GetDefault()->Register("$PackageName$");
+    }
+    ~$ClientClass$Register() {
+
+    }
+};
+
 static $ClientClass$Register g_$ClientClassLower$_register;
-
-$ClientClass$Register::$ClientClass$Register() {
-    phxrpc::ClientConfigRegistry::GetDefault()->Register("$PackageName$");
-}
-
-$ClientClass$Register::~$ClientClass$Register() {
-}
 
 $ClientClass$ :: $ClientClass$()
 {

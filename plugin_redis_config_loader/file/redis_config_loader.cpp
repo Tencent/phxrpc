@@ -31,24 +31,10 @@ static RedisClientConfigLoader g_redis_client_config_loader;
 
 RedisClientConfigLoader::RedisClientConfigLoader() {
 
-    phxrpc::ClientConfig config;
+    phxrpc::RedisClientConfig config;
 
-    if( config.Read("/home/qspace/etc/minichat/client/redis_client.conf") ) {
-
-        std::string nodes;
-
-        char buff[ 128 ] = { 0 };
-
-        for( size_t i = 0; ; i++ ) {
-            const phxrpc::Endpoint_t * ep = config.GetByIndex( i );
-
-            if( NULL == ep ) break;
-            snprintf( buff, sizeof( buff ), "%s:%d", ep->ip, ep->port );
-
-            if( i > 0 ) nodes.append( "," );
-            nodes.append( buff );
-        }
-        client_ = new r3c::CRedisClient( nodes );
+    if( config.Read("/home/qspace/etc/route/shanghai/mmminichat_route.conf") ) {
+        client_ = new r3c::CRedisClient( config.GetNodes() );
     } else {
         log(LOG_ERR, "RedisClientConfigLoader::%s read redis client config %s failed",
                 __func__, "/home/qspace/etc/minichat/client/redis_client.conf");
