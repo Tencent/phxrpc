@@ -21,15 +21,22 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "rpc/client_config.h"
-#include "rpc/client_config_registry.h"
-#include "rpc/server_config.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/hsha_server.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
-#include "rpc/http_caller.h"
-#include "rpc/client_monitor.h"
-#include "rpc/server_monitor.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/server_base.h"
+#include <stdarg.h>
+#include "phxrpc/rpc.h"
+#include "r3c/r3c.h"
+
+namespace phxrpc {
+
+class RedisClientConfigLoader : public ClientConfigLoader
+{
+public:
+    RedisClientConfigLoader();
+    virtual ~RedisClientConfigLoader();
+protected:
+    virtual int GetConfigContent(const char * package_name, std::string * content);
+
+    r3c::CRedisClient * client_;
+};
+
+}
+

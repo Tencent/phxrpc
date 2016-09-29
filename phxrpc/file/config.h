@@ -32,6 +32,7 @@ public:
     ~Config();
 
     bool InitConfig(const char * path);
+    void SetContent(const std::string & content);
     bool ReadItem(const char * section, const char * key, char * value, size_t size, const char * default_value);
     bool ReadItem(const char * section, const char * key, int * value, const int default_value);
 

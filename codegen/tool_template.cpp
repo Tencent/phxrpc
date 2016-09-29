@@ -72,8 +72,6 @@ int main( int argc, char * argv[] )
 
     if( NULL == func ) showUsage( argv[0] );
 
-    if( NULL != config ) $ClientClass$::Init( config );
-
     $ToolClass$::Name2Func_t * target = NULL;
 
     $ToolClass$::Name2Func_t * name2func = $ToolClass$::GetName2Func();
