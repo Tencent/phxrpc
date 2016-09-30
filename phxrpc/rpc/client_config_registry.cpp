@@ -58,7 +58,7 @@ ClientConfigRegistry::ClientConfigRegistry() : is_init_(false),  thread_(&Client
     stop_ = 0;
     reload_interval_ = 1;
     LocalFileClienctConfigLoader * local_loader = new LocalFileClienctConfigLoader();
-    local_loader->SetClientConfigFileLocation("/home/qspace/etc/minichat/client"); //FIXME hardcode
+    local_loader->SetClientConfigFileLocation("/home/qspace/mmminichat/etc/client"); //FIXME hardcode
     loader_ = local_loader;
     is_init_ = true;
 }

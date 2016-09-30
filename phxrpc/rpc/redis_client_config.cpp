@@ -63,12 +63,12 @@ bool RedisClientConfig::Parse(Config & config) {
 
         Endpoint_t ep;
         bool succ = true;
-        if(!svr_port_) {
+        if(svr_port_) {
             succ &= config.ReadItem(section, "SVR_IP", ep.ip, sizeof(ep.ip));
             ep.port = svr_port_;
         } else {
             succ &= config.ReadItem(section, "IP", ep.ip, sizeof(ep.ip));
-            succ &= config.ReadItem(section, "Port", ep.ip, sizeof(ep.ip));
+            succ &= config.ReadItem(section, "Port", &ep.port);
         }
         if (!succ) {
             continue;

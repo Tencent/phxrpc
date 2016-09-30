@@ -31,11 +31,11 @@ int main(int argc, const char *argv[])
         return -1;
     }
 
-
     r3c::CRedisClient * client = NULL;
     phxrpc::RedisClientConfig config;
 
-    if( config.Read("/home/qspace/etc/route/shanghai/mmminichat_route.conf") ) {
+    if(config.Read(redis_cli_conf)) {
+        cout << "nodes " << config.GetNodes() << endl;
         client = new r3c::CRedisClient( config.GetNodes() );
     } else {
         cout << "read redis client conf failed " << redis_cli_conf << endl;

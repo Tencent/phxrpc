@@ -542,6 +542,9 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
         const char * http_header_qos_value = request->GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_QOS_REQ);
 
         HttpResponse * response = nullptr;
+        std::string version = string(request->GetVersion() != nullptr ? request->GetVersion() : "");
+        bool is_keep_alive = request->IsKeepAlive();
+
         if (!hsha_server_qos_->CanEnqueue(http_header_qos_value)) {
             //fast reject don't cal rpc_time_cost;
             delete request;
@@ -553,8 +556,6 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
 
         } else {
             //if have enqueue, request will be deleted after pop.
-            bool is_keep_alive = request->IsKeepAlive();
-            std::string version = string(request->GetVersion() != nullptr ? request->GetVersion() : "");
 
             hsha_server_stat_->inqueue_push_requests_++;
             data_flow_->PushRequest((void *)socket, request);
