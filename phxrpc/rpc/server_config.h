@@ -56,6 +56,8 @@ public:
     void SetLogLevel( int log_level );
     int GetLogLevel() const;
 
+    int GetOssId() const;
+
 private:
     char bind_ip_[32];
     int port_;
@@ -64,6 +66,7 @@ private:
     char package_name_[64];
     char log_dir_[128];
     int log_level_;
+    int oss_id_;
 };
 
 class HshaServerConfig : public ServerConfig {

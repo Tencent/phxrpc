@@ -60,6 +60,7 @@ class ClientConfig {
     ClientMonitorPtr GetClientMonitor();
 
     bool IsEnableClientFastReject();
+    int GetOssId();
 
  protected:
     virtual bool Parse(Config & config);
@@ -74,6 +75,7 @@ class ClientConfig {
     int is_enable_cli_fr_;
 
     ClientMonitorPtr client_monitor_;
+    int oss_id_;
 };
 
 }

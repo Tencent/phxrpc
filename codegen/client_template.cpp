@@ -84,7 +84,7 @@ $ClientClass$ :: $ClientClass$()
         monitor_mutex.lock();
         if ( !global_$ClientClassLower$_monitor_.get() ) {
             global_$ClientClassLower$_monitor_ = phxrpc::MonitorFactory::GetFactory()
-                ->CreateClientMonitor(package_name_.c_str());
+                ->CreateClientMonitor(config_->GetOssId());
         }
         config_->SetClientMonitor( global_$ClientClassLower$_monitor_ );
         monitor_mutex.unlock();

@@ -34,6 +34,7 @@ ClientConfig::ClientConfig() {
     socket_timeout_ms_ = 5000;
     is_enable_cli_fr_ = 0;
     memset(package_name_, 0, sizeof(package_name_));
+    oss_id_ = 0;
 }
 
 ClientConfig::~ClientConfig() {
@@ -59,6 +60,7 @@ bool ClientConfig::Parse(Config & config) {
         return false;
     }
 
+    config.ReadItem("Server", "OssId", &oss_id_, 0);
     config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
 
     for (int i = 0; i < count; i++) {
@@ -149,6 +151,10 @@ bool ClientConfig::IsEnableClientFastReject() {
 
 const char * ClientConfig :: GetPackageName() const {
     return package_name_;
+}
+
+int ClientConfig :: GetOssId() {
+    return oss_id_;
 }
 
 }

@@ -61,7 +61,7 @@ void ClientConfigRegistry::SetClientConfigLoader(ClientConfigLoader * loader) {
 
 ClientConfigRegistry::ClientConfigRegistry() : is_init_(false),  thread_(&ClientConfigRegistry::Run, this) {
     stop_ = 0;
-    reload_interval_ = 1;
+    reload_interval_ = 60;
     LocalFileClienctConfigLoader * local_loader = new LocalFileClienctConfigLoader();
     local_loader->SetClientConfigFileLocation("/home/qspace/mmminichat/etc/client"); //FIXME hardcode
     loader_ = local_loader;
