@@ -21,11 +21,13 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "client_monitor.h"
-
-#include <sys/types.h>
+#include <string>
 #include <vector>
 #include <memory>
+#include <sys/types.h>
+
+#include "phxrpc/file.h"
+#include "client_monitor.h"
 
 namespace phxrpc {
 
@@ -38,9 +40,10 @@ class ClientConfig {
  public:
     ClientConfig();
 
-    ~ClientConfig();
+    virtual ~ClientConfig();
 
     bool Read(const char * config_file);
+    bool Read(const std::string & content);
 
     const Endpoint_t * GetRandom() const;
 
@@ -56,7 +59,12 @@ class ClientConfig {
 
     ClientMonitorPtr GetClientMonitor();
 
- private:
+    bool IsEnableClientFastReject();
+    int GetOssId();
+
+ protected:
+    virtual bool Parse(Config & config);
+
     std::vector<Endpoint_t> endpoints_;
 
     int connect_timeout_ms_;
@@ -64,7 +72,10 @@ class ClientConfig {
 
     char package_name_[64];
 
+    int is_enable_cli_fr_;
+
     ClientMonitorPtr client_monitor_;
+    int oss_id_;
 };
 
 }

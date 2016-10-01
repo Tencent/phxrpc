@@ -27,14 +27,14 @@ See the AUTHORS file for names of contributors.
 #include "client_monitor.h"
 #include "monitor_factory.h"
 
-#include "phxrpc/file.h"
-
 namespace phxrpc {
 
 ClientConfig::ClientConfig() {
     connect_timeout_ms_ = 200;
     socket_timeout_ms_ = 5000;
+    is_enable_cli_fr_ = 0;
     memset(package_name_, 0, sizeof(package_name_));
+    oss_id_ = 0;
 }
 
 ClientConfig::~ClientConfig() {
@@ -48,20 +48,19 @@ ClientMonitorPtr ClientConfig :: GetClientMonitor() {
     return client_monitor_;
 }
 
-bool ClientConfig::Read(const char * config_file) {
-    Config config;
-    if (!config.InitConfig(config_file)) {
-        return false;
-    }
-
+bool ClientConfig::Parse(Config & config) {
     int count = 0;
     bool succ = true;
+
+    endpoints_.clear();
+
     succ &= config.ReadItem("Server", "ServerCount", &count);
     if (!succ) {
         log(LOG_ERR, "Config::%s key ServerCount not found", __func__);
         return false;
     }
 
+    config.ReadItem("Server", "OssId", &oss_id_, 0);
     config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
 
     for (int i = 0; i < count; i++) {
@@ -82,10 +81,26 @@ bool ClientConfig::Read(const char * config_file) {
     config.ReadItem("ClientTimeout", "ConnectTimeoutMS", &connect_timeout_ms_);
     config.ReadItem("ClientTimeout", "SocketTimeoutMS", &socket_timeout_ms_);
 
+    config.ReadItem("Server", "EnableClientFastReject", &is_enable_cli_fr_);
+
     if (endpoints_.size() == 0) {
         log(LOG_ERR, "Config::%s no endpoints", __func__);
     }
     return endpoints_.size() > 0;
+}
+
+bool ClientConfig::Read(const char * config_file) {
+    Config config;
+    if (!config.InitConfig(config_file)) {
+        return false;
+    }
+    return Parse(config);
+}
+
+bool ClientConfig::Read(const std::string & content) {
+    Config config;
+    config.SetContent(content);
+    return Parse(config);
 }
 
 const Endpoint_t * ClientConfig::GetRandom() const {
@@ -116,6 +131,8 @@ const Endpoint_t * ClientConfig::GetByIndex(const size_t index) const {
         if ( client_monitor_.get() ) {
             client_monitor_->GetEndpointFail();
         }
+
+        log( LOG_ERR, "GetByIndex fail, list.size %lu", endpoints_.size() );
     }
     return ret;
 }
@@ -128,8 +145,16 @@ int ClientConfig::GetSocketTimeoutMS() {
     return socket_timeout_ms_;
 }
 
+bool ClientConfig::IsEnableClientFastReject() {
+    return is_enable_cli_fr_ == 0?false:true;
+}
+
 const char * ClientConfig :: GetPackageName() const {
     return package_name_;
+}
+
+int ClientConfig :: GetOssId() {
+    return oss_id_;
 }
 
 }

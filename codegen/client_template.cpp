@@ -22,21 +22,20 @@ See the AUTHORS file for names of contributors.
 const char * PHXRPC_CLIENT_HPP_TEMPLATE =
         R"(
 
+#include <string>
 #include "$MessageFile$.h"
 #include "phxrpc/rpc.h"
 
 class $ClientClass$
 {
 public:
-    static bool Init( const char * config_file );
-
-    static const char * GetPackageName();
-
-public:
     $ClientClass$();
     ~$ClientClass$();
 
 $ClientClassFuncDeclarations$
+private:
+    std::string package_name_;
+    phxrpc::ClientConfig * config_;
 };
 
 )";
@@ -54,34 +53,40 @@ const char * PHXRPC_CLIENT_CPP_TEMPLATE =
 #include "$ClientFile$.h"
 #include "$StubFile$.h"
 
+#include "phxrpc/file.h"
 #include "phxrpc/rpc.h"
 
-static phxrpc::ClientConfig global_$ClientClassLower$_config_;
 static phxrpc::ClientMonitorPtr global_$ClientClassLower$_monitor_;
 
-bool $ClientClass$ :: Init( const char * config_file )
+class $ClientClass$Register
 {
-    return global_$ClientClassLower$_config_.Read( config_file );
-}
-
-const char * $ClientClass$ :: GetPackageName() {
-    const char * ret = global_$ClientClassLower$_config_.GetPackageName();
-    if (strlen(ret) == 0) {
-        ret = "$PackageName$";
+public:
+    $ClientClass$Register() {
+        phxrpc::ClientConfigRegistry::GetDefault()->Register("$PackageName$");
     }
-    return ret;
-}
+    ~$ClientClass$Register() {
+
+    }
+};
+
+static $ClientClass$Register g_$ClientClassLower$_register;
 
 $ClientClass$ :: $ClientClass$()
 {
+    package_name_ = std::string("$PackageName$");
+    config_ = phxrpc::ClientConfigRegistry::GetDefault()->GetConfig("$PackageName$");
+    if(!config_) {
+        return;
+    }
+
     static std::mutex monitor_mutex;
     if ( !global_$ClientClassLower$_monitor_.get() ) { 
         monitor_mutex.lock();
         if ( !global_$ClientClassLower$_monitor_.get() ) {
             global_$ClientClassLower$_monitor_ = phxrpc::MonitorFactory::GetFactory()
-                ->CreateClientMonitor( GetPackageName() );
+                ->CreateClientMonitor(config_->GetOssId());
         }
-        global_$ClientClassLower$_config_.SetClientMonitor( global_$ClientClassLower$_monitor_ );
+        config_->SetClientMonitor( global_$ClientClassLower$_monitor_ );
         monitor_mutex.unlock();
     }
 }
@@ -98,17 +103,22 @@ $ClientClassFuncs$
 const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
         R"(
 {
-    const phxrpc::Endpoint_t * ep = global_$ClientClassLower$_config_.GetRandom();
+    if(!config_) {
+        phxrpc::log(LOG_ERR, "%s %s config is NULL", __func__, package_name_.c_str());
+        return -1;
+    }
+    const phxrpc::Endpoint_t * ep = config_->GetRandom();
 
     if(ep != nullptr) {
         phxrpc::BlockTcpStream socket;
         bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
-                    global_$ClientClassLower$_config_.GetConnectTimeoutMS(), NULL, 0, 
+                    config_->GetConnectTimeoutMS(), NULL, 0, 
                     *(global_$ClientClassLower$_monitor_.get()));
         if ( open_ret ) {
-            socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
+            socket.SetTimeout(config_->GetSocketTimeoutMS());
 
             $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+            stub.SetConfig(config_);
             return stub.$Func$(req, resp);
         } 
     }
@@ -122,18 +132,23 @@ const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
 const char * PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE =
         R"(
 {
+    if(!config_) {
+        phxrpc::log(LOG_ERR, "%s %s config is NULL", __func__, package_name_.c_str());
+        return -1;
+    }
     int ret = -1; 
     size_t echo_server_count = 2;
     uthread_begin;
     for (size_t i = 0; i < echo_server_count; i++) {
         uthread_t [=, &uthread_s, &ret](void *) {
-            const phxrpc::Endpoint_t * ep = global_$ClientClassLower$_config_.GetByIndex(i);
+            const phxrpc::Endpoint_t * ep = config_->GetByIndex(i);
             if (ep != nullptr) {
                 phxrpc::UThreadTcpStream socket;
                 if(phxrpc::PhxrpcTcpUtils::Open(&uthread_s, &socket, ep->ip, ep->port,
-                            global_$ClientClassLower$_config_.GetConnectTimeoutMS(), *(global_$ClientClassLower$_monitor_.get()))) { 
-                    socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
+                            config_->GetConnectTimeoutMS(), *(global_$ClientClassLower$_monitor_.get()))) { 
+                    socket.SetTimeout(config_->GetSocketTimeoutMS());
                     $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+                    stub.SetConfig(config_);
                     int this_ret = stub.PHXEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;

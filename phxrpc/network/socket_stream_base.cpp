@@ -127,6 +127,21 @@ bool BaseTcpStream::GetRemoteHost(char * ip, size_t size, int * port) {
     return 0 == ret;
 }
 
+bool BaseTcpStream::GetRemoteHost(unsigned int * ip, int * port) {
+    struct sockaddr_in addr;
+    socklen_t slen = sizeof(addr);
+    memset(&addr, 0, sizeof(addr));
+
+    int ret = getpeername(SocketFd(), (struct sockaddr*) &addr, &slen);
+
+    if (0 == ret) {
+        *ip = addr.sin_addr.s_addr;
+        *port = ntohs(addr.sin_port);
+    }
+
+    return 0 == ret;
+}
+
 std::istream & BaseTcpStream::getlineWithTrimRight(char * line, size_t size) {
     if (getline(line, size).good()) {
         for (char * pos = line + gcount() - 1; pos >= line; pos--) {

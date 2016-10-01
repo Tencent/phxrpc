@@ -22,6 +22,8 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include "rpc/client_config.h"
+#include "rpc/redis_client_config.h"
+#include "rpc/client_config_registry.h"
 #include "rpc/server_config.h"
 #include "rpc/phxrpc.pb.h"
 #include "rpc/hsha_server.h"

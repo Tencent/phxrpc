@@ -36,6 +36,8 @@ const char * HttpMessage::HEADER_DATE = "Date";
 const char * HttpMessage::HEADER_SERVER = "Server";
 
 const char * HttpMessage::HEADER_X_PHXRPC_RESULT = "X-PHXRPC-Result";
+const char * HttpMessage::HEADER_X_PHXRPC_QOS_REQ = "X-PHXRPC-QOS-Req";
+const char * HttpMessage::HEADER_X_PHXRPC_QOS_RESP = "X-PHXRPC-QOS-Resp";
 
 HttpMessage::HttpMessage(int type)
         : type_(type) {

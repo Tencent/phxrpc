@@ -38,8 +38,8 @@ class MonitorFactory {
 
     virtual ~MonitorFactory();
 
-    virtual ClientMonitorPtr CreateClientMonitor( const char * package_name );
-    virtual ServerMonitorPtr CreateServerMonitor( const char * package_name );
+    virtual ClientMonitorPtr CreateClientMonitor(const int oss_id);
+    virtual ServerMonitorPtr CreateServerMonitor(const int oss_id);
 
  public:
     static void SetFactory( MonitorFactory * factory );

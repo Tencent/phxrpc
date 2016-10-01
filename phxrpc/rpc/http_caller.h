@@ -50,6 +50,8 @@ public:
 
     void SetKeepAlive( const bool keep_alive );
 
+    void SetIsEnableCliFr( const bool is_enable_cli_fr );
+
 private:
     void MonitorReport( phxrpc::ClientMonitor & client_monitor, bool send_error, bool recv_error, 
                         size_t send_size, size_t recv_size, uint64_t call_begin, uint64_t call_end );
@@ -57,6 +59,7 @@ private:
     BaseTcpStream & socket_;
     ClientMonitor & client_monitor_;
     int cmdid_;
+    bool is_enable_cli_fr_;
 
     HttpRequest request_;
     HttpResponse response_;

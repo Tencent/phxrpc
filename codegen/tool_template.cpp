@@ -38,7 +38,7 @@ using namespace phxrpc;
 
 void showUsage( const char * program )
 {
-    printf( "\nUsage: %s [-c <config>] [-f <func>] [-v]\n", program );
+    printf( "\nUsage: %s [-f <func>] [-v]\n", program );
 
     $ToolClass$::Name2Func_t * name2func = $ToolClass$::GetName2Func();
 
@@ -56,12 +56,8 @@ void showUsage( const char * program )
 int main( int argc, char * argv[] )
 {
     const char * func = NULL;
-    const char * config = NULL;
 
     for( int i = 1; i < argc - 1; i++ ) {
-        if( 0 == strcmp( argv[i], "-c" ) ) {
-            config = argv[ ++i ];
-        }
         if( 0 == strcmp( argv[i], "-f" ) ) {
             func = argv[ ++i ];
         }
@@ -71,8 +67,6 @@ int main( int argc, char * argv[] )
     }
 
     if( NULL == func ) showUsage( argv[0] );
-
-    if( NULL != config ) $ClientClass$::Init( config );
 
     $ToolClass$::Name2Func_t * target = NULL;
 
@@ -95,11 +89,15 @@ int main( int argc, char * argv[] )
 
     if( ! opt_map.Parse( argc, argv ) ) showUsage( argv[0] );
 
+    phxrpc::openlog( argv[0], "~/log", 7 );
+
     $ToolClass$::ToolFunc_t targefunc = target->func;
 
     $ToolImplClass$ tool;
 
     if( 0 != ( tool.*targefunc ) ( opt_map ) ) showUsage( argv[0] );
+
+    phxrpc::closelog();
 
     return 0;
 }
