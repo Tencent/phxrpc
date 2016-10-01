@@ -46,11 +46,11 @@ MonitorFactory * MonitorFactory :: GetFactory() {
     return g_monitor_factory_;
 }
 
-ClientMonitorPtr MonitorFactory :: CreateClientMonitor( const char * package_name ) {
+ClientMonitorPtr MonitorFactory :: CreateClientMonitor(const int oss_id) {
     return ClientMonitorPtr( new ClientMonitor() );
 }
 
-ServerMonitorPtr MonitorFactory :: CreateServerMonitor( const char * package_name ) {
+ServerMonitorPtr MonitorFactory :: CreateServerMonitor(const int oss_id) {
     return ServerMonitorPtr( new ServerMonitor() );
 }
 

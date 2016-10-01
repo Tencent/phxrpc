@@ -1,0 +1,34 @@
+cc_library(
+    name = 'monitor_plugin_sk',
+    srcs = [ 
+		'client_monitor_sk.cpp',
+		'monitor_factory_sk.cpp',
+		'server_monitor_sk.cpp',
+    ],
+    deps = [
+		'//phxrpc:phxrpc',
+		'//phxrpc/plugin_sk/phxskoss:phxskoss',
+    ],
+    defs = [
+		'LINUX',
+        '_PTHREADS',
+        'TIXML_USE_STL',
+        '_NEW_LIC',
+        '_GNU_SOURCE',
+        '_REENTRANT',
+
+           ],
+    optimize = ['O2',],
+    extra_cppflags = [ 
+        '-pipe',
+        '-fPIC',
+        '-Wno-deprecated',
+		'-D__STDC_FORMAT_MACROS',
+		'-std=c++11',
+    ],
+	export_incs = [
+	'.',
+	],
+	export_lib = True
+)
+

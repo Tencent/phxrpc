@@ -1,0 +1,53 @@
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/gzrd/gzrd_mail_rep/!svn/ver/1716024/phoenix_proj/trunk/phxrpc/plugin_sk/monitor
+END
+BUILD
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/gzrd/gzrd_mail_rep/!svn/ver/1708010/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/BUILD
+END
+server_monitor_sk.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/gzrd/gzrd_mail_rep/!svn/ver/1710334/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/server_monitor_sk.h
+END
+monitor_factory_sk.h
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/gzrd/gzrd_mail_rep/!svn/ver/1702492/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/monitor_factory_sk.h
+END
+client_monitor_sk.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/gzrd/gzrd_mail_rep/!svn/ver/1710334/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/client_monitor_sk.cpp
+END
+Makefile.define
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/gzrd/gzrd_mail_rep/!svn/ver/1701346/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/Makefile.define
+END
+client_monitor_sk.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/gzrd/gzrd_mail_rep/!svn/ver/1710334/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/client_monitor_sk.h
+END
+server_monitor_sk.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/gzrd/gzrd_mail_rep/!svn/ver/1710334/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/server_monitor_sk.cpp
+END
+monitor_factory_sk.cpp
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/gzrd/gzrd_mail_rep/!svn/ver/1716024/phoenix_proj/trunk/phxrpc/plugin_sk/monitor/monitor_factory_sk.cpp
+END

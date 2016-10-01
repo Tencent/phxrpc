@@ -435,6 +435,8 @@ void Worker :: Func() {
         const char * http_header_qos_value = request->GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_QOS_REQ);
         FastRejectQoSMgr::SetReqQoSInfo(http_header_qos_value);
 
+        phxrpc::log(LOG_DEBUG, "%s req qos info %s", __func__, http_header_qos_value);
+
         HttpResponse * response = new HttpResponse;
         if (queue_wait_time_ms < MAX_QUEUE_WAIT_TIME_COST) {
             HshaServerStat::TimeCost time_cost;
@@ -553,6 +555,8 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
 
             response = new HttpResponse;
             response->AddHeader(HttpMessage::HEADER_X_PHXRPC_RESULT, -206);
+            response->SetStatusCode(561);
+            response->SetReasonPhrase( "FastReject" );
 
         } else {
             //if have enqueue, request will be deleted after pop.
@@ -733,7 +737,7 @@ HshaServer :: HshaServer(
         Dispatch_t dispatch, 
         void * args) : 
     config_(&config),
-    hsha_server_monitor_(MonitorFactory::GetFactory()->CreateServerMonitor(config.GetPackageName())),
+    hsha_server_monitor_(MonitorFactory::GetFactory()->CreateServerMonitor(config.GetOssId())),
     hsha_server_stat_(&config, hsha_server_monitor_), 
     hsha_server_qos_(&config, &hsha_server_stat_), 
     hsha_server_acceptor_(this) {

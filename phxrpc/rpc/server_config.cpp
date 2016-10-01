@@ -119,6 +119,7 @@ ServerConfig::ServerConfig() {
     max_threads_ = 120;
     socket_timeout_ms_ = 5000;
     memset(package_name_, 0, sizeof(package_name_)) ;
+    oss_id_ = 0;
 }
 
 ServerConfig::~ServerConfig() {
@@ -138,6 +139,11 @@ bool ServerConfig::Read(const char * config_file) {
     config.ReadItem("Log", "LogDir", log_dir_, sizeof(log_dir_), "~/log");
     config.ReadItem("Log", "LogLevel", &log_level_, LOG_ERR);
     config.ReadItem("ServerTimeout", "SocketTimeoutMS", &socket_timeout_ms_, 5000);
+
+    config.ReadItem("Server", "OssId", &oss_id_, 0);
+    if(0 == oss_id_) {
+        oss_id_ = port_;
+    }
 
     if (succ) {
 
@@ -209,6 +215,11 @@ void ServerConfig :: SetLogLevel( int log_level )
 int ServerConfig :: GetLogLevel() const
 {
     return log_level_;
+}
+
+int ServerConfig :: GetOssId() const
+{
+    return oss_id_;
 }
 
 //////////////////////////////////////////////////////
