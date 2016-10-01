@@ -12,10 +12,10 @@ PROTOBUF_ROOT=$(PHXRPC_ROOT)/third_party/protobuf
 BOOST_ROOT=$(PHXRPC_ROOT)/third_party/boost
 
 ifeq ($(OS),Darwin)
-	PLUGIN_BOOST_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_boost.a \
+	PLUGIN_BOOST_LDFLAGS = -Wl,-force_load,$(PHXRPC_ROOT)/lib/libphxrpc_plugin_boost.a \
 			-L$(BOOST_ROOT)/lib/ -lboost_context
-	PLUGIN_ELPP_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_elpp.a
-	PLUGIN_REDIS_CONFIG_LOADER_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_redis_config_loader.a
+	PLUGIN_ELPP_LDFLAGS = -Wl,-force_load,$(PHXRPC_ROOT)/lib/libphxrpc_plugin_elpp.a
+	PLUGIN_REDIS_CONFIG_LOADER_LDFLAGS = -Wl,-force_load,$(PHXRPC_ROOT)/lib/libphxrpc_plugin_redis_config_loader.a
 	PLUGIN_SK_MONITOR_LDFLAGS = -L$(PHXRPC_ROOT)/lib/ -Wl,-force_load,libphxrpc_plugin_monitor_sk.a
 else
 	PLUGIN_BOOST_LDFLAGS = -Wl,--whole-archive -L$(PHXRPC_ROOT)/lib/ -lphxrpc_plugin_boost \
