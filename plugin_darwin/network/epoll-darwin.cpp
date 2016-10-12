@@ -41,9 +41,9 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 	struct kevent kev;
 	if (op == EPOLL_CTL_ADD) {
 		if (event->events == EPOLLIN) {
-			EV_SET(&kev, fd, EVFILT_READ, EV_ADD, 0, 0, event->data.ptr);
+			EV_SET(&kev, fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, event->data.ptr);
 		} else {
-			EV_SET(&kev, fd, EVFILT_WRITE, EV_ADD, 0, 0, event->data.ptr);
+			EV_SET(&kev, fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, event->data.ptr);
 		}
 	} else if (op == EPOLL_CTL_DEL) {
 		if (event->events == EPOLLIN) {
