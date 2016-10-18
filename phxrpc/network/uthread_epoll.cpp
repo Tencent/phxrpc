@@ -95,7 +95,7 @@ void EpollNotifier :: Func() {
 void EpollNotifier :: Notify() {
     ssize_t write_len = write(pipe_fds_[1], (void *)"a", 1);
     if (write_len < 0) {
-        log(LOG_ERR, "%s write err", __func__);
+        //log(LOG_ERR, "%s write err", __func__);
     }
 }
 
