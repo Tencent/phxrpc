@@ -39,7 +39,14 @@ Config :: ~Config() {
 }
 
 bool Config::InitConfig(const char * path) {
-    return FileUtils::ReadFile(path, &content_);
+    bool ret = FileUtils::ReadFile(path, &content_);
+    if( ret ) content_.insert( 0, "\n" );
+    return ret;
+}
+
+void Config::SetContent(const std::string & content) {
+    content_.clear();
+    content_.append( "\n" ).append( content );
 }
 
 bool Config::ReadItem(const char * section, const char * key, int * value) {
@@ -129,6 +136,60 @@ bool Config::ReadItem(const char * section, const char * key, char * value, size
     }
 
     return ret;
+}
+
+int Config::TrimCStr( char * src_str )
+{
+    int len = 0;
+    char *pos = 0;
+
+    len = strlen ( src_str ) ;
+    while ( len > 0 && isspace( src_str [len - 1] ) )
+        len--;
+    src_str [len] = '\0' ;
+    for ( pos = src_str; isspace(*pos); pos ++ )
+        len--;
+    if ( pos != src_str )
+        memmove ( src_str, pos, len + 1 ) ;
+    return 0;
+}
+
+bool Config::GetSection(const char * name,
+        std::vector<std::string> * section) {
+
+    char tmp_section[ 128 ] = { 0 };
+    snprintf(tmp_section, sizeof( tmp_section ), "\n[%s]", name);
+
+    char line[ 1024 ] = { 0 };
+
+    const char * pos = strstr( content_.c_str(), tmp_section );
+    if(!pos) {
+        return false;
+    } else {
+        ++pos;
+    }
+
+    for( ; NULL != pos; )
+    {
+        pos = strchr( pos, '\n' );
+
+        if( NULL == pos ) break;
+        pos++;
+
+        if( '[' == *pos ) break;
+
+        if( ';' == *pos || '#' == *pos ) continue;
+
+        strncpy( line, pos, sizeof( line ) - 1 );
+
+        char * tmp_pos = strchr( line, '\n' );
+        if( NULL != tmp_pos ) *tmp_pos = '\0';
+
+        TrimCStr( line );
+
+        if( '\0' != line[0] ) section->push_back( line );
+    }
+    return true;
 }
 
 
