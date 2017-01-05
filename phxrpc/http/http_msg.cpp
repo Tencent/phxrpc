@@ -64,7 +64,7 @@ void HttpMessage::AppendContent(const void * content, int length, int max_length
     int total = content_.size() + length;
     total = total > max_length ? total : max_length;
 
-    content_.reserve(total);
+    //content_.reserve(total);
 
     content_.append((char*) content, length);
 }
