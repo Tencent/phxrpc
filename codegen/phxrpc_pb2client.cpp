@@ -50,7 +50,7 @@ void PrintHelp(const char * program) {
 }
 
 void Proto2Client(const char * program, const char * proto_file, const char * dir_path,
-        const std::vector<std::string> & include_list) {
+        const std::vector<std::string> & include_list, const bool is_uthread_mode) {
     SyntaxTree syntax_tree;
 
     int ret = ProtoUtils::Parse(proto_file, &syntax_tree, include_list);
@@ -89,6 +89,7 @@ void Proto2Client(const char * program, const char * proto_file, const char * di
         printf("\n%s: Build %s file ... done\n", program, filename);
     }
 
+
     // [xx]client.h
     {
         name_render.GetClientFileName(syntax_tree.GetName(), tmp, sizeof(tmp));
@@ -100,7 +101,31 @@ void Proto2Client(const char * program, const char * proto_file, const char * di
         if (0 != access(name4hpp, F_OK)) {
             if (0 != access(filename, F_OK)) {
                 FILE * fp = fopen(filename, "w");
-                clientCodeRender.GenerateClientHpp(&syntax_tree, fp);
+                clientCodeRender.GenerateClientHpp(&syntax_tree, fp, false);
+                fclose(fp);
+
+                printf("\n%s: Build %s file ... done\n", program, filename);
+            } else {
+                printf("\n%s: %s is exist, skip\n", program, filename);
+            }
+        } else {
+            printf("\n%s: %s is exist, skip\n", program, name4hpp);
+        }
+    }
+    
+    // [xx]client_uthread.h
+    if (is_uthread_mode)
+    {
+        name_render.GetClientFileName(syntax_tree.GetName(), tmp, sizeof(tmp));
+        snprintf(filename, sizeof(filename), "%s/%s_uthread.h", dir_path, tmp);
+
+        char name4hpp[256] = { 0 };
+        snprintf(name4hpp, sizeof(name4hpp), "%s/%s_uthread.hpp", dir_path, tmp);
+
+        if (0 != access(name4hpp, F_OK)) {
+            if (0 != access(filename, F_OK)) {
+                FILE * fp = fopen(filename, "w");
+                clientCodeRender.GenerateClientHpp(&syntax_tree, fp, is_uthread_mode);
                 fclose(fp);
 
                 printf("\n%s: Build %s file ... done\n", program, filename);
@@ -119,7 +144,24 @@ void Proto2Client(const char * program, const char * proto_file, const char * di
 
         if (0 != access(filename, F_OK)) {
             FILE * fp = fopen(filename, "w");
-            clientCodeRender.GenerateClientCpp(&syntax_tree, fp);
+            clientCodeRender.GenerateClientCpp(&syntax_tree, fp, false);
+            fclose(fp);
+
+            printf("\n%s: Build %s file ... done\n", program, filename);
+        } else {
+            printf("\n%s: %s is exist, skip\n", program, filename);
+        }
+    }
+
+    // [xx]client_uthread.cpp
+    if (is_uthread_mode)
+    {
+        name_render.GetClientFileName(syntax_tree.GetName(), tmp, sizeof(tmp));
+        snprintf(filename, sizeof(filename), "%s/%s_uthread.cpp", dir_path, tmp);
+
+        if (0 != access(filename, F_OK)) {
+            FILE * fp = fopen(filename, "w");
+            clientCodeRender.GenerateClientCpp(&syntax_tree, fp, is_uthread_mode);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -154,8 +196,9 @@ int main(int argc, char * argv[]) {
     std::vector<std::string> include_list;
     char real_path[1024] = {0};
     char * rp = nullptr;
+    bool is_uthread_mode = false;
 
-    while ((c = getopt(argc, argv, "f:d:I:v")) != EOF) {
+    while ((c = getopt(argc, argv, "f:d:I:uv")) != EOF) {
         switch (c) {
             case 'f':
                 proto_file = optarg;
@@ -168,6 +211,9 @@ int main(int argc, char * argv[]) {
                 if (rp != nullptr) {
                     include_list.push_back(rp);
                 }
+                break;
+            case 'u':
+                is_uthread_mode = true;
                 break;
             default:
                 PrintHelp(argv[0]);
@@ -195,7 +241,7 @@ int main(int argc, char * argv[]) {
         path[strlen(path) - 1] = '\0';
     }
 
-    Proto2Client(argv[0], proto_file, path, include_list);
+    Proto2Client(argv[0], proto_file, path, include_list, is_uthread_mode);
 
     printf("\n");
 

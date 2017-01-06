@@ -66,6 +66,18 @@ public:
         return true;
     }
 
+    bool pick(T & value) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (queue_.empty()) {
+            return false;
+        }
+
+        size_--;
+        value = queue_.front();
+        queue_.pop();
+        return true;
+    }
+
     void break_out() {
         std::lock_guard<std::mutex> lock(mutex_);
         break_out_ = true;

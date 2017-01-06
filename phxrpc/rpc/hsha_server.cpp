@@ -61,6 +61,19 @@ int DataFlow :: PluckRequest(void *& args, HttpRequest *& request) {
     return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
 }
 
+int DataFlow :: PickRequest(void *& args, HttpRequest *& request) {
+    pair<QueueExtData, HttpRequest *> rp;
+    bool succ = in_queue_.pick(rp);
+    if (!succ) {
+        return 0;
+    }
+    args = rp.first.args;
+    request = rp.second;
+
+    auto now_time = Timer::GetSteadyClockMS();
+    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
+}
+
 void DataFlow :: PushResponse(void * args, HttpResponse * response) {
     out_queue_.push(make_pair(QueueExtData(args), response));
 }
@@ -108,7 +121,7 @@ int HshaServerStat :: TimeCost :: Cost() {
 }
 
 HshaServerStat :: HshaServerStat(const HshaServerConfig * config, ServerMonitorPtr hsha_server_monitor ) :
-    thread_(&HshaServerStat::CalFunc, this), break_out_(false), 
+    config_(config), thread_(&HshaServerStat::CalFunc, this), break_out_(false), 
     hsha_server_monitor_(hsha_server_monitor) {
     hold_fds_ = 0;
     accepted_fds_ = 0;
@@ -364,15 +377,25 @@ void HshaServerQos :: CalFunc() {
 
 ////////////////////////////////////////
 
-Worker :: Worker(WorkerPool * pool)
-    : pool_(pool), shut_down_(false), thread_(&Worker::Func, this) {
+Worker :: Worker(WorkerPool * pool, const int uthread_count, int utherad_stack_size)
+    : pool_(pool), uthread_count_(uthread_count), utherad_stack_size_(utherad_stack_size), shut_down_(false), 
+    worker_scheduler_(nullptr), thread_(&Worker::Func, this) {
 }
 
 Worker :: ~Worker() {
     thread_.join();
+    delete worker_scheduler_;
 }
 
 void Worker :: Func() {
+    if (uthread_count_ == 0) {
+        ThreadMode();
+    } else {
+        UThreadMode();
+    }
+}
+
+void Worker :: ThreadMode() {
     while (!shut_down_) {
         pool_->hsha_server_stat_->worker_idles_++;
 
@@ -385,25 +408,67 @@ void Worker :: Func() {
         }
         pool_->hsha_server_stat_->worker_idles_--;
 
-        pool_->hsha_server_stat_->inqueue_pop_requests_++;
-        pool_->hsha_server_stat_->inqueue_wait_time_costs_ += queue_wait_time_ms;
-        pool_->hsha_server_stat_->inqueue_wait_time_costs_count_++;
-
-        HttpResponse * response = new HttpResponse;
-        if (queue_wait_time_ms < MAX_QUEUE_WAIT_TIME_COST) {
-            HshaServerStat::TimeCost time_cost;
-            pool_->dispatch_(*request, response, &(pool_->dispatcher_args_));
-            pool_->hsha_server_stat_->worker_time_costs_ += time_cost.Cost();
-        } else {
-            pool_->hsha_server_stat_->worker_drop_requests_++;
-        }
-        pool_->data_flow_->PushResponse(args, response);
-        pool_->hsha_server_stat_->outqueue_push_responses_++;
-
-        pool_->scheduler_->NotifyEpoll();
-
-        delete request;
+        WorkerLogic(args, request, queue_wait_time_ms);
     }
+}
+
+void Worker :: UThreadMode() {
+    worker_scheduler_ = new UThreadEpollScheduler(utherad_stack_size_, uthread_count_, true);
+    assert(worker_scheduler_ != nullptr);
+    worker_scheduler_->SetHandlerNewRequestFunc(std::bind(&Worker::HandlerNewRequestFunc, this));
+    worker_scheduler_->RunForever();
+}
+
+void Worker :: HandlerNewRequestFunc() {
+    if (worker_scheduler_->IsTaskFull()) {
+        return;
+    }
+
+    void * args = nullptr;
+    HttpRequest * request = nullptr;
+    int queue_wait_time_ms = pool_->data_flow_->PickRequest(args, request);
+    if (request == nullptr) {
+        return;
+    }
+
+    worker_scheduler_->AddTask(std::bind(&Worker::UThreadFunc, this, args, request, queue_wait_time_ms), nullptr);
+}
+
+void Worker :: UThreadFunc(void * args, HttpRequest * request, int queue_wait_time_ms) {
+    WorkerLogic(args, request, queue_wait_time_ms);
+}
+
+void Worker :: WorkerLogic(void * args, HttpRequest * request, int queue_wait_time_ms) {
+    pool_->hsha_server_stat_->inqueue_pop_requests_++;
+    pool_->hsha_server_stat_->inqueue_wait_time_costs_ += queue_wait_time_ms;
+    pool_->hsha_server_stat_->inqueue_wait_time_costs_count_++;
+
+    HttpResponse * response = new HttpResponse;
+    if (queue_wait_time_ms < MAX_QUEUE_WAIT_TIME_COST) {
+        HshaServerStat::TimeCost time_cost;
+
+        DispatcherArgs_t dispatcher_args(pool_->hsha_server_stat_->hsha_server_monitor_, 
+                worker_scheduler_, pool_->args_);
+        pool_->dispatch_(*request, response, &dispatcher_args);
+
+        pool_->hsha_server_stat_->worker_time_costs_ += time_cost.Cost();
+    } else {
+        pool_->hsha_server_stat_->worker_drop_requests_++;
+    }
+    pool_->data_flow_->PushResponse(args, response);
+    pool_->hsha_server_stat_->outqueue_push_responses_++;
+
+    pool_->scheduler_->NotifyEpoll();
+
+    delete request;
+}
+
+void Worker :: Notify() {
+    if (uthread_count_ == 0) {
+        return;
+    }
+
+    worker_scheduler_->NotifyEpoll();
 }
 
 void Worker :: Shutdown() {
@@ -413,13 +478,20 @@ void Worker :: Shutdown() {
 
 ////////////////////////////////////////
 
-WorkerPool :: WorkerPool(UThreadEpollScheduler * scheduler, size_t thread_count, DataFlow * data_flow, 
-        HshaServerStat * hsha_server_stat, Dispatch_t dispatch, void * args)
+WorkerPool :: WorkerPool(
+        UThreadEpollScheduler * scheduler, 
+        int thread_count, 
+        int uthread_count_per_thread,
+        int utherad_stack_size,
+        DataFlow * data_flow, 
+        HshaServerStat * hsha_server_stat, 
+        Dispatch_t dispatch, 
+        void * args)
     : scheduler_(scheduler), data_flow_(data_flow), 
     hsha_server_stat_(hsha_server_stat), dispatch_(dispatch),
-    dispatcher_args_(hsha_server_stat_->hsha_server_monitor_, args ) {
-    for (size_t i = 0; i < thread_count; i++) {
-        auto worker = new Worker(this);
+    args_(args), last_notify_idx_(0) {
+    for (int i = 0; i < thread_count; i++) {
+        auto worker = new Worker(this, uthread_count_per_thread, utherad_stack_size);
         assert(worker != nullptr);
         worker_list_.push_back(worker);
     }
@@ -432,13 +504,23 @@ WorkerPool :: ~WorkerPool() {
     }
 }
 
+void WorkerPool :: Notify() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (last_notify_idx_ == worker_list_.size()) {
+        last_notify_idx_ = 0;
+    }
+
+    worker_list_[last_notify_idx_++]->Notify();
+}
+
 ////////////////////////////////////////
 
 HshaServerIO :: HshaServerIO(int idx, UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
-        DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos)
-    : scheduler_(scheduler), config_(config), 
-    data_flow_(data_flow), hsha_server_stat_(hsha_server_stat), 
-    hsha_server_qos_(hsha_server_qos){
+        DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos,
+        WorkerPool * worker_pool)
+    : idx_(idx), scheduler_(scheduler), config_(config), 
+    data_flow_(data_flow), listen_fd_(-1), hsha_server_stat_(hsha_server_stat), 
+    hsha_server_qos_(hsha_server_qos), worker_pool_(worker_pool) {
 }
 
 HshaServerIO :: ~HshaServerIO() {
@@ -507,6 +589,8 @@ void HshaServerIO :: IOFunc(int accepted_fd) {
 
         hsha_server_stat_->inqueue_push_requests_++;
         data_flow_->PushRequest((void *)socket, request);
+        //if is uthread worker mode, need notify.
+        worker_pool_->Notify();
         UThreadSetArgs(*socket, nullptr);
 
         UThreadWait(*socket, config_->GetSocketTimeoutMS());
@@ -585,18 +669,24 @@ void HshaServerIO :: RunForever() {
 
 /////////////////////////////////////////////////
 
-HshaServerUnit :: HshaServerUnit(HshaServer * hsha_server, int idx, int worker_thread_count, 
-        Dispatch_t dispatch, void * args) :
+HshaServerUnit :: HshaServerUnit(
+        HshaServer * hsha_server, 
+        int idx, 
+        int worker_thread_count, 
+        int worker_uthread_count_per_thread,
+        int worker_utherad_stack_size,
+        Dispatch_t dispatch, 
+        void * args) :
     hsha_server_(hsha_server),
 #ifndef __APPLE__
     scheduler_(8 * 1024, 1000000, false), 
 #else
     scheduler_(32 * 1024, 1000000, false), 
 #endif
+    worker_pool_(&scheduler_, worker_thread_count, worker_uthread_count_per_thread, 
+            worker_utherad_stack_size, &data_flow_, &hsha_server_->hsha_server_stat_, dispatch, args),
     hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_, 
-            &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_),
-    worker_pool_(&scheduler_, worker_thread_count, &data_flow_, 
-            &hsha_server_->hsha_server_stat_, dispatch, args),
+            &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_, &worker_pool_),
     thread_(&HshaServerUnit::RunFunc, this) {
 }
 
@@ -688,16 +778,23 @@ HshaServer :: HshaServer(
     if (worker_thread_count < io_count) {
         io_count = worker_thread_count;
     }
+
+    int worker_utherad_stack_size = config.GetWorkerUThreadStackSize();
     size_t worker_thread_count_per_io = worker_thread_count / io_count;
     for (size_t i = 0; i < io_count; i++) {
         if (i == io_count - 1) {
             worker_thread_count_per_io = worker_thread_count - (worker_thread_count_per_io * (io_count - 1));
         }
-        auto hsha_server_unit = new HshaServerUnit(this, i, worker_thread_count_per_io, dispatch, args);
+        auto hsha_server_unit = 
+            new HshaServerUnit(this, i, (int)worker_thread_count_per_io,
+                    config.GetWorkerUThreadCount(), worker_utherad_stack_size, dispatch, args);
         assert(hsha_server_unit != nullptr);
         server_unit_list_.push_back(hsha_server_unit);
     }
     printf("server already started, %zu io threads %zu workers\n", io_count, worker_thread_count);
+    if (config.GetWorkerUThreadCount() > 0) {
+        printf("server in uthread mode, %d uthread per worker\n", config.GetWorkerUThreadCount());
+    }
 }
 
 HshaServer :: ~HshaServer() {

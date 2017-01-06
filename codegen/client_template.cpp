@@ -43,6 +43,34 @@ $ClientClassFuncDeclarations$
 
 //////////////////////////////////////////////////////////////////////
 
+const char * PHXRPC_UTHREAD_CLIENT_HPP_TEMPLATE =
+        R"(
+
+#include "$MessageFile$.h"
+#include "phxrpc/rpc.h"
+#include "phxrpc/network.h"
+
+class $ClientClass$
+{
+public:
+    static bool Init( const char * config_file );
+
+    static const char * GetPackageName();
+
+public:
+    $ClientClass$(phxrpc::UThreadEpollScheduler * uthread_scheduler);
+    ~$ClientClass$();
+
+$ClientClassFuncDeclarations$
+
+private:
+    phxrpc::UThreadEpollScheduler * uthread_scheduler_;
+};
+
+)";
+
+//////////////////////////////////////////////////////////////////////
+
 const char * PHXRPC_CLIENT_CPP_TEMPLATE =
         R"(
 
@@ -95,6 +123,59 @@ $ClientClassFuncs$
 
 //////////////////////////////////////////////////////////////////////
 
+const char * PHXRPC_UTHREAD_CLIENT_CPP_TEMPLATE =
+        R"(
+
+#include <iostream>
+#include <memory>
+#include <stdlib.h>
+#include <mutex>
+
+#include "$ClientFile$_uthread.h"
+#include "$StubFile$.h"
+
+#include "phxrpc/rpc.h"
+
+static phxrpc::ClientConfig global_$ClientClassLower$_config_;
+static phxrpc::ClientMonitorPtr global_$ClientClassLower$_monitor_;
+
+bool $ClientClass$ :: Init( const char * config_file )
+{
+    return global_$ClientClassLower$_config_.Read( config_file );
+}
+
+const char * $ClientClass$ :: GetPackageName() {
+    const char * ret = global_$ClientClassLower$_config_.GetPackageName();
+    if (strlen(ret) == 0) {
+        ret = "$PackageName$";
+    }
+    return ret;
+}
+
+$ClientClass$ :: $ClientClass$(phxrpc::UThreadEpollScheduler * uthread_scheduler)
+{
+    uthread_scheduler_ = uthread_scheduler;
+    static std::mutex monitor_mutex;
+    if ( !global_$ClientClassLower$_monitor_.get() ) { 
+        monitor_mutex.lock();
+        if ( !global_$ClientClassLower$_monitor_.get() ) {
+            global_$ClientClassLower$_monitor_ = phxrpc::MonitorFactory::GetFactory()
+                ->CreateClientMonitor( GetPackageName() );
+        }
+        global_$ClientClassLower$_config_.SetClientMonitor( global_$ClientClassLower$_monitor_ );
+        monitor_mutex.unlock();
+    }
+}
+
+$ClientClass$ :: ~$ClientClass$()
+{
+}
+
+$ClientClassFuncs$
+)";
+
+//////////////////////////////////////////////////////////////////////
+
 const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
         R"(
 {
@@ -104,6 +185,30 @@ const char * PHXRPC_CLIENT_FUNC_TEMPLATE =
         phxrpc::BlockTcpStream socket;
         bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
                     global_$ClientClassLower$_config_.GetConnectTimeoutMS(), NULL, 0, 
+                    *(global_$ClientClassLower$_monitor_.get()));
+        if ( open_ret ) {
+            socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
+
+            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+            return stub.$Func$(req, resp);
+        } 
+    }
+
+    return -1;
+}
+)";
+
+//////////////////////////////////////////////////////////////////////
+
+const char * PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
+        R"(
+{
+    const phxrpc::Endpoint_t * ep = global_$ClientClassLower$_config_.GetRandom();
+
+    if(uthread_scheduler_ != nullptr && ep != nullptr) {
+        phxrpc::UThreadTcpStream socket;
+        bool open_ret = phxrpc::PhxrpcTcpUtils::Open(uthread_scheduler_, &socket, ep->ip, ep->port,
+                    global_$ClientClassLower$_config_.GetConnectTimeoutMS(), 
                     *(global_$ClientClassLower$_monitor_.get()));
         if ( open_ret ) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());

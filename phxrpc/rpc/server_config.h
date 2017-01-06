@@ -88,12 +88,20 @@ public:
     void SetIOThreadCount(const int io_thread_count);
     int GetIOThreadCount() const;
 
+    void SetWorkerUThreadCount(const int worker_uthread_count);
+    int GetWorkerUThreadCount() const;
+
+    void SetWorkerUThreadStackSize(const int worker_uthread_stack_size);
+    int GetWorkerUThreadStackSize() const;
+
 private:
     int max_connections_;
     int max_queue_length_;
     int fast_reject_threshold_ms_;
     int fast_reject_adjust_rate_;
     int io_thread_count_;
+    int worker_uthread_count_;
+    int worker_uthread_stack_size_;
 };
 
 }

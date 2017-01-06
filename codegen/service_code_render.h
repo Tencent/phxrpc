@@ -40,9 +40,9 @@ class ServiceCodeRender {
 
     virtual void GenerateServiceCpp(SyntaxTree * stree, FILE * write);
 
-    virtual void GenerateServiceImplHpp(SyntaxTree * stree, FILE * write);
+    virtual void GenerateServiceImplHpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode);
 
-    virtual void GenerateServiceImplCpp(SyntaxTree * stree, FILE * write);
+    virtual void GenerateServiceImplCpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode);
 
     virtual void GenerateDispatcherHpp(SyntaxTree * stree, FILE * write);
 

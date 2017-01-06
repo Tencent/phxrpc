@@ -38,6 +38,7 @@ public:
     bool Yield();
     bool Resume(size_t index);
     bool IsAllDone();
+    int GetUnfinishedItemCount() const;
 
     void UThreadDoneCallback();
 

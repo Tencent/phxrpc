@@ -39,9 +39,9 @@ class ClientCodeRender {
 
     void GenerateStubCpp(SyntaxTree * stree, FILE * write);
 
-    void GenerateClientHpp(SyntaxTree * stree, FILE * write);
+    void GenerateClientHpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode);
 
-    void GenerateClientCpp(SyntaxTree * stree, FILE * write);
+    void GenerateClientCpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode);
 
     void GenerateClientEtc(SyntaxTree * stree, FILE * write);
 
@@ -51,7 +51,8 @@ class ClientCodeRender {
 
     void GenerateStubFunc(SyntaxTree * stree, SyntaxFunc * func, FILE * write);
 
-    void GetClienfuncDeclaration(SyntaxTree * stree, SyntaxFunc * func, int is_header, std::string * result);
+    void GetClienfuncDeclaration(SyntaxTree * stree, SyntaxFunc * func, int is_header, std::string * result,
+            const bool is_uthread_mode);
 
  private:
     NameRender & name_render_;

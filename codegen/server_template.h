@@ -21,14 +21,16 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-extern const char * PHXRPC_SERVER_MAIN_TEMPLATE;
 extern const char * PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE;
-extern const char * PHXRPC_SERVER_CONFIG_HPP_TEMPLATE;
+extern const char * PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE;
+
 extern const char * PHXRPC_EPOLL_SERVER_CONFIG_HPP_TEMPLATE;
-extern const char * PHXRPC_SERVER_CONFIG_CPP_TEMPLATE;
+
 extern const char * PHXRPC_EPOLL_SERVER_CONFIG_CPP_TEMPLATE;
-extern const char * PHXRPC_SERVER_ETC_TEMPLATE;
+
 extern const char * PHXRPC_EPOLL_SERVER_ETC_TEMPLATE;
+extern const char * PHXRPC_EPOLL_UTHREAD_SERVER_ETC_TEMPLATE;
 
 extern const char * PHXRPC_SERVER_MAKEFILE_TEMPLATE;
+extern const char * PHXRPC_UTHREAD_SERVER_MAKEFILE_TEMPLATE;
 

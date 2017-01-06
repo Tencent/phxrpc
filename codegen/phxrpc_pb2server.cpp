@@ -45,6 +45,7 @@ void PrintHelp(const char * program) {
     printf(" Usage: -f <Proto file>             # Proto File\n");
     printf("        -d <dir>                    # destination file dir\n");
     printf("        -I <dir>                    # include path dir\n");
+    printf("        -e                          # epoll server\n");
     printf("        -v                          # print this screen\n");
     printf("\n");
 
@@ -52,7 +53,8 @@ void PrintHelp(const char * program) {
 }
 
 void Proto2Server(const char * program, const char * pb_file, const char * dir_path,
-        const std::vector<std::string> & include_list, const std::string & mk_dir_path) {
+        const std::vector<std::string> & include_list, const std::string & mk_dir_path,
+        const bool is_uthread_mode) {
     SyntaxTree syntax_tree;
     std::map<std::string, bool> parsed_file_map;
 
@@ -107,7 +109,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
         if (0 != access(filename, F_OK)) {
             FILE * fp = fopen(filename, "w");
-            codeRender.GenerateServerMainCpp(&syntax_tree, fp);
+            codeRender.GenerateServerMainCpp(&syntax_tree, fp, is_uthread_mode);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -123,7 +125,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
         if (0 != access(filename, F_OK)) {
             FILE * fp = fopen(filename, "w");
-            codeRender.GenerateServerEtc(&syntax_tree, fp);
+            codeRender.GenerateServerEtc(&syntax_tree, fp, is_uthread_mode);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -138,7 +140,7 @@ void Proto2Server(const char * program, const char * pb_file, const char * dir_p
 
         if (0 != access(filename, F_OK)) {
             FILE * fp = fopen(filename, "w");
-            codeRender.GenerateMakefile(&syntax_tree, mk_dir_path, fp);
+            codeRender.GenerateMakefile(&syntax_tree, mk_dir_path, fp, is_uthread_mode);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -157,8 +159,9 @@ int main(int argc, char * argv[]) {
     std::vector<std::string> include_list;
     char real_path[1024] = {0};
     char * rp = nullptr;
+    bool is_uthread_mode = false;
 
-    while ((c = getopt(argc, argv, "f:d:I:v")) != EOF) {
+    while ((c = getopt(argc, argv, "f:d:I:uv")) != EOF) {
         switch (c) {
             case 'f':
                 pb_file = optarg;
@@ -171,6 +174,9 @@ int main(int argc, char * argv[]) {
                 if (rp != nullptr) {
                     include_list.push_back(rp);
                 }
+                break;
+            case 'u':
+                is_uthread_mode = true;
                 break;
             default:
                 PrintHelp(argv[0]);
@@ -208,7 +214,7 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    Proto2Server(argv[0], pb_file, path, include_list, mk_dir_path);
+    Proto2Server(argv[0], pb_file, path, include_list, mk_dir_path, is_uthread_mode);
 
     return 0;
 }

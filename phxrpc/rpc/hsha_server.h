@@ -47,6 +47,7 @@ public:
 
     void PushRequest(void * args, HttpRequest * request);
     int PluckRequest(void *& args, HttpRequest *& request);
+    int PickRequest(void *& args, HttpRequest *& request);
     void PushResponse(void * args, HttpResponse * response);
     int PluckResponse(void *& args, HttpResponse *& response);
     bool CanPushRequest(const int max_queue_length);
@@ -102,6 +103,7 @@ private:
     friend class Worker;
     friend class HshaServerQos;
     friend class HshaServerAcceptor;
+    const HshaServerConfig * config_;
     std::mutex mutex_;
     std::condition_variable cv_;
     std::thread thread_;
@@ -200,15 +202,25 @@ private:
 
 class Worker {
 public:
-    Worker(WorkerPool * pool);
+    Worker(WorkerPool * pool, int uthread_count, int utherad_stack_size);
     ~Worker();
 
     void Func(); 
     void Shutdown();
 
+    void ThreadMode();
+    void UThreadMode();
+    void HandlerNewRequestFunc();
+    void UThreadFunc(void * args, HttpRequest * request, int queue_wait_time_ms);
+    void WorkerLogic(void * args, HttpRequest * request, int queue_wait_time_ms);
+    void Notify();
+
 private:
     WorkerPool * pool_;
+    int uthread_count_;
+    int utherad_stack_size_;
     bool shut_down_;
+    UThreadEpollScheduler * worker_scheduler_;
     std::thread thread_;
 };
 
@@ -218,9 +230,17 @@ typedef std::function< void(const HttpRequest &, HttpResponse *, DispatcherArgs_
 
 class WorkerPool {
 public:
-    WorkerPool(UThreadEpollScheduler * scheduler, size_t thread_count, DataFlow * data_flow, 
-            HshaServerStat * hsha_server_stat, Dispatch_t dispatch, void * args);
+    WorkerPool(UThreadEpollScheduler * scheduler, 
+            int thread_count, 
+            int uthread_count_per_thread,
+            int utherad_stack_size,
+            DataFlow * data_flow, 
+            HshaServerStat * hsha_server_stat, 
+            Dispatch_t dispatch, 
+            void * args);
     ~WorkerPool();
+
+    void Notify();
 
 private:
     friend class Worker;
@@ -228,8 +248,10 @@ private:
     DataFlow * data_flow_;
     HshaServerStat * hsha_server_stat_;
     Dispatch_t dispatch_;
-    DispatcherArgs_t dispatcher_args_;
+    void * args_;
     std::vector<Worker *> worker_list_;
+    size_t last_notify_idx_;
+    std::mutex mutex_;
 };
 
 /////////////////////////////////
@@ -237,7 +259,8 @@ private:
 class HshaServerIO {
 public:
     HshaServerIO(int idx, UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
-            DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos);
+            DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos,
+            WorkerPool * worker_pool);
     ~HshaServerIO();
 
     void RunForever();
@@ -251,11 +274,14 @@ public:
     UThreadSocket_t * ActiveSocketFunc();
 
 private:
+    int idx_;
     UThreadEpollScheduler * scheduler_;
     const HshaServerConfig * config_;
     DataFlow * data_flow_;
+    int listen_fd_;
     HshaServerStat * hsha_server_stat_;
     HshaServerQos * hsha_server_qos_;
+    WorkerPool * worker_pool_;
 
     std::queue<int> accepted_fd_list_;
     std::mutex queue_mutex_;
@@ -266,7 +292,13 @@ private:
 class HshaServer;
 class HshaServerUnit {
 public:
-    HshaServerUnit(HshaServer * hsha_server, int idx, int worker_thread_count, Dispatch_t dispatch, void * args);
+    HshaServerUnit(HshaServer * hsha_server, 
+            int idx, 
+            int worker_thread_count, 
+            int worker_uthread_count_per_thread,
+            int worker_utherad_stack_size,
+            Dispatch_t dispatch, 
+            void * args);
     ~HshaServerUnit();
 
     void RunFunc();
@@ -276,8 +308,8 @@ private:
     HshaServer * hsha_server_;
     UThreadEpollScheduler scheduler_;
     DataFlow data_flow_;
-    HshaServerIO hsha_server_io_;
     WorkerPool worker_pool_;
+    HshaServerIO hsha_server_io_;
     std::thread thread_;
 };
 

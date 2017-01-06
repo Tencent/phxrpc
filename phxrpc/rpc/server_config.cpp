@@ -126,7 +126,9 @@ HshaServerConfig :: HshaServerConfig()
     max_queue_length_(20480), 
     fast_reject_threshold_ms_(20),
     fast_reject_adjust_rate_(5),
-    io_thread_count_(3) {
+    io_thread_count_(3),
+    worker_uthread_count_(0),
+    worker_uthread_stack_size_(64 * 1024) {
 }
 
 HshaServerConfig :: ~HshaServerConfig() {
@@ -135,6 +137,8 @@ HshaServerConfig :: ~HshaServerConfig() {
 bool HshaServerConfig :: DoRead(Config & config) {
     config.ReadItem("Server", "MaxConnections", &max_connections_, 800000);
     config.ReadItem("Server", "IOThreadCount", &io_thread_count_, 3);
+    config.ReadItem("Server", "WorkerUThreadCount", &worker_uthread_count_, 0);
+    config.ReadItem("Server", "WorkerUThreadStackSize", &worker_uthread_stack_size_, 64 * 1024);
     config.ReadItem("Server", "MaxQueueLength", &max_queue_length_, 20480);
     config.ReadItem("Server", "FastRejectThresholdMS", &fast_reject_threshold_ms_, 20);
     config.ReadItem("Server", "FastRejectAdjustRate", &fast_reject_adjust_rate_, 5);
@@ -179,6 +183,24 @@ void HshaServerConfig :: SetIOThreadCount(const int io_thread_count) {
 
 int HshaServerConfig :: GetIOThreadCount() const {
     return io_thread_count_;
+}
+
+void HshaServerConfig :: SetWorkerUThreadCount(const int worker_uthread_count) {
+    worker_uthread_count_ = worker_uthread_count;
+}
+
+int HshaServerConfig :: GetWorkerUThreadCount() const {
+    return worker_uthread_count_;
+}
+
+void HshaServerConfig :: SetWorkerUThreadStackSize(const int worker_uthread_stack_size)
+{
+    worker_uthread_stack_size_ = worker_uthread_stack_size;
+}
+
+int HshaServerConfig :: GetWorkerUThreadStackSize() const
+{
+    return worker_uthread_stack_size_;
 }
 
 }
