@@ -38,11 +38,11 @@ class ServerCodeRender {
 
     void GenerateServerConfigCpp(SyntaxTree * stree, FILE * write);
 
-    void GenerateServerMainCpp(SyntaxTree * stree, FILE * write);
+    void GenerateServerMainCpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode);
 
-    void GenerateServerEtc(SyntaxTree * stree, FILE * write);
+    void GenerateServerEtc(SyntaxTree * stree, FILE * write, const bool is_uthread_mode);
 
-    void GenerateMakefile(SyntaxTree * stree, const std::string & mk_dir_path, FILE * write);
+    void GenerateMakefile(SyntaxTree * stree, const std::string & mk_dir_path, FILE * write, const bool is_uthread_mode);
 
  private:
     NameRender & name_render_;

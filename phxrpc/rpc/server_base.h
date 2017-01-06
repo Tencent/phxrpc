@@ -22,20 +22,23 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include "server_monitor.h"
+#include "phxrpc/network.h"
 
 namespace phxrpc {
 
 typedef struct tagDispatcherArgs {
     phxrpc::ServerMonitorPtr server_monitor;
+    phxrpc::UThreadEpollScheduler * server_worker_uthread_scheduler;
     void * service_args;
 
     tagDispatcherArgs() : service_args(NULL) {
     }
 
-    tagDispatcherArgs( phxrpc::ServerMonitorPtr monitor, void * args ) :
-        server_monitor(monitor), service_args(args) {
+    tagDispatcherArgs(phxrpc::ServerMonitorPtr monitor, 
+            phxrpc::UThreadEpollScheduler * uthread_scheduler, void * args) :
+        server_monitor(monitor), server_worker_uthread_scheduler(uthread_scheduler), service_args(args) {
     }
-}DispatcherArgs_t;
+} DispatcherArgs_t;
 
 class ServerUtils {
 public:
@@ -43,4 +46,3 @@ public:
 };
 
 }
-

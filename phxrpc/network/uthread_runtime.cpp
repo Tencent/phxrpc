@@ -119,5 +119,9 @@ bool UThreadRuntime::IsAllDone() {
     return unfinished_item_count_ == 0;
 }
 
+int UThreadRuntime :: GetUnfinishedItemCount() const {
+    return unfinished_item_count_;
+}
+
 }
 

@@ -116,7 +116,7 @@ void ServerCodeRender::GenerateServerConfigCpp(SyntaxTree * stree, FILE * write)
     fprintf(write, "\n");
 }
 
-void ServerCodeRender::GenerateServerMainCpp(SyntaxTree * stree, FILE * write) {
+void ServerCodeRender::GenerateServerMainCpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode) {
     char svrfile[128] = { 0 };
     name_render_.GetServerMainFileName(stree->GetName(), svrfile, sizeof(svrfile));
 
@@ -139,7 +139,12 @@ void ServerCodeRender::GenerateServerMainCpp(SyntaxTree * stree, FILE * write) {
     name_render_.GetServerConfigClasname(stree->GetName(), server_config_class, sizeof(server_config_class));
     name_render_.GetServerConfigFileName(stree->GetName(), server_config_file, sizeof(server_config_file));
 
-    std::string content = PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE;
+    std::string content;
+    if (!is_uthread_mode) {
+        content = PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE;
+    } else {
+        content = PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE;
+    }
 
     StrTrim(&content);
     StrReplaceAll(&content, "$DispatcherFile$", dispatcher_file);
@@ -154,7 +159,7 @@ void ServerCodeRender::GenerateServerMainCpp(SyntaxTree * stree, FILE * write) {
     fprintf(write, "\n");
 }
 
-void ServerCodeRender::GenerateServerEtc(SyntaxTree * stree, FILE * write) {
+void ServerCodeRender::GenerateServerEtc(SyntaxTree * stree, FILE * write, const bool is_uthread_mode) {
     char etcfile[128] = { 0 };
     name_render_.GetServerEtcFileName(stree->GetName(), etcfile, sizeof(etcfile));
 
@@ -166,7 +171,12 @@ void ServerCodeRender::GenerateServerEtc(SyntaxTree * stree, FILE * write) {
     fprintf(write, "#\n");
     fprintf(write, "\n");
 
-    std::string content = PHXRPC_EPOLL_SERVER_ETC_TEMPLATE;
+    std::string content;
+    if (!is_uthread_mode) {
+        content = PHXRPC_EPOLL_SERVER_ETC_TEMPLATE;
+    } else {
+        content = PHXRPC_EPOLL_UTHREAD_SERVER_ETC_TEMPLATE;
+    }
 
     StrTrim(&content);
     StrReplaceAll(&content, "$PackageName$", stree->GetPackageName() );
@@ -176,7 +186,7 @@ void ServerCodeRender::GenerateServerEtc(SyntaxTree * stree, FILE * write) {
     fprintf(write, "\n");
 }
 
-void ServerCodeRender::GenerateMakefile(SyntaxTree * stree, const std::string & mk_dir_path, FILE * write) {
+void ServerCodeRender::GenerateMakefile(SyntaxTree * stree, const std::string & mk_dir_path, FILE * write, const bool is_uthread_mode) {
     std::string buffer;
     name_render_.GetCopyright("phxrpc_pb2server", stree->GetProtoFile(), &buffer, false, "#");
 
@@ -205,7 +215,13 @@ void ServerCodeRender::GenerateMakefile(SyntaxTree * stree, const std::string & 
     name_render_.GetStubFileName(stree->GetName(), stub_file, sizeof(stub_file));
     name_render_.GetMessageFileName(stree->GetProtoFile(), message_file, sizeof(message_file));
 
-    std::string content(PHXRPC_SERVER_MAKEFILE_TEMPLATE);
+    std::string content;
+    if (!is_uthread_mode) {
+        content = PHXRPC_SERVER_MAKEFILE_TEMPLATE;
+    } else {
+        content = PHXRPC_UTHREAD_SERVER_MAKEFILE_TEMPLATE;
+    }
+
     StrTrim(&content);
     StrReplaceAll(&content, "$PhxRPCMKDir$", mk_dir_path);
     StrReplaceAll(&content, "$DispatcherFile$", dispatcher_file);

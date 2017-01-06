@@ -196,7 +196,7 @@ void ClientCodeRender::GenerateStubFunc(SyntaxTree * stree, SyntaxFunc * func, F
     fprintf(write, "\n");
 }
 
-void ClientCodeRender::GenerateClientHpp(SyntaxTree * stree, FILE * write) {
+void ClientCodeRender::GenerateClientHpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode) {
     char filename[128] = { 0 };
     name_render_.GetClientFileName(stree->GetName(), filename, sizeof(filename));
 
@@ -218,7 +218,7 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree * stree, FILE * write) {
         SyntaxFuncVector::iterator fit = flist->begin();
         for (; flist->end() != fit; ++fit) {
             std::string buffer;
-            GetClienfuncDeclaration(stree, &(*fit), 1, &buffer);
+            GetClienfuncDeclaration(stree, &(*fit), 1, &buffer, is_uthread_mode);
 
             declarations.append("    ").append(buffer).append(";\n\n");
 
@@ -226,7 +226,7 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree * stree, FILE * write) {
                 SyntaxFunc echo_func = *fit;
                 echo_func.SetName("PhxBatchEcho");
                 std::string buffer;
-                GetClienfuncDeclaration(stree, &echo_func, 1, &buffer);
+                GetClienfuncDeclaration(stree, &echo_func, 1, &buffer, is_uthread_mode);
                 declarations.append("    ").append(buffer).append(";\n\n");
             }
 
@@ -239,11 +239,24 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree * stree, FILE * write) {
     name_render_.GetClientClasnameLower(stree->GetName(), client_class_lower, sizeof(client_class_lower));
     name_render_.GetMessageFileName(stree->GetProtoFile(), message_file, sizeof(message_file));
 
-    std::string content(PHXRPC_CLIENT_HPP_TEMPLATE);
+    string client_class_str = string(client_class);
+    string client_class_lower_str = string(client_class_lower);
+    if (is_uthread_mode) {
+        client_class_str += "UThread";
+        client_class_lower_str += "uthread";
+    }
+
+    std::string content;
+    if (!is_uthread_mode) {
+        content = PHXRPC_CLIENT_HPP_TEMPLATE;
+    } else {
+        content = PHXRPC_UTHREAD_CLIENT_HPP_TEMPLATE;
+    }
+
     StrTrim(&content);
     StrReplaceAll(&content, "$MessageFile$", message_file);
-    StrReplaceAll(&content, "$ClientClass$", client_class);
-    StrReplaceAll(&content, "$ClientClassLower$", client_class_lower);
+    StrReplaceAll(&content, "$ClientClass$", client_class_str.c_str());
+    StrReplaceAll(&content, "$ClientClassLower$", client_class_lower_str.c_str());
     StrReplaceAll(&content, "$ClientClassFuncDeclarations$", declarations);
 
     fprintf(write, "%s", content.c_str());
@@ -251,7 +264,7 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree * stree, FILE * write) {
     fprintf(write, "\n");
 }
 
-void ClientCodeRender::GenerateClientCpp(SyntaxTree * stree, FILE * write) {
+void ClientCodeRender::GenerateClientCpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode) {
     char client_class[128] = { 0 }, client_file[128] = { 0 };
     char client_class_lower[128] = { 0 };
     char stub_class[128] = { 0 }, stub_file[128] = { 0 };
@@ -260,6 +273,13 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree * stree, FILE * write) {
     name_render_.GetClientFileName(stree->GetName(), client_file, sizeof(client_file));
     name_render_.GetStubClasname(stree->GetName(), stub_class, sizeof(stub_class));
     name_render_.GetStubFileName(stree->GetName(), stub_file, sizeof(stub_file));
+
+    string client_class_str = string(client_class);
+    string client_class_lower_str = string(client_class_lower);
+    if (is_uthread_mode) {
+        client_class_str += "UThread";
+        client_class_lower_str += "uthread";
+    }
 
     std::string buffer;
     name_render_.GetCopyright("phxrpc_pb2client", stree->GetProtoFile(), &buffer, false);
@@ -276,15 +296,20 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree * stree, FILE * write) {
         SyntaxFuncVector::iterator fit = flist->begin();
         for (; flist->end() != fit; ++fit) {
             std::string buffer;
-            GetClienfuncDeclaration(stree, &(*fit), 0, &buffer);
+            GetClienfuncDeclaration(stree, &(*fit), 0, &buffer, is_uthread_mode);
 
             functions.append(buffer).append("\n");
 
-            std::string content = PHXRPC_CLIENT_FUNC_TEMPLATE;
+            std::string content;
+            if (!is_uthread_mode) {
+                content = PHXRPC_CLIENT_FUNC_TEMPLATE;
+            } else {
+                content = PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE;
+            }
 
             StrTrim(&content);
-            StrReplaceAll(&content, "$ClientClass$", client_class);
-            StrReplaceAll(&content, "$ClientClassLower$", client_class_lower);
+            StrReplaceAll(&content, "$ClientClass$", client_class_str.c_str());
+            StrReplaceAll(&content, "$ClientClassLower$", client_class_lower_str.c_str());
             StrReplaceAll(&content, "$StubClass$", stub_class);
             StrReplaceAll(&content, "$Func$", fit->GetName());
 
@@ -295,15 +320,15 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree * stree, FILE * write) {
                 echo_func.SetName("PhxBatchEcho");
 
                 std::string buffer;
-                GetClienfuncDeclaration(stree, &echo_func, 0, &buffer);
+                GetClienfuncDeclaration(stree, &echo_func, 0, &buffer, is_uthread_mode);
 
                 functions.append(buffer).append("\n");
 
                 std::string content = PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE;
 
                 StrTrim(&content);
-                StrReplaceAll(&content, "$ClientClass$", client_class);
-                StrReplaceAll(&content, "$ClientClassLower$", client_class_lower);
+                StrReplaceAll(&content, "$ClientClass$", client_class_str.c_str());
+                StrReplaceAll(&content, "$ClientClassLower$", client_class_lower_str.c_str());
                 StrReplaceAll(&content, "$StubClass$", stub_class);
                 StrReplaceAll(&content, "$Func$", echo_func.GetName());
 
@@ -312,13 +337,19 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree * stree, FILE * write) {
         }
     }
 
-    std::string content(PHXRPC_CLIENT_CPP_TEMPLATE);
+    std::string content;
+    if (!is_uthread_mode) {
+        content = PHXRPC_CLIENT_CPP_TEMPLATE;
+    } else {
+        content = PHXRPC_UTHREAD_CLIENT_CPP_TEMPLATE;
+    }
+
     StrTrim(&content);
     StrReplaceAll(&content, "$PackageName$", stree->GetPackageName() );
     StrReplaceAll(&content, "$ClientFile$", client_file);
     StrReplaceAll(&content, "$StubFile$", stub_file);
-    StrReplaceAll(&content, "$ClientClass$", client_class);
-    StrReplaceAll(&content, "$ClientClassLower$", client_class_lower);
+    StrReplaceAll(&content, "$ClientClass$", client_class_str);
+    StrReplaceAll(&content, "$ClientClassLower$", client_class_lower_str.c_str());
     StrReplaceAll(&content, "$ClientClassFuncs$", functions);
 
     fprintf(write, "%s", content.c_str());
@@ -327,15 +358,19 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree * stree, FILE * write) {
 }
 
 void ClientCodeRender::GetClienfuncDeclaration(SyntaxTree * stree, SyntaxFunc * func, int is_header,
-                                               std::string * result) {
+                                               std::string * result, const bool is_uthread_mode) {
     char clasname[128] = { 0 }, type_name[128] = { 0 };
 
     name_render_.GetClientClasname(stree->GetName(), clasname, sizeof(clasname));
+    string clasname_str = string(clasname);
+    if (is_uthread_mode) {
+        clasname_str += "UThread";
+    }
 
     if (is_header) {
         phxrpc::StrAppendFormat(result, "int %s( ", func->GetName());
     } else {
-        phxrpc::StrAppendFormat(result, "int %s :: %s( ", clasname, func->GetName());
+        phxrpc::StrAppendFormat(result, "int %s :: %s( ", clasname_str.c_str(), func->GetName());
     }
 
     name_render_.GetMessageClasname(func->GetReq()->GetType(), type_name, sizeof(type_name));

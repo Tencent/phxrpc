@@ -109,7 +109,8 @@ enum UThreadEpollREventStatus {
 
 UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task, const bool need_stack_protect) :
     runtime_(stack_size, need_stack_protect), epoll_wake_up_(this) {
-    max_task_ = max_task;
+    //epoll notifier use one task.
+    max_task_ = max_task + 1;
 
     epoll_fd_ = epoll_create(max_task_);
 
@@ -122,6 +123,7 @@ UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task, co
     run_forever_ = false;
     active_socket_func_ = nullptr;
     handler_accepted_fd_func_ = nullptr;
+    handler_new_request_func_ = nullptr;
 
     epoll_wait_events_ = 0;
     epoll_wait_events_per_second_ = 0;
@@ -137,6 +139,10 @@ UThreadEpollScheduler * UThreadEpollScheduler :: Instance() {
     return &obj;
 }
 
+bool UThreadEpollScheduler :: IsTaskFull() {
+    return (runtime_.GetUnfinishedItemCount() + (int)todo_list_.size()) >= max_task_;
+}
+
 void UThreadEpollScheduler::AddTask(UThreadFunc_t func, void * args) {
     todo_list_.push(std::make_pair(func, args));
 }
@@ -145,7 +151,11 @@ void UThreadEpollScheduler :: SetActiveSocketFunc(UThreadActiveSocket_t active_s
     active_socket_func_ = active_socket_func;
 }
 
-void UThreadEpollScheduler :: SetHandlerAcceptedFdFunc(UThreadHanderAcceptedFdFunc_t handler_accepted_fd_func) {
+void UThreadEpollScheduler :: SetHandlerNewRequestFunc(UThreadHandlerNewRequest_t handler_new_request_func) {
+    handler_new_request_func_ = handler_new_request_func;
+}
+
+void UThreadEpollScheduler :: SetHandlerAcceptedFdFunc(UThreadHandlerAcceptedFdFunc_t handler_accepted_fd_func) {
     handler_accepted_fd_func_ = handler_accepted_fd_func;
 }
 
@@ -249,6 +259,11 @@ bool UThreadEpollScheduler::Run() {
                 while ((socket = active_socket_func_()) != nullptr) {
                     runtime_.Resume(socket->uthread_id);
                 }
+            }
+
+            //for server uthread worker
+            if (handler_new_request_func_ != nullptr) {
+                handler_new_request_func_();
             }
 
             if (handler_accepted_fd_func_ != nullptr) {

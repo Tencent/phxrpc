@@ -131,7 +131,7 @@ void ServiceCodeRender::GenerateServiceCpp(SyntaxTree * stree, FILE * write) {
     fprintf(write, "\n");
 }
 
-void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write) {
+void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode) {
     char filename[128] = { 0 };
     name_render_.GetServiceImplFileName(stree->GetName(), filename, sizeof(filename));
 
@@ -152,6 +152,9 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write)
 
     name_render_.GetServiceFileName(stree->GetName(), filename, sizeof(filename));
     fprintf(write, "#include \"%s.h\"\n", filename);
+    if (is_uthread_mode) {
+        fprintf(write, "#include \"phxrpc/network.h\"\n");
+    }
 
     fprintf(write, "\n");
 
@@ -172,7 +175,11 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write)
     fprintf(write, "class %s : public %s\n", clasname, base_name);
     fprintf(write, "{\n");
     fprintf(write, "public:\n");
-    fprintf(write, "    %s( ServiceArgs_t & args );\n", clasname);
+    if (!is_uthread_mode) {
+        fprintf(write, "    %s( ServiceArgs_t & app_args );\n", clasname);
+    } else {
+        fprintf(write, "    %s( ServiceArgs_t & app_args, phxrpc::UThreadEpollScheduler * worker_uthread_scheduler );\n", clasname);
+    }
     fprintf(write, "    virtual ~%s();\n", clasname);
     fprintf(write, "\n");
 
@@ -187,13 +194,16 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree * stree, FILE * write)
 
     fprintf(write, "private:\n");
     fprintf(write, "    ServiceArgs_t & args_;\n" );
+    if (is_uthread_mode) {
+        fprintf(write, "    phxrpc::UThreadEpollScheduler * worker_uthread_scheduler_;\n" );
+    }
 
     fprintf(write, "};\n");
 
     fprintf(write, "\n");
 }
 
-void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree * stree, FILE * write) {
+void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree * stree, FILE * write, const bool is_uthread_mode) {
     char filename[128] = { 0 }, config_file[128] = { 0 };
     name_render_.GetServiceImplFileName(stree->GetName(), filename, sizeof(filename));
     name_render_.GetServerConfigFileName(stree->GetName(), config_file, sizeof(config_file));
@@ -219,8 +229,13 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree * stree, FILE * write)
     name_render_.GetServiceImplClasname(stree->GetName(), clasname, sizeof(clasname));
     name_render_.GetServerConfigClasname(stree->GetName(), config_name, sizeof(config_name));
 
-    fprintf(write, "%s :: %s( ServiceArgs_t & args )\n", clasname, clasname);
-    fprintf(write, "    : args_( args )\n");
+    if (!is_uthread_mode) {
+        fprintf(write, "%s :: %s(ServiceArgs_t & app_args)\n", clasname, clasname);
+        fprintf(write, "    : args_(app_args)\n");
+    } else {
+        fprintf(write, "%s :: %s(ServiceArgs_t & app_args, phxrpc::UThreadEpollScheduler * worker_uthread_scheduler)\n", clasname, clasname);
+        fprintf(write, "    : args_(app_args), worker_uthread_scheduler_(worker_uthread_scheduler)\n");
+    }
     fprintf(write, "{\n");
     fprintf(write, "}\n");
     fprintf(write, "\n");

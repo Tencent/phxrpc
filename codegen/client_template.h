@@ -22,7 +22,13 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 extern const char * PHXRPC_CLIENT_HPP_TEMPLATE;
+extern const char * PHXRPC_UTHREAD_CLIENT_HPP_TEMPLATE;
+
 extern const char * PHXRPC_CLIENT_CPP_TEMPLATE;
+extern const char * PHXRPC_UTHREAD_CLIENT_CPP_TEMPLATE;
+
 extern const char * PHXRPC_CLIENT_FUNC_TEMPLATE;
+extern const char * PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE;
+
 extern const char * PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE;
 extern const char * PHXRPC_CLIENT_ETC_TEMPLATE;

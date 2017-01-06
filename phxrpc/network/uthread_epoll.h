@@ -38,7 +38,8 @@ typedef struct tagUThreadSocket UThreadSocket_t;
 typedef std::pair<UThreadEpollScheduler *, int> UThreadEpollArgs_t;
 
 typedef std::function< UThreadSocket_t *() > UThreadActiveSocket_t;
-typedef std::function< void() > UThreadHanderAcceptedFdFunc_t;
+typedef std::function< void() > UThreadHandlerAcceptedFdFunc_t;
+typedef std::function< void() > UThreadHandlerNewRequest_t;
 
 class EpollNotifier {
 public:
@@ -61,6 +62,8 @@ public:
 
     static UThreadEpollScheduler * Instance();
 
+    bool IsTaskFull();
+
     void AddTask(UThreadFunc_t func, void * args);
 
     UThreadSocket_t * CreateSocket(int fd, int socket_timeout_ms = 5000, 
@@ -68,7 +71,9 @@ public:
 
     void SetActiveSocketFunc(UThreadActiveSocket_t active_socket_func);
 
-    void SetHandlerAcceptedFdFunc(UThreadHanderAcceptedFdFunc_t handler_accepted_fd_func);
+    void SetHandlerAcceptedFdFunc(UThreadHandlerAcceptedFdFunc_t handler_accepted_fd_func);
+
+    void SetHandlerNewRequestFunc(UThreadHandlerNewRequest_t handler_new_request_func);
 
     bool YieldTask();
 
@@ -103,7 +108,9 @@ private:
     bool run_forever_;
 
     UThreadActiveSocket_t active_socket_func_;
-    UThreadHanderAcceptedFdFunc_t handler_accepted_fd_func_;
+    UThreadHandlerAcceptedFdFunc_t handler_accepted_fd_func_;
+    UThreadHandlerNewRequest_t handler_new_request_func_;
+
     int epoll_wait_events_;
     int epoll_wait_events_per_second_;
     uint64_t epoll_wait_events_last_cal_time_;

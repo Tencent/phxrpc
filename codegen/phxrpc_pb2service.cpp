@@ -51,7 +51,7 @@ void PrintHelp(const char * program) {
 }
 
 void Proto2Service(const char * program, const char * pb_file, const char * dir_path,
-        const std::vector<std::string> & include_list) {
+        const std::vector<std::string> & include_list, const bool is_uthread_mode) {
     std::map<std::string, bool> parsed_file_map;
     SyntaxTree syntax_tree;
 
@@ -101,7 +101,7 @@ void Proto2Service(const char * program, const char * pb_file, const char * dir_
         if (0 != access(filename, F_OK)) {
             FILE * fp = fopen(filename, "w");
             assert(NULL != fp);
-            codeRender.GenerateServiceImplHpp(&syntax_tree, fp);
+            codeRender.GenerateServiceImplHpp(&syntax_tree, fp, is_uthread_mode);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -118,7 +118,7 @@ void Proto2Service(const char * program, const char * pb_file, const char * dir_
         if (0 != access(filename, F_OK)) {
             FILE * fp = fopen(filename, "w");
             assert(NULL != fp);
-            codeRender.GenerateServiceImplCpp(&syntax_tree, fp);
+            codeRender.GenerateServiceImplCpp(&syntax_tree, fp, is_uthread_mode);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -163,8 +163,9 @@ int main(int argc, char * argv[]) {
     std::vector<std::string> include_list;
     char real_path[1024] = {0};
     char * rp = nullptr;
+    bool is_uthread_mode = false;
 
-    while ((c = getopt(argc, argv, "f:d:I:v")) != EOF) {
+    while ((c = getopt(argc, argv, "f:d:I:uv")) != EOF) {
         switch (c) {
             case 'f':
                 pb_file = optarg;
@@ -177,6 +178,9 @@ int main(int argc, char * argv[]) {
                 if (rp != nullptr) {
                     include_list.push_back(rp);
                 }
+                break;
+            case 'u':
+                is_uthread_mode = true;
                 break;
             default:
                 PrintHelp(argv[0]);
@@ -205,7 +209,7 @@ int main(int argc, char * argv[]) {
         path[strlen(path) - 1] = '\0';
     }
 
-    Proto2Service(argv[0], pb_file, path, include_list);
+    Proto2Service(argv[0], pb_file, path, include_list, is_uthread_mode);
 
     printf("\n");
 
