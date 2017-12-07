@@ -10,18 +10,22 @@
 
 PhxRPC[![Build Status](https://travis-ci.org/tencent-wechat/phxrpc.png)](https://travis-ci.org/tencent-wechat/phxrpc)
 
-# 总览
+## 总览
+
   - 使用Protobuf作为IDL用于描述RPC接口以及通信数据结构。
   - 基于Protobuf文件自动生成Client以及Server接口，用于Client的构建，以及Server的实现。
   - 半同步半异步模式，采用独立多IO线程，通过Epoll管理请求的接入以及读写，工作线程采用固定线程池。IO线程与工作线程通过内存队列进行交互。
   - 提供完善的过载保护，无需配置阈值，支持动态自适应拒绝请求。
   - 提供简易的Client/Server配置读入方式。
+  - 支持HTTP和MQTT协议。
   - 基于lambda函数实现并发访问Server，可以非常方便地实现Google提出的 [Backup Requests](http://static.googleusercontent.com/media/research.google.com/zh-CN//people/jeff/Berkeley-Latency-Mar2012.pdf) 模式。
 
-# 局限
+## 局限
+
   - 不支持多进程模式。
-  
-# 性能
+
+## 性能
+
 >使用Sample目录下的Search RPC C/S进行Echo RPC调用的压测，相当于Worker空转情况。
 
 ### 运行环境
@@ -48,26 +52,33 @@ PhxRPC[![Build Status](https://travis-ci.org/tencent-wechat/phxrpc.png)](https:/
 | system  | 55k | 160k   | 360k | 500k |
 | boost | 62k | 175k | 410k | 500k |
 
-# 如何编译
-#### Protobuf准备
+## 如何编译
+
+### Protobuf准备
+
 PhxRPC必须依赖的第三方库只有Protobuf。在编译前，在third_party目录放置好protobuf目录，或者通过软链的形式。
 
-#### boost优化
+### boost优化
+
 PhxRPC在ServerIO以及Client并发连接管理上使用了ucontext，而boost的ucontext实现要比system默认的更为高效，推荐使用boost。如果需要使用boost的话需要在third_party目录放置好boost目录，或者通过软链的形式。
 
-#### 编译环境
+### 编译环境
+
   - Linux.
   - GCC-4.8及以上版本。
   - boost 1.56及以上版本.（可选）
 
-#### 编译安装方法
+### 编译安装方法
+
 进入PhxRPC根目录。
 
     make (默认是-O2编译，如需编译debug版，执行 make debug=y)
-    make boost (可选，编译PhxRPC的boost优化插件，编译之前先准备好boost库)  
- 
-# 如何使用
-#### 编写proto文件
+    make boost (可选，编译PhxRPC的boost优化插件，编译之前先准备好boost库)
+
+## 如何使用
+
+### 编写proto文件
+
 下面是sample目录下的proto文件样例。
 
 ```c++
@@ -83,36 +94,41 @@ enum SiteType {
     VIDEO = 2;
     UNKNOWN = 3;
 }
+
 message Site {
     string url = 1;
     string title = 2;
     SiteType type = 3;
     tring summary = 4;
 }
+
 message SearchRequest {
     string query = 1;
 }
+
 message SearchResult {
     repeated Site sites = 1;
 }
-service Search{
-    rpc Search( SearchRequest ) returns( SearchResult ) { 
-        option( phxrpc.CmdID ) = 1;
-        option( phxrpc.OptString ) = "q:";
-        option( phxrpc.Usage ) = "-q <query>";
-    } 
-    rpc Notify( google.protobuf.StringValue ) returns( google.protobuf.Empty ) { 
-        option( phxrpc.CmdID ) = 2;
-        option( phxrpc.OptString ) = "m:";
-        option( phxrpc.Usage ) = "-m <msg>";
-    }   
+
+service Search {
+    rpc Search(SearchRequest) returns (SearchResult) {
+        option(phxrpc.CmdID) = 1;
+        option(phxrpc.OptString) = "q:";
+        option(phxrpc.Usage) = "-q <query>";
+    }
+    rpc Notify(google.protobuf.StringValue) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2;
+        option(phxrpc.OptString) = "m:";
+        option(phxrpc.Usage) = "-m <msg>";
+    }
 }
 
 ```
-#### 生成代码
+
+### 生成代码
 
 ```bash
-(PhxRPC根目录)/codegen/phxrpc_pb2server 
+(PhxRPC根目录)/codegen/phxrpc_pb2server
 -I (PhxRPC根目录) -I (Protobuf include目录) -f (proto文件路径) -d (生成代码放置路径)
 
 #sample
@@ -121,82 +137,85 @@ service Search{
 调用完工具后，在生成代码放置目录下执行make，即可生成全部的RPC相关代码。
 ```
 
-#### 选择是否启用boost优化
+### 选择是否启用boost优化
+
 打开生成代码放置目录下的Makefile文件。
+
 ```bash
 #choose to use boost for network
 #LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS)
 ```
+
 可以看到以上两行，取消注释掉第二行，重新make clean, make即可开启boost对PhxRPC的优化。开启前记得编译好PhxRPC的boost插件。
 
-#### 补充自己的代码
-##### Server(xxx_service_impl.cpp)
+### 补充自己的代码
+
+#### Server(xxx_service_impl.cpp)
 
 ```c++
-int SearchServiceImpl :: PhxEcho( const google::protobuf::StringValue & req,
-        google::protobuf::StringValue * resp ) 
-{
-    resp->set_value( req.value() );
+int SearchServiceImpl::PhxEcho(const google::protobuf::StringValue &req,
+        google::protobuf::StringValue *resp) {
+    resp->set_value(req.value());
     return 0;
 }
 
-int SearchServiceImpl :: Search( const search::SearchRequest & req,
-        search::SearchResult * resp ) 
-{
-    //这里补充这个RPC调用的Server端代码
-    return -1; 
+int SearchServiceImpl::Search(const search::SearchRequest &req,
+        search::SearchResult *resp) {
+    // 这里补充这个RPC调用的Server端代码
+    return -1;
 }
 
-int SearchServiceImpl :: Notify( const google::protobuf::StringValue & req,
-        google::protobuf::Empty * resp ) 
-{
-    //这里补充这个RPC调用的Server端代码
-    return -1; 
+int SearchServiceImpl::Notify(const google::protobuf::StringValue &req,
+        google::protobuf::Empty *resp) {
+    // 这里补充这个RPC调用的Server端代码
+    return -1;
 }
 ```
 
-##### Client (xxx_client.cpp)
+如果要使用MQTT协议，可对应编写`PhxMqttXxx`实现。
+
+#### Client (xxx_client.cpp)
 
 ```c++
-//这个是默认生成的代码, 可自行修改，或利用我们提供的stub API自定义封装Client
-int SearchClient :: PhxEcho( const google::protobuf::StringValue & req,
-        google::protobuf::StringValue * resp )
-{
-    const phxrpc::Endpoint_t * ep = global_searchclient_config_.GetRandom();
+// 这个是默认生成的代码，可自行修改，或利用我们提供的stub API自定义封装Client
+int SearchClient::PhxEcho(const google::protobuf::StringValue &req,
+        google::protobuf::StringValue *resp) {
+    const phxrpc::Endpoint_t *ep = global_searchclient_config_.GetRandom();
 
-    if(ep != nullptr) {
+    if (ep != nullptr) {
         phxrpc::BlockTcpStream socket;
         bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
-                    global_searchclient_config_.GetConnectTimeoutMS(), NULL, 0,  
+                    global_searchclient_config_.GetConnectTimeoutMS(), nullptr, 0,
                     *(global_searchclient_monitor_.get()));
-        if ( open_ret ) { 
+        if (open_ret) {
             socket.SetTimeout(global_searchclient_config_.GetSocketTimeoutMS());
 
             SearchStub stub(socket, *(global_searchclient_monitor_.get()));
             return stub.PhxEcho(req, resp);
-        }   
-    }   
+        }
+    }
 
-    return -1; 
+    return -1;
 }
 ```
 
-##### Client并发调用样例
+如果要使用MQTT协议，可对应编写`PhxMqttXxx`实现。
+
+#### Client并发调用样例
 
 ```c++
-int SearchClient :: PhxBatchEcho( const google::protobuf::StringValue & req,
-        google::protobuf::StringValue * resp )
-{
-    int ret = -1; 
+int SearchClient::PhxBatchEcho(const google::protobuf::StringValue &req,
+        google::protobuf::StringValue *resp) {
+    int ret = -1;
     size_t echo_server_count = 2;
     uthread_begin;
     for (size_t i = 0; i < echo_server_count; i++) {
         uthread_t [=, &uthread_s, &ret](void *) {
-            const phxrpc::Endpoint_t * ep = global_searchclient_config_.GetByIndex(i);
+            const phxrpc::Endpoint_t *ep = global_searchclient_config_.GetByIndex(i);
             if (ep != nullptr) {
                 phxrpc::UThreadTcpStream socket;
                 if(phxrpc::PhxrpcTcpUtils::Open(&uthread_s, &socket, ep->ip, ep->port,
-                            global_searchclient_config_.GetConnectTimeoutMS(), 
+                            global_searchclient_config_.GetConnectTimeoutMS(),
                             *(global_searchclient_monitor_.get()))) {
                     socket.SetTimeout(global_searchclient_config_.GetSocketTimeoutMS());
                     SearchStub stub(socket, *(global_searchclient_monitor_.get()));
@@ -220,7 +239,7 @@ int SearchClient :: PhxBatchEcho( const google::protobuf::StringValue & req,
 
 当然你可以借用这4个宏定义，以同步代码的写法，进行更自定义的并发访问。
 
-##### Server配置说明 (xxx_server.conf)
+#### Server配置说明 (xxx_server.conf)
 
 ```c++
 [Server]
