@@ -1,31 +1,32 @@
 /*
-Tencent is pleased to support the open source community by making 
+Tencent is pleased to support the open source community by making
 PhxRPC available.
-Copyright (C) 2016 THL A29 Limited, a Tencent company. 
+Copyright (C) 2016 THL A29 Limited, a Tencent company.
 All rights reserved.
 
-Licensed under the BSD 3-Clause License (the "License"); you may 
-not use this file except in compliance with the License. You may 
+Licensed under the BSD 3-Clause License (the "License"); you may
+not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
 https://opensource.org/licenses/BSD-3-Clause
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" basis, 
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
-implied. See the License for the specific language governing 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
 permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors.
 */
 
-#include <stdio.h>
+#include <cstdio>
 #include <errno.h>
-#include <unistd.h>
-
-#include <vector>
 #include <string>
+#include <unistd.h>
+#include <vector>
+
 #include "proto_utils.h"
+
 
 using namespace google::protobuf::compiler;
 using namespace google::protobuf;
@@ -33,11 +34,12 @@ using namespace google::protobuf;
 using namespace phxrpc;
 using namespace std;
 
+
 class MyErrorPrinter : public MultiFileErrorCollector {
- public:
+  public:
     MyErrorPrinter() {
     }
-    ~MyErrorPrinter() {
+    virtual ~MyErrorPrinter() override {
     }
 
     void AddError(const std::string& filename, int line, int column, const std::string& message) {
@@ -166,7 +168,7 @@ int ProtoUtils::AddEcho(SyntaxTree * stree) {
     // always add a echo function
     {
         SyntaxFunc echo_func;
-        echo_func.SetName("PHXEcho");
+        echo_func.SetName("PhxEcho");
         echo_func.GetReq()->SetName("request");
         echo_func.GetReq()->SetType(name);
         echo_func.GetResp()->SetName("response");

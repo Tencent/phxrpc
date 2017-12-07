@@ -42,9 +42,15 @@ const uint64_t Timer::GetTimestampMS() {
 }
 
 const uint64_t Timer::GetSteadyClockMS() {
+    auto now_time = chrono::system_clock::now();
+    uint64_t now = (chrono::duration_cast<chrono::milliseconds>(now_time.time_since_epoch())).count();
+    return now;
+
+    /*
     auto now_time = chrono::steady_clock::now();
     uint64_t now = (chrono::duration_cast<chrono::milliseconds>(now_time.time_since_epoch())).count();
     return now;
+    */
 }
 
 void Timer :: MsSleep(const int time_ms) {

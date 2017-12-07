@@ -6,15 +6,14 @@
 
 联系我们：phxteam@tencent.com
 
-想了解更多, 以及更详细的编译手册，请进入[中文WIKI](https://github.com/Tencent/phxrpc/wiki)，和扫描右侧二维码关注我们的公众号
+想了解更多, 以及更详细的编译手册，请进入[中文WIKI](https://github.com/tencent-wechat/phxrpc/wiki)，和扫描右侧二维码关注我们的公众号
 
-PhxRPC[![Build Status](https://travis-ci.org/Tencent/phxrpc.png)](https://travis-ci.org/Tencent/phxrpc)
+PhxRPC[![Build Status](https://travis-ci.org/tencent-wechat/phxrpc.png)](https://travis-ci.org/tencent-wechat/phxrpc)
 
 # 总览
   - 使用Protobuf作为IDL用于描述RPC接口以及通信数据结构。
   - 基于Protobuf文件自动生成Client以及Server接口，用于Client的构建，以及Server的实现。
   - 半同步半异步模式，采用独立多IO线程，通过Epoll管理请求的接入以及读写，工作线程采用固定线程池。IO线程与工作线程通过内存队列进行交互。
-  - New: 支持协程Worker，可配置多个线程，每个线程多个协程。
   - 提供完善的过载保护，无需配置阈值，支持动态自适应拒绝请求。
   - 提供简易的Client/Server配置读入方式。
   - 基于lambda函数实现并发访问Server，可以非常方便地实现Google提出的 [Backup Requests](http://static.googleusercontent.com/media/research.google.com/zh-CN//people/jeff/Berkeley-Latency-Mar2012.pdf) 模式。
@@ -118,11 +117,7 @@ service Search{
 
 #sample
 ../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d .
-../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d . -u
 
-两种生成模式，区别在于-u参数。
-第一种生成默认的线程池worker模型。
-第二种-u参数指定生成uthread worker模型，也就是工作线程池里面每个线程里面运行着多个协程。
 调用完工具后，在生成代码放置目录下执行make，即可生成全部的RPC相关代码。
 ```
 
@@ -138,7 +133,7 @@ service Search{
 ##### Server(xxx_service_impl.cpp)
 
 ```c++
-int SearchServiceImpl :: PHXEcho( const google::protobuf::StringValue & req,
+int SearchServiceImpl :: PhxEcho( const google::protobuf::StringValue & req,
         google::protobuf::StringValue * resp ) 
 {
     resp->set_value( req.value() );
@@ -164,7 +159,7 @@ int SearchServiceImpl :: Notify( const google::protobuf::StringValue & req,
 
 ```c++
 //这个是默认生成的代码, 可自行修改，或利用我们提供的stub API自定义封装Client
-int SearchClient :: PHXEcho( const google::protobuf::StringValue & req,
+int SearchClient :: PhxEcho( const google::protobuf::StringValue & req,
         google::protobuf::StringValue * resp )
 {
     const phxrpc::Endpoint_t * ep = global_searchclient_config_.GetRandom();
@@ -178,41 +173,11 @@ int SearchClient :: PHXEcho( const google::protobuf::StringValue & req,
             socket.SetTimeout(global_searchclient_config_.GetSocketTimeoutMS());
 
             SearchStub stub(socket, *(global_searchclient_monitor_.get()));
-            return stub.PHXEcho(req, resp);
+            return stub.PhxEcho(req, resp);
         }   
     }   
 
     return -1; 
-}
-```
-
-##### UThread Client (xxx_client_uthread.cpp)
-
-```c++
-//这个是默认生成的代码, 可自行修改，或利用我们提供的stub API自定义封装Client
-//UThread Client只能在采用PhxRPC uthread worker模型的server中调用。
-//UThread Client构造函数需要传入UThreadEpollScheduler*类型参数，
-//这个参数来源可以在xxx_service_impl.h的私有变量中获得。
-
-int SearchClientUThread :: PHXEcho( const google::protobuf::StringValue & req,
-        google::protobuf::StringValue * resp )
-{
-    const phxrpc::Endpoint_t * ep = global_searchclientuthread_config_.GetRandom();
-
-    if(uthread_scheduler_ != nullptr && ep != nullptr) {
-        phxrpc::UThreadTcpStream socket;
-        bool open_ret = phxrpc::PhxrpcTcpUtils::Open(uthread_scheduler_, &socket, ep->ip, ep->port,
-                    global_searchclientuthread_config_.GetConnectTimeoutMS(),
-                    *(global_searchclientuthread_monitor_.get()));
-        if ( open_ret ) {
-            socket.SetTimeout(global_searchclientuthread_config_.GetSocketTimeoutMS());
-
-            SearchStub stub(socket, *(global_searchclientuthread_monitor_.get()));
-            return stub.PHXEcho(req, resp);
-        }
-    }
-
-    return -1;
 }
 ```
 
@@ -235,7 +200,7 @@ int SearchClient :: PhxBatchEcho( const google::protobuf::StringValue & req,
                             *(global_searchclient_monitor_.get()))) {
                     socket.SetTimeout(global_searchclient_config_.GetSocketTimeoutMS());
                     SearchStub stub(socket, *(global_searchclient_monitor_.get()));
-                    int this_ret = stub.PHXEcho(req, resp);
+                    int this_ret = stub.PhxEcho(req, resp);
                     if (this_ret == 0) {
                         ret = this_ret;
                         uthread_s.Close();
@@ -259,18 +224,16 @@ int SearchClient :: PhxBatchEcho( const google::protobuf::StringValue & req,
 
 ```c++
 [Server]
-BindIP = 127.0.0.1              //Server IP
-Port = 16161                    //Server Port
-MaxThreads = 16                 //Worker 线程数
-WorkerUThreadCount = 50         //每个线程开启的协程数，采用-u生成的Server必须配置这一项
-WorkerUThreadStackSize = 65536  //UThread worker的栈大小
-IOThreadCount = 3               //IO线程数，针对业务请自行调节
-PackageName = search            //Server 名字，用于自行实现的监控统计上报
-MaxConnections = 800000         //最大并发连接数
-MaxQueueLength = 20480          //IO队列最大长度
-FastRejectThresholdMS = 20      //快速拒绝自适应调节阀值，建议保持默认20ms，不做修改
+BindIP = 127.0.0.1          //Server IP
+Port = 16161                //Server Port
+MaxThreads = 16             //Worker 线程数
+IOThreadCount = 3           //IO线程数，针对业务请自行调节
+PackageName = search        //Server 名字，用于自行实现的监控统计上报
+MaxConnections = 800000     //最大并发连接数
+MaxQueueLength = 20480      //IO队列最大长度
+FastRejectThresholdMS = 20  //快速拒绝自适应调节阀值，建议保持默认20ms，不做修改
 
 [ServerTimeout]
-SocketTimeoutMS = 5000          //Server读写超时，Worker处理超时
+SocketTimeoutMS = 5000      //Server读写超时，Worker处理超时
 ```
 

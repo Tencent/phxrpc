@@ -14,6 +14,7 @@ enum SiteType {
     VIDEO = 2;
     UNKNOWN = 3;
 }
+
 message Site {
     string url = 1;
     string title = 2;
@@ -24,21 +25,24 @@ message Site {
 message SearchRequest {
     string query = 1;
 }
+
 message SearchResult {
     repeated Site sites = 1;
 }
 
-service Search{
-    rpc Search( SearchRequest ) returns( SearchResult ) {
-        option( phxrpc.CmdID ) = 1;
-        option( phxrpc.OptString ) = "q:";
-        option( phxrpc.Usage ) = "-q <query>";
+service Search {
+
+    rpc Search(SearchRequest) returns (SearchResult) {
+        option(phxrpc.CmdID) = 1;
+        option(phxrpc.OptString) = "q:";
+        option(phxrpc.Usage) = "-q <query>";
     }
 
-    rpc Notify( google.protobuf.StringValue ) returns( google.protobuf.Empty ) {
-        option( phxrpc.CmdID ) = 2;
-        option( phxrpc.OptString ) = "m:";
-        option( phxrpc.Usage ) = "-m <msg>";
+    rpc Notify(google.protobuf.StringValue) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2;
+        option(phxrpc.OptString) = "m:";
+        option(phxrpc.Usage) = "-m <msg>";
     }
+
 }
 

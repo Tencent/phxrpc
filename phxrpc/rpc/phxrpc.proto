@@ -3,10 +3,38 @@ syntax = "proto3";
 package phxrpc;
 
 import "google/protobuf/descriptor.proto";
+import "google/protobuf/wrappers.proto";
+
 
 extend google.protobuf.MethodOptions {
     int32 CmdID = 2000000;
     string OptString = 2000001;
     string Usage = 2000002;
+}
+
+message MqttConnectPb {
+    bool clean_session = 1;
+    uint32 keep_alive = 2;
+    string client_identifier = 3;
+    string proto_name = 4;
+    uint32 proto_level = 5;
+}
+
+message MqttConnackPb {
+    bool session_present = 1;
+    uint32 connect_return_code = 2;
+}
+
+message MqttPublishPb {
+    uint32 package_identifier = 1;
+    string topic_name = 2;
+    string content = 3;
+}
+
+message MqttPubackPb {
+    uint32 package_identifier = 1;
+}
+
+message MqttDisconnectPb {
 }
 
