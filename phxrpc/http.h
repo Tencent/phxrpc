@@ -22,7 +22,6 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include "http/http_client.h"
-//#include "http/http_dispatcher.h"
 #include "http/http_msg.h"
 #include "http/http_protocol.h"
 

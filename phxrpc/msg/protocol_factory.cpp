@@ -27,7 +27,7 @@ namespace phxrpc {
 
 
 BaseProtocolFactory *BaseProtocolFactory::CreateFactory(UThreadTcpStream &in_stream) {
-    char c{in_stream.peek()};
+    char c{static_cast<char>(in_stream.peek())};
     if ('P' == c || 'G' == c || 'H' == c) {  // look for POST GET HEAD
         return new HttpProtocolFactory;
     }

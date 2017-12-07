@@ -294,7 +294,7 @@ ReturnCode HttpProtocol::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
             if (!is_good)
                 break;
 
-            int size{strtol(buff, nullptr, 16)};
+            int size{static_cast<int>(strtol(buff, nullptr, 16))};
             if (size > 0) {
                 for (; size > 0;) {
                     int read_len = size > MAX_RECV_LEN ? MAX_RECV_LEN : size;

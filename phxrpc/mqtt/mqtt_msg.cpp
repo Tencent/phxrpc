@@ -346,7 +346,7 @@ ReturnCode MqttMessage::RecvFixedHeaderAndRemainingBuffer(
         return ret;
     }
 
-    uint8_t temp{fixed_header};
+    uint8_t temp{static_cast<uint8_t>(fixed_header)};
     temp >>= 4;
     temp &= 0x0f;
     // must convert to unsigned first
@@ -380,7 +380,7 @@ ReturnCode MqttMessage::SendRemainingLength(BaseTcpStream &out_stream,
                                             const int remaining_length) {
     char temp{0x0};
     char continue_bit{0x0};
-    uint32_t temp_remaining_length{remaining_length};
+    uint32_t temp_remaining_length{static_cast<uint32_t>(remaining_length)};
 
     for (int i{0}; 4 > i; ++i) {
         temp = (temp_remaining_length & 0x7f);
