@@ -440,31 +440,33 @@ int UThreadAccept(UThreadSocket_t & socket, struct sockaddr *addr, socklen_t *ad
 }
 
 ssize_t UThreadRead(UThreadSocket_t & socket, void * buf, size_t len, int flags) {
-    int ret = read(socket.socket, buf, len);
+    //int ret = read(socket.socket, buf, len);
+    int ret = -1;
 
-    if (ret < 0 && EAGAIN == errno) {
+    //if (ret < 0 && EAGAIN == errno) {
         int revents = 0;
         if (UThreadPoll(socket, EPOLLIN, &revents, socket.socket_timeout_ms) > 0) {
             ret = read(socket.socket, buf, len);
         } else {
             ret = -1;
         }
-    }
+    //}
 
     return ret;
 }
 
 ssize_t UThreadRecv(UThreadSocket_t & socket, void * buf, size_t len, int flags) {
-    int ret = recv(socket.socket, buf, len, flags);
+    //int ret = recv(socket.socket, buf, len, flags);
+    int ret = -1;
 
-    if (ret < 0 && EAGAIN == errno) {
+    //if (ret < 0 && EAGAIN == errno) {
         int revents = 0;
         if (UThreadPoll(socket, EPOLLIN, &revents, socket.socket_timeout_ms) > 0) {
             ret = recv(socket.socket, buf, len, flags);
         } else {
             ret = -1;
         }
-    }
+    //}
 
     return ret;
 }
