@@ -306,13 +306,14 @@ ReturnCode MqttMessage::SendFixedHeaderAndRemainingBuffer(
         const string &remaining_buffer) {
     char fixed_header{FixedHeader[static_cast<int>(control_packet_type)]};
     ReturnCode ret{SendChar(out_stream, fixed_header)};
-    // TODO:
-    printf("%s:%d test4 type %d fixed_header %u\n", __func__, __LINE__,
-           static_cast<int>(control_packet_type), static_cast<uint8_t>(fixed_header));
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "SendChar err %d", ret);
 
         return ret;
+    } else {
+        phxrpc::log(LOG_DEBUG, "SendChar type %d fixed_header %u",
+                    static_cast<int>(control_packet_type),
+                    static_cast<uint8_t>(fixed_header));
     }
 
     const int remaining_length{static_cast<const int>(remaining_buffer.size())};
@@ -345,15 +346,15 @@ ReturnCode MqttMessage::RecvFixedHeaderAndRemainingBuffer(
         return ret;
     }
 
-    // TODO:
-    printf("%s:%d test4 fixed_header %u\n", __func__, __LINE__, static_cast<uint8_t>(fixed_header));
     uint8_t temp{fixed_header};
     temp >>= 4;
     temp &= 0x0f;
     // must convert to unsigned first
     control_packet_type = static_cast<ControlPacketType>(temp);
-    // TODO:
-    printf("%s:%d test4 type %d\n", __func__, __LINE__, static_cast<int>(control_packet_type));
+
+    phxrpc::log(LOG_DEBUG, "RecvChar type %d fixed_header %u",
+                static_cast<int>(control_packet_type),
+                static_cast<uint8_t>(fixed_header));
 
     int remaining_length{0};
     ret = RecvRemainingLength(in_stream, remaining_length);
