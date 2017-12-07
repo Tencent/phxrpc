@@ -2,6 +2,9 @@
 *.a
 *.pb.*
 *_dispatcher.*
+!base_dispatcher.*
+!http_dispatcher.*
+!mqtt_dispatcher.*
 *_stub.*
 *_service.*
 *_tool.*
@@ -9,3 +12,4 @@
 third_party/*
 sbin/*
 sample/*
+
