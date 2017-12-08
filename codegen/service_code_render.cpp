@@ -407,7 +407,7 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree,
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
-        fprintf(write, "    int %s(const phxrpc::BaseRequest *const request, "
+        fprintf(write, "    int %s(const phxrpc::BaseRequest *const req, "
                 "phxrpc::BaseResponse *const resp);\n",
                 fit->GetName());
     }
@@ -629,8 +629,8 @@ void ServiceCodeRender::GenerateDispatcherFunc(SyntaxTree *stree,
 
     name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
 
-    fprintf(write, "int %s::%s(const phxrpc::BaseRequest *const request, "
-            "phxrpc::BaseResponse *const response) {\n",
+    fprintf(write, "int %s::%s(const phxrpc::BaseRequest *const req, "
+            "phxrpc::BaseResponse *const resp) {\n",
             clasname, func->GetName());
 
     fprintf(write, "    dispatcher_args_->server_monitor->SvrCall(%d, \"%s\", 1);\n",
@@ -651,10 +651,10 @@ void ServiceCodeRender::GenerateDispatcherFunc(SyntaxTree *stree,
     fprintf(write, "    // unpack request\n");
     fprintf(write, "    {\n");
 
-    fprintf(write, "        if (!req_pb.ParseFromString(request->GetContent())) {\n");
+    fprintf(write, "        if (!req_pb.ParseFromString(req->GetContent())) {\n");
 
     fprintf(write, "            phxrpc::log(LOG_ERR, \"ERROR: FromBuffer fail size %%zu ip %%s\",\n"
-            "                request->GetContent().size(), request->GetClientIP());\n");
+            "                req->GetContent().size(), req->GetClientIP());\n");
 
     fprintf(write, "            return -EINVAL;\n");
     fprintf(write, "        }\n");
@@ -671,9 +671,9 @@ void ServiceCodeRender::GenerateDispatcherFunc(SyntaxTree *stree,
 
     fprintf(write, "    // pack response\n");
     fprintf(write, "    {\n");
-    fprintf(write, "        if (!resp_pb.SerializeToString(&(response->GetContent()))) {\n");
+    fprintf(write, "        if (!resp_pb.SerializeToString(&(resp->GetContent()))) {\n");
 
-    fprintf(write, "            phxrpc::log(LOG_ERR, \"ERROR: ToBuffer fail ip %%s\", request->GetClientIP());\n");
+    fprintf(write, "            phxrpc::log(LOG_ERR, \"ERROR: ToBuffer fail ip %%s\", req->GetClientIP());\n");
 
     fprintf(write, "            return -ENOMEM;\n");
     fprintf(write, "        }\n");

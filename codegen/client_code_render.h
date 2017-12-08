@@ -59,11 +59,11 @@ class ClientCodeRender {
     void GetStubFuncDeclaration(SyntaxTree *stree, const SyntaxFunc *const func,
                                 int is_header, std::string *result);
 
-    void GenerateStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
-                          FILE *write);
-
     void GenerateMqttStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
                               FILE *write);
+
+    void GenerateStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
+                          FILE *write);
 
     void GetClienfuncDeclaration(SyntaxTree *stree,
                                  const SyntaxFunc *const func,

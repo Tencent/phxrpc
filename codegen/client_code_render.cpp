@@ -201,24 +201,6 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree,
     }
 }
 
-void ClientCodeRender::GenerateStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
-                                        FILE *write) {
-    string buffer;
-
-    GetStubFuncDeclaration(stree, func, 0, &buffer);
-
-    fprintf(write, "%s {\n", buffer.c_str());
-
-    fprintf(write, "    phxrpc::HttpCaller caller(socket_, client_monitor_);\n");
-    fprintf(write, "    caller.SetURI(\"/%s/%s\", %d);\n",
-            stree->GetPackageName(), func->GetName(), func->GetCmdID());
-    fprintf(write, "    caller.SetKeepAlive(keep_alive_);\n");
-    fprintf(write, "    return caller.Call(req, resp);\n");
-
-    fprintf(write, "}\n");
-    fprintf(write, "\n");
-}
-
 void ClientCodeRender::GenerateMqttStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
                                             FILE *write) {
     string buffer;
@@ -234,6 +216,24 @@ void ClientCodeRender::GenerateMqttStubFunc(SyntaxTree *stree, const SyntaxFunc 
     } else {
         fprintf(write, "    return caller.%sCall(req, resp);\n", func->GetName());
     }
+
+    fprintf(write, "}\n");
+    fprintf(write, "\n");
+}
+
+void ClientCodeRender::GenerateStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
+                                        FILE *write) {
+    string buffer;
+
+    GetStubFuncDeclaration(stree, func, 0, &buffer);
+
+    fprintf(write, "%s {\n", buffer.c_str());
+
+    fprintf(write, "    phxrpc::HttpCaller caller(socket_, client_monitor_);\n");
+    fprintf(write, "    caller.SetURI(\"/%s/%s\", %d);\n",
+            stree->GetPackageName(), func->GetName(), func->GetCmdID());
+    fprintf(write, "    caller.SetKeepAlive(keep_alive_);\n");
+    fprintf(write, "    return caller.Call(req, resp);\n");
 
     fprintf(write, "}\n");
     fprintf(write, "\n");
