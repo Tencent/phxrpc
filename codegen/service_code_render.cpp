@@ -395,16 +395,19 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    virtual ~%s();\n", clasname);
     fprintf(write, "\n");
 
-    fprintf(write, "    int PhxMqttConnect(const phxrpc::BaseRequest *req, phxrpc::BaseResponse *resp);\n");
-    fprintf(write, "    int PhxMqttPublish(const phxrpc::BaseRequest *req, phxrpc::BaseResponse *resp);\n");
-    fprintf(write, "    int PhxMqttDisconnect(const phxrpc::BaseRequest *req, phxrpc::BaseResponse *resp);\n");
+    fprintf(write, "    int PhxMqttConnect(const phxrpc::BaseRequest *const req, "
+            "phxrpc::BaseResponse *const resp);\n");
+    fprintf(write, "    int PhxMqttPublish(const phxrpc::BaseRequest *const req, "
+            "phxrpc::BaseResponse *const resp);\n");
+    fprintf(write, "    int PhxMqttDisconnect(const phxrpc::BaseRequest *const req, "
+            "phxrpc::BaseResponse *const resp);\n");
     fprintf(write, "\n");
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
-        fprintf(write, "    int %s(const phxrpc::BaseRequest *request, "
-                "phxrpc::BaseResponse *response);\n",
+        fprintf(write, "    int %s(const phxrpc::BaseRequest *const request, "
+                "phxrpc::BaseResponse *const response);\n",
                 fit->GetName());
     }
     fprintf(write, "\n");
@@ -559,7 +562,8 @@ void ServiceCodeRender::GenerateMqttDispatcherFunc(SyntaxTree *stree,
 
     name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
 
-    fprintf(write, "int %s::%s(const phxrpc::BaseRequest *req, phxrpc::BaseResponse *resp) {\n",
+    fprintf(write, "int %s::%s(const phxrpc::BaseRequest *const req, "
+            "phxrpc::BaseResponse *const resp) {\n",
             clasname, func->GetName());
     fprintf(write, "    dispatcher_args_->server_monitor->SvrCall(%d, \"%s\", 1);\n",
             func->GetCmdID(), func->GetName());
@@ -622,8 +626,8 @@ void ServiceCodeRender::GenerateDispatcherFunc(SyntaxTree *stree,
 
     name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
 
-    fprintf(write, "int %s::%s(const phxrpc::BaseRequest *request, "
-            "phxrpc::BaseResponse *response) {\n",
+    fprintf(write, "int %s::%s(const phxrpc::BaseRequest *const request, "
+            "phxrpc::BaseResponse *const response) {\n",
             clasname, func->GetName());
 
     fprintf(write, "    dispatcher_args_->server_monitor->SvrCall(%d, \"%s\", 1);\n",

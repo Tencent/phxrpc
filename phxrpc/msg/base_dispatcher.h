@@ -33,21 +33,23 @@ namespace phxrpc {
 template<typename Dispatcher>
 class BaseDispatcher {
   public:
-    typedef int (Dispatcher::*URIFunc_t)(const BaseRequest *req, BaseResponse *resp);
-    typedef int (Dispatcher::*MqttFunc_t)(const BaseRequest *req, BaseResponse *resp);
+    typedef int (Dispatcher::*MqttFunc_t)(const BaseRequest *const req,
+                                          BaseResponse *const resp);
+    typedef int (Dispatcher::*URIFunc_t)(const BaseRequest *const req,
+                                         BaseResponse *const resp);
 
-    typedef std::map<std::string, URIFunc_t> URIFuncMap;
     typedef std::map<BaseMessage::Protocol, MqttFunc_t> MqttFuncMap;
+    typedef std::map<std::string, URIFunc_t> URIFuncMap;
 
-    BaseDispatcher(Dispatcher &dispatcher, const URIFuncMap &uri_func_map,
-                   const MqttFuncMap &mqtt_func_map)
-            : dispatcher_(dispatcher), uri_func_map_(uri_func_map),
-              mqtt_func_map_(mqtt_func_map) {
+    BaseDispatcher(Dispatcher &dispatcher, const MqttFuncMap &mqtt_func_map,
+                   const URIFuncMap &uri_func_map)
+            : dispatcher_(dispatcher), mqtt_func_map_(mqtt_func_map),
+              uri_func_map_(uri_func_map) {
     }
 
     virtual ~BaseDispatcher() = default;
 
-    bool Dispatch(const BaseRequest *req, BaseResponse *resp) {
+    bool Dispatch(const BaseRequest *const req, BaseResponse *const resp) {
         int ret{-1};
 
         if (BaseMessage::Protocol::HTTP_POST == req->protocol() ||
@@ -79,8 +81,8 @@ class BaseDispatcher {
 
   private:
     Dispatcher &dispatcher_;
-    const URIFuncMap &uri_func_map_;
     const MqttFuncMap &mqtt_func_map_;
+    const URIFuncMap &uri_func_map_;
 };
 
 

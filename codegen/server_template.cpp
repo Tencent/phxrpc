@@ -48,8 +48,8 @@ void Dispatch(const phxrpc::BaseRequest *request,
     $DispatcherClass$ dispatcher(service, args);
 
     phxrpc::BaseDispatcher<$DispatcherClass$> base_dispatcher(
-            dispatcher, $DispatcherClass$::GetURIFuncMap(),
-            $DispatcherClass$::GetMqttFuncMap());
+            dispatcher, $DispatcherClass$::GetMqttFuncMap(),
+            $DispatcherClass$::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(request, response)) {
         response->DispatchErr();
     }
@@ -142,8 +142,8 @@ void Dispatch(const phxrpc::BaseRequest *request,
     $DispatcherClass$ dispatcher(service, args);
 
     phxrpc::BaseDispatcher<$DispatcherClass$> base_dispatcher(
-            dispatcher, $DispatcherClass$::GetURIFuncMap(),
-            $DispatcherClass$::GetMqttFuncMap());
+            dispatcher, $DispatcherClass$::GetMqttFuncMap(),
+            $DispatcherClass$::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(request, response)) {
         response->DispatchErr();
     }
