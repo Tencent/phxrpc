@@ -322,7 +322,7 @@ include $PhxRPCMKDir$/phxrpc.mk
 
 LDFLAGS := -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS)
 
-#choose to use boost for network
+# choose to use boost for network
 #LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS)
 
 SVR_OBJS = $MessageFile$.o \
@@ -364,7 +364,7 @@ $ClientFile$.cpp: $StubFile$.h
 $ClientFile$.o: $StubFile$.h
 
 $StubFile$.h: $ProtoFile$
-	$(PHXRPC_ROOT)/codegen/phxrpc_pb2client $(PBFLAGS) -f $^ -d .
+	$(PHXRPC_ROOT)/codegen/phxrpc_pb2client $(PBFLAGS) -f $^ -d . -p mqtt
 
 ########## service ##########
 
@@ -376,7 +376,7 @@ $DispatcherFile$.cpp: $ServiceFile$.h
 $DispatcherFile$.o: $ServiceFile$.h
 
 $ServiceFile$.h: $ProtoFile$
-	$(PHXRPC_ROOT)/codegen/phxrpc_pb2service $(PBFLAGS) -f $^ -d .
+	$(PHXRPC_ROOT)/codegen/phxrpc_pb2service $(PBFLAGS) -f $^ -d . -p mqtt
 
 ########## tool ##########
 
@@ -388,7 +388,7 @@ $ToolMainFile$.cpp: $ToolFile$.h
 $ToolMainFile$.o: $ToolFile$.h
 
 $ToolFile$.h: $ProtoFile$
-	$(PHXRPC_ROOT)/codegen/phxrpc_pb2tool $(PBFLAGS) -f $^ -d .
+	$(PHXRPC_ROOT)/codegen/phxrpc_pb2tool $(PBFLAGS) -f $^ -d . -p mqtt
 
 clean:
 	@($(RM) $(TARGETS))
@@ -407,7 +407,7 @@ include $PhxRPCMKDir$/phxrpc.mk
 
 LDFLAGS := -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS)
 
-#choose to use boost for network
+# choose to use boost for network
 #LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS)
 
 SVR_OBJS = $MessageFile$.o \
@@ -452,7 +452,7 @@ $ClientFile$_uthread.cpp: $StubFile$.h
 $ClientFile$_uthread.o: $StubFile$.h
 
 $StubFile$.h: $ProtoFile$
-	$(PHXRPC_ROOT)/codegen/phxrpc_pb2client $(PBFLAGS) -f $^ -d . -u
+	$(PHXRPC_ROOT)/codegen/phxrpc_pb2client $(PBFLAGS) -f $^ -d . -u -p mqtt
 
 ########## service ##########
 
@@ -464,7 +464,7 @@ $DispatcherFile$.cpp: $ServiceFile$.h
 $DispatcherFile$.o: $ServiceFile$.h
 
 $ServiceFile$.h: $ProtoFile$
-	$(PHXRPC_ROOT)/codegen/phxrpc_pb2service $(PBFLAGS) -f $^ -d . -u
+	$(PHXRPC_ROOT)/codegen/phxrpc_pb2service $(PBFLAGS) -f $^ -d . -u -p mqtt
 
 ########## tool ##########
 
@@ -476,7 +476,7 @@ $ToolMainFile$.cpp: $ToolFile$.h
 $ToolMainFile$.o: $ToolFile$.h
 
 $ToolFile$.h: $ProtoFile$
-	$(PHXRPC_ROOT)/codegen/phxrpc_pb2tool $(PBFLAGS) -f $^ -d .
+	$(PHXRPC_ROOT)/codegen/phxrpc_pb2tool $(PBFLAGS) -f $^ -d . -p mqtt
 
 clean:
 	@($(RM) $(TARGETS))

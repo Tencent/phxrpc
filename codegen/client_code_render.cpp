@@ -96,7 +96,6 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree *stree,
             GetStubFuncDeclaration(stree, &(*mqtt_it), 1, &buffer);
             fprintf(write, "    %s;\n", buffer.c_str());
         }
-        fprintf(write, "\n");
 
         SyntaxFuncVector *flist{stree->GetFuncList()};
         auto fit(flist->cbegin());
@@ -268,7 +267,6 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree *stree,
 
             declarations.append("    ").append(buffer).append(";\n");
         }
-        declarations.append("\n");
     }
 
     {

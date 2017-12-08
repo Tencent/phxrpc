@@ -137,10 +137,15 @@ service Search {
 ../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d .
 ../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d . -u
 
-两种生成模式，区别在于-u参数。
+两种生成模式，区别在于`-u`参数。
+
 第一种生成默认的线程池worker模型。
-第二种-u参数指定生成uthread worker模型，也就是工作线程池里面每个线程里面运行着多个协程。
+
+第二种`-u`参数指定生成uthread worker模型，也就是工作线程池里面每个线程里面运行着多个协程。
+
 调用完工具后，在生成代码放置目录下执行make，即可生成全部的RPC相关代码。
+
+`-p mqtt`可生成支持MQTT协议的代码。
 ```
 
 ### 选择是否启用boost优化
@@ -148,7 +153,7 @@ service Search {
 打开生成代码放置目录下的Makefile文件。
 
 ```bash
-#choose to use boost for network
+# choose to use boost for network
 #LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS)
 ```
 

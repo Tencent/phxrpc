@@ -85,7 +85,6 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
          ++mqtt_it) {
         fprintf(write, "    virtual int %s(phxrpc::OptMap &bigmap);\n", mqtt_it->GetName());
     }
-    fprintf(write, "\n");
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
@@ -248,7 +247,6 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree,
          ++mqtt_it) {
         fprintf(write, "    virtual int %s(phxrpc::OptMap &opt_map) override;\n", mqtt_it->GetName());
     }
-    fprintf(write, "\n");
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());

@@ -56,7 +56,9 @@ class ServiceCodeRender {
                                         const SyntaxFuncVector &mqtt_funcs,
                                         FILE *write, const bool is_uthread_mode);
 
-    virtual void GenerateDispatcherHpp(SyntaxTree *stree, FILE *write);
+    virtual void GenerateDispatcherHpp(SyntaxTree *stree,
+                                       const SyntaxFuncVector &mqtt_funcs,
+                                       FILE *write);
 
     virtual void GenerateDispatcherCpp(SyntaxTree *stree,
                                        const SyntaxFuncVector &mqtt_funcs,

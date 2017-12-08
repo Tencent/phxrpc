@@ -19,13 +19,14 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
+#include <errno.h>
+#include <unistd.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <errno.h>
 #include <map>
 #include <string>
-#include <unistd.h>
 #include <vector>
 
 #include "syntax_tree.h"
@@ -43,8 +44,8 @@ void PrintHelp(const char * program) {
     printf("\n");
     printf("PhxRPC ProtoBuf tool\n");
     printf("\n");
-    printf("%s <-f Profo file> <-d destination file dir> [-v]\n", program);
-    printf(" Usage: -f <Proto file>             # Proto File\n");
+    printf("%s <-f profo file> <-d destination file dir> [-v]\n", program);
+    printf(" Usage: -f <proto file>             # proto file\n");
     printf("        -d <dir>                    # destination file dir\n");
     printf("        -I <dir>                    # include path dir\n");
     printf("        -e                          # epoll server\n");
@@ -54,9 +55,9 @@ void PrintHelp(const char * program) {
     return;
 }
 
-void Proto2Server(const char *program, const char *pb_file, const char *dir_path,
-                  const vector<string> &include_list, const string &mk_dir_path,
-                  const bool is_uthread_mode) {
+void Proto2Server(const char *program, const char *pb_file,
+                  const char *dir_path, const vector<string> &include_list,
+                  const string &mk_dir_path, const bool is_uthread_mode) {
     SyntaxTree syntax_tree;
     map<string, bool> parsed_file_map;
 

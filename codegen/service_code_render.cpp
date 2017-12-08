@@ -80,11 +80,10 @@ void ServiceCodeRender::GenerateServiceHpp(SyntaxTree *stree,
         GetServiceFuncDeclaration(stree, &(*mqtt_it), 1, 0, 1, &buffer);
         fprintf(write, "    virtual %s;\n", buffer.c_str());
     }
-    fprintf(write, "\n");
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
-    SyntaxFuncVector::iterator fit = flist->begin();
-    for (; flist->end() != fit; ++fit) {
+    auto fit(flist->cbegin());
+    for (; flist->cend() != fit; ++fit) {
         string buffer;
         GetServiceFuncDeclaration(stree, &(*fit), 1, 0, 1, &buffer);
         fprintf(write, "    virtual %s;\n", buffer.c_str());
@@ -110,6 +109,7 @@ void ServiceCodeRender::GenerateServiceCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     fprintf(write, "#include \"%s.h\"\n", filename);
+    fprintf(write, "\n");
 
     name_render_.GetMessageFileName(stree->GetProtoFile(), filename, sizeof(filename));
     fprintf(write, "#include \"%s.h\"\n", filename);
@@ -141,8 +141,8 @@ void ServiceCodeRender::GenerateServiceCpp(SyntaxTree *stree,
     }
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
-    SyntaxFuncVector::iterator fit = flist->begin();
-    for (; flist->end() != fit; ++fit) {
+    auto fit(flist->cbegin());
+    for (; flist->cend() != fit; ++fit) {
         string buffer;
         GetServiceFuncDeclaration(stree, &(*fit), 0, 0, 0, &buffer);
         fprintf(write, "%s {\n", buffer.c_str());
@@ -353,7 +353,9 @@ void ServiceCodeRender::GetServiceFuncDeclaration(SyntaxTree *stree,
     result->append(")");
 }
 
-void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree, FILE *write) {
+void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree,
+                                              const SyntaxFuncVector &mqtt_funcs,
+                                              FILE *write) {
     char filename[128]{0};
     name_render_.GetDispatcherFileName(stree->GetName(), filename, sizeof(filename));
 
@@ -395,19 +397,18 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    virtual ~%s();\n", clasname);
     fprintf(write, "\n");
 
-    fprintf(write, "    int PhxMqttConnect(const phxrpc::BaseRequest *const req, "
-            "phxrpc::BaseResponse *const resp);\n");
-    fprintf(write, "    int PhxMqttPublish(const phxrpc::BaseRequest *const req, "
-            "phxrpc::BaseResponse *const resp);\n");
-    fprintf(write, "    int PhxMqttDisconnect(const phxrpc::BaseRequest *const req, "
-            "phxrpc::BaseResponse *const resp);\n");
-    fprintf(write, "\n");
+    for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
+         ++mqtt_it) {
+        fprintf(write, "    int %s(const phxrpc::BaseRequest *const req, "
+                "phxrpc::BaseResponse *const resp);\n",
+                mqtt_it->GetName());
+    }
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         fprintf(write, "    int %s(const phxrpc::BaseRequest *const request, "
-                "phxrpc::BaseResponse *const response);\n",
+                "phxrpc::BaseResponse *const resp);\n",
                 fit->GetName());
     }
     fprintf(write, "\n");
@@ -469,20 +470,22 @@ void ServiceCodeRender::GenerateDispatcherCpp(SyntaxTree *stree,
 
     vector<FunctionItem> functions;
 
-    FunctionItem connect_item;
-    connect_item.protocol_name = "MQTT_CONNECT";
-    connect_item.function_name = "PhxMqttConnect";
-    functions.push_back(connect_item);
+    if (0 < mqtt_funcs.size()) {
+        FunctionItem connect_item;
+        connect_item.protocol_name = "MQTT_CONNECT";
+        connect_item.function_name = "PhxMqttConnect";
+        functions.push_back(connect_item);
 
-    FunctionItem publish_item;
-    publish_item.protocol_name = "MQTT_PUBLISH";
-    publish_item.function_name = "PhxMqttPublish";
-    functions.push_back(publish_item);
+        FunctionItem publish_item;
+        publish_item.protocol_name = "MQTT_PUBLISH";
+        publish_item.function_name = "PhxMqttPublish";
+        functions.push_back(publish_item);
 
-    FunctionItem disconnect_item;
-    disconnect_item.protocol_name = "MQTT_DISCONNECT";
-    disconnect_item.function_name = "PhxMqttDisconnect";
-    functions.push_back(disconnect_item);
+        FunctionItem disconnect_item;
+        disconnect_item.protocol_name = "MQTT_DISCONNECT";
+        disconnect_item.function_name = "PhxMqttDisconnect";
+        functions.push_back(disconnect_item);
+    }
 
     GenerateMqttFuncMap(stree, functions, write);
 
