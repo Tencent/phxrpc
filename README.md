@@ -284,7 +284,7 @@ int SearchClient::PhxBatchEcho(const google::protobuf::StringValue &req,
 
 #### Server配置说明 (xxx_server.conf)
 
-```c++
+```ini
 [Server]
 BindIP = 127.0.0.1              // Server IP
 Port = 16161                    // Server Port
