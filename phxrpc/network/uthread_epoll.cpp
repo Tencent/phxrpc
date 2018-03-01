@@ -241,10 +241,12 @@ bool UThreadEpollScheduler::Run() {
 
     struct epoll_event * events = (struct epoll_event*) calloc(max_task_, sizeof(struct epoll_event));
 
-    int next_timeout = timer_.GetNextTimeout();
-
     for (; (run_forever_) || (!runtime_.IsAllDone());) {
-        int nfds = epoll_wait(epoll_fd_, events, max_task_, 4);
+	int next_timeout = timer_.GetNextTimeout();
+	int timeout = 4;
+	if(next_timeout > 0 && next_timeout < timeout)
+	    timeout = next_timeout;
+        int nfds = epoll_wait(epoll_fd_, events, max_task_, timeout);
         if (nfds != -1) {
             for (int i = 0; i < nfds; i++) {
                 UThreadSocket_t * socket = (UThreadSocket_t*) events[i].data.ptr;
