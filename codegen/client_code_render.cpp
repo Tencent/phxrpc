@@ -231,7 +231,7 @@ void ClientCodeRender::GenerateStubFunc(SyntaxTree *stree, const SyntaxFunc *con
 
     fprintf(write, "    phxrpc::HttpCaller caller(socket_, client_monitor_);\n");
     fprintf(write, "    caller.SetURI(\"/%s/%s\", %d);\n",
-            stree->GetPackageName(), func->GetName(), func->GetCmdID());
+            stree->GetCppPackageName(), func->GetName(), func->GetCmdID());
     fprintf(write, "    caller.SetKeepAlive(keep_alive_);\n");
     fprintf(write, "    return caller.Call(req, resp);\n");
 
@@ -441,7 +441,7 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree,
     }
 
     StrTrim(&content);
-    StrReplaceAll(&content, "$PackageName$", stree->GetPackageName() );
+    StrReplaceAll(&content, "$PbPackageName$", SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()));
     StrReplaceAll(&content, "$ClientFile$", client_file);
     StrReplaceAll(&content, "$StubFile$", stub_file);
     StrReplaceAll(&content, "$ClientClass$", client_class_str);
@@ -495,7 +495,7 @@ void ClientCodeRender::GenerateClientEtc(SyntaxTree *stree, FILE *write) {
 
     string content(PHXRPC_CLIENT_ETC_TEMPLATE);
     StrTrim(&content);
-    StrReplaceAll(&content, "$PackageName$", stree->GetPackageName() );
+    StrReplaceAll(&content, "$PbPackageName$", SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()));
     fprintf(write, "%s", content.c_str());
 
     fprintf(write, "\n");

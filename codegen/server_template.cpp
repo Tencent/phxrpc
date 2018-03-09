@@ -249,7 +249,7 @@ bool $ServerConfigClass$::Read(const char *config_file) {
     bool ret{ep_server_config_.Read(config_file)};
 
     if (0 == strlen(ep_server_config_.GetPackageName())) {
-        ep_server_config_.SetPackageName($PackageName$);
+        ep_server_config_.SetPackageName($PackageNameExpression$);
     }
 
     return ret;
@@ -271,7 +271,7 @@ BindIP = 127.0.0.1
 Port = 16161
 MaxThreads = 16
 IOThreadCount = 3
-PackageName = $PackageName$
+PackageName = $PbPackageName$
 MaxConnections = 800000
 MaxQueueLength = 20480
 FastRejectThresholdMS = 20
@@ -298,7 +298,7 @@ MaxThreads = 16
 WorkerUThreadCount = 50
 WorkerUThreadStackSize = 65536
 IOThreadCount = 3
-PackageName = $PackageName$
+PackageName = $PbPackageName$
 MaxConnections = 800000
 MaxQueueLength = 20480
 FastRejectThresholdMS = 20

@@ -19,6 +19,7 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
+#include <boost/algorithm/string/replace.hpp>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -28,6 +29,7 @@ See the AUTHORS file for names of contributors.
 
 
 using namespace phxrpc;
+using namespace std;
 
 
 SyntaxNode::SyntaxNode() {
@@ -118,13 +120,10 @@ int32_t SyntaxFunc::GetCmdID() const  {
 SyntaxTree::SyntaxTree() {
     memset(prefix_, 0, sizeof(prefix_));
     memset(proto_file_, 0, sizeof(proto_file_));
-    memset(package_name_, 0, sizeof(package_name_));
+    memset(cpp_package_name_, 0, sizeof(cpp_package_name_));
 }
 
 SyntaxTree::~SyntaxTree() {
-}
-
-void SyntaxTree::Print() {
 }
 
 void SyntaxTree::SetProtoFile(const char *proto_file) {
@@ -135,12 +134,12 @@ const char *SyntaxTree::GetProtoFile() const {
     return proto_file_;
 }
 
-const char *SyntaxTree::GetPackageName() const {
-    return package_name_;
+const char *SyntaxTree::GetCppPackageName() const {
+    return cpp_package_name_;
 }
 
-void SyntaxTree::SetPackageName(const char *package_name) {
-    strncpy(package_name_, package_name, sizeof(package_name_) - 1);
+void SyntaxTree::SetCppPackageName(const char *cpp_package_name) {
+    strncpy(cpp_package_name_, cpp_package_name, sizeof(cpp_package_name_) - 1);
 }
 
 void SyntaxTree::SetPrefix(const char *prefix) {
@@ -173,6 +172,9 @@ SyntaxFunc *SyntaxTree::FindFunc(const char *name) {
     return ret;
 }
 
+void SyntaxTree::Print() {
+}
+
 char *SyntaxTree::ToLower(char *s) {
     char *ret = s;
 
@@ -189,5 +191,17 @@ char *SyntaxTree::ToUpper(char *s) {
         *s = toupper(*s);
 
     return ret;
+}
+
+string SyntaxTree::Cpp2PbPackageName(const string &cpp_package_name) {
+    string pb_package_name(cpp_package_name);
+    boost::replace_all(pb_package_name, "::", ".");
+    return pb_package_name;
+}
+
+string SyntaxTree::Pb2CppPackageName(const string &pb_package_name) {
+    string cpp_package_name(pb_package_name);
+    boost::replace_all(cpp_package_name, ".", "::");
+    return cpp_package_name;
 }
 

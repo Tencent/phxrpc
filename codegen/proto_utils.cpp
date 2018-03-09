@@ -85,7 +85,7 @@ int ProtoUtils::LoadNormal(const char * filename, SyntaxTree * stree, std::map<s
 
     const FileDescriptor * fd = importer.Import(filename);
 
-    stree->SetPackageName(fd->package().c_str());
+    stree->SetCppPackageName(SyntaxTree::Pb2CppPackageName(fd->package()).c_str());
 
     stree->SetProtoFile(filename);
 

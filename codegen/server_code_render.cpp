@@ -88,30 +88,31 @@ void ServerCodeRender::GenerateServerConfigCpp(SyntaxTree *stree, FILE *write) {
 
     string content = PHXRPC_EPOLL_SERVER_CONFIG_CPP_TEMPLATE;
 
-    string package_name = "\"" + string(stree->GetPackageName()) + "\"";
+    string package_name_expression = "\"" + string(SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName())) + "\"";
 
     {
         string message_name;
-        for( auto itr : *(stree->GetFuncList()) ) {
-            if ( string(itr.GetReq()->GetType()).find( stree->GetPackageName() ) != string::npos ) {
+        for (auto itr : *(stree->GetFuncList())) {
+            if (string(itr.GetReq()->GetType()).find(stree->GetCppPackageName()) != string::npos) {
                 message_name = itr.GetReq()->GetType();
                 break;
-            } else if ( string(itr.GetResp()->GetType()).find( stree->GetPackageName() ) != string::npos ) {
+            } else if (string(itr.GetResp()->GetType()).find(stree->GetCppPackageName()) != string::npos) {
                 message_name = itr.GetResp()->GetType();
                 break;
             }
         }
-        if( message_name != "" ) {
-            int package_name_len = strlen(stree->GetPackageName());
-            message_name = message_name.substr( package_name_len + 1, message_name.size() - package_name_len - 1 );
-            package_name = "\n" + string(stree->GetPackageName()) + "::" + message_name
+        if (message_name != "") {
+            int package_name_len = strlen(stree->GetCppPackageName());
+            message_name = message_name.substr(package_name_len + 1,
+                                               message_name.size() - package_name_len - 1);
+            package_name_expression = "\n                " + string(stree->GetCppPackageName()) + "::" + message_name
                            + "::default_instance().GetDescriptor()->file()->package().c_str()";
         }
     }
 
     StrTrim(&content);
     StrReplaceAll(&content, "$MessageFile$", message_file);
-    StrReplaceAll(&content, "$PackageName$", package_name);
+    StrReplaceAll(&content, "$PackageNameExpression$", package_name_expression);
     StrReplaceAll(&content, "$ServerConfigClass$", classname);
     StrReplaceAll(&content, "$ServerConfigFile$", filename);
 
@@ -185,7 +186,8 @@ void ServerCodeRender::GenerateServerEtc(SyntaxTree *stree, FILE *write, const b
     }
 
     StrTrim(&content);
-    StrReplaceAll(&content, "$PackageName$", stree->GetPackageName() );
+    StrReplaceAll(&content, "$PbPackageName$",
+                  SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()));
 
     fprintf(write, "%s", content.c_str());
 

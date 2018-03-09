@@ -108,8 +108,8 @@ class SyntaxTree : public SyntaxNode {
     void SetPrefix(const char *prefix);
     const char *GetPrefix() const;
 
-    void SetPackageName(const char *sPBPackageName);
-    const char *GetPackageName() const;
+    void SetCppPackageName(const char *cpp_package_name);
+    const char *GetCppPackageName() const;
 
     const SyntaxFuncVector *GetFuncList() const;
     SyntaxFuncVector *GetFuncList();
@@ -121,10 +121,13 @@ class SyntaxTree : public SyntaxNode {
     static char *ToLower(register char *s);
     static char *ToUpper(register char *s);
 
+    static std::string Cpp2PbPackageName(const std::string &cpp_package_name);
+    static std::string Pb2CppPackageName(const std::string &pb_package_name);
+
   private:
     char proto_file_[128];
     char prefix_[32];
-    char package_name_[128];
+    char cpp_package_name_[128];
 
     SyntaxFuncVector func_list_;
 };

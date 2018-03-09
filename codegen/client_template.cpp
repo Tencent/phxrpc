@@ -94,7 +94,7 @@ bool $ClientClass$::Init(const char *config_file) {
 const char *$ClientClass$::GetPackageName() {
     const char *ret = global_$ClientClassLower$_config_.GetPackageName();
     if (strlen(ret) == 0) {
-        ret = "$PackageName$";
+        ret = "$PbPackageName$";
     }
     return ret;
 }
@@ -146,7 +146,7 @@ bool $ClientClass$::Init(const char *config_file) {
 const char *$ClientClass$::GetPackageName() {
     const char *ret = global_$ClientClassLower$_config_.GetPackageName();
     if (strlen(ret) == 0) {
-        ret = "$PackageName$";
+        ret = "$PbPackageName$";
     }
     return ret;
 }
@@ -261,7 +261,7 @@ SocketTimeoutMS = 5000
 
 [Server]
 ServerCount = 2
-PackageName=$PackageName$
+PackageName = $PbPackageName$
 
 [Server0]
 IP = 127.0.0.1
