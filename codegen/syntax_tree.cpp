@@ -19,12 +19,12 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <boost/algorithm/string/replace.hpp>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
+#include "code_utils.h"
 #include "syntax_tree.h"
 
 
@@ -195,13 +195,13 @@ char *SyntaxTree::ToUpper(char *s) {
 
 string SyntaxTree::Cpp2PbPackageName(const string &cpp_package_name) {
     string pb_package_name(cpp_package_name);
-    boost::replace_all(pb_package_name, "::", ".");
+    StrReplaceAll(&pb_package_name, "::", ".");
     return pb_package_name;
 }
 
 string SyntaxTree::Pb2CppPackageName(const string &pb_package_name) {
     string cpp_package_name(pb_package_name);
-    boost::replace_all(cpp_package_name, ".", "::");
+    StrReplaceAll(&cpp_package_name, ".", "::");
     return cpp_package_name;
 }
 
