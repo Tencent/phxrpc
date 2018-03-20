@@ -155,12 +155,14 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree,
     fprintf(write, "*/\n");
     fprintf(write, "\n");
 
+    fprintf(write, "#include \"%s.h\"\n", filename);
+
+    fprintf(write, "\n");
+
     fprintf(write, "#include \"phxrpc/rpc.h\"\n");
     fprintf(write, "#include \"phxrpc/network.h\"\n");
 
     fprintf(write, "\n");
-
-    fprintf(write, "#include \"%s.h\"\n", filename);
 
     name_render_.GetMessageFileName(stree->GetProtoFile(), filename, sizeof(filename));
     fprintf(write, "#include \"%s.h\"\n", filename);
@@ -231,7 +233,8 @@ void ClientCodeRender::GenerateStubFunc(SyntaxTree *stree, const SyntaxFunc *con
 
     fprintf(write, "    phxrpc::HttpCaller caller(socket_, client_monitor_);\n");
     fprintf(write, "    caller.SetURI(\"/%s/%s\", %d);\n",
-            stree->GetCppPackageName(), func->GetName(), func->GetCmdID());
+            SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()).c_str(),
+            func->GetName(), func->GetCmdID());
     fprintf(write, "    caller.SetKeepAlive(keep_alive_);\n");
     fprintf(write, "    return caller.Call(req, resp);\n");
 

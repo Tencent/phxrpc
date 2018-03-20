@@ -548,7 +548,7 @@ void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
         if (fit != flist->cbegin()) {
             fprintf(write, ",\n");
         }
-        fprintf(write, "        {\"/%s/%s\", &%s::%s}", stree->GetCppPackageName(), fit->GetName(), clasname,
+        fprintf(write, "        {\"/%s/%s\", &%s::%s}", SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()).c_str(), fit->GetName(), clasname,
                 fit->GetName());
     }
     fprintf(write, "};\n");

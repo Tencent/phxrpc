@@ -134,11 +134,11 @@ void ServerCodeRender::GenerateServerMainCpp(SyntaxTree *stree, FILE *write, con
     fprintf(write, "*/\n");
     fprintf(write, "\n");
 
-    char dispatcher_calss[128]{0}, dispatcher_file[128]{0};
+    char dispatcher_class[128]{0}, dispatcher_file[128]{0};
     char service_impl_class[128]{0}, service_impl_file[128]{0};
     char server_config_class[128]{0}, server_config_file[128]{0};
 
-    name_render_.GetDispatcherClasname(stree->GetName(), dispatcher_calss, sizeof(dispatcher_calss));
+    name_render_.GetDispatcherClasname(stree->GetName(), dispatcher_class, sizeof(dispatcher_class));
     name_render_.GetDispatcherFileName(stree->GetName(), dispatcher_file, sizeof(dispatcher_file));
     name_render_.GetServiceImplClasname(stree->GetName(), service_impl_class, sizeof(service_impl_class));
     name_render_.GetServiceImplFileName(stree->GetName(), service_impl_file, sizeof(service_impl_file));
@@ -154,7 +154,7 @@ void ServerCodeRender::GenerateServerMainCpp(SyntaxTree *stree, FILE *write, con
 
     StrTrim(&content);
     StrReplaceAll(&content, "$DispatcherFile$", dispatcher_file);
-    StrReplaceAll(&content, "$DispatcherClass$", dispatcher_calss);
+    StrReplaceAll(&content, "$DispatcherClass$", dispatcher_class);
     StrReplaceAll(&content, "$ServiceImplFile$", service_impl_file);
     StrReplaceAll(&content, "$ServiceImplClass$", service_impl_class);
     StrReplaceAll(&content, "$ServerConfigFile$", server_config_file);

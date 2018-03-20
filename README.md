@@ -136,6 +136,7 @@ service Search {
 # sample
 ../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d .
 ../codegen/phxrpc_pb2server -I ../ -I ../third_party/protobuf/include -f search.proto -d . -u
+```
 
 两种生成模式，区别在于`-u`参数。
 
@@ -143,21 +144,24 @@ service Search {
 
 第二种`-u`参数指定生成uthread worker模型，也就是工作线程池里面每个线程里面运行着多个协程。
 
-调用完工具后，在生成代码放置目录下执行make，即可生成全部的RPC相关代码。
+调用完工具后，在生成代码放置目录下执行`make`，即可生成全部的RPC相关代码。
 
-`-p mqtt`可生成支持MQTT协议的代码。
-```
+### 选择是否启用MQTT协议支持
 
-### 选择是否启用boost优化
+打开生成代码放置目录下的`Makefile`文件。
 
-打开生成代码放置目录下的Makefile文件。
+默认开启了`-p mqtt`生成支持MQTT协议的代码。如不想支持，可以将此参数去掉。重新`make clean && make`。
+
+### 选择是否启用Boost优化
+
+打开生成代码放置目录下的`Makefile`文件。
 
 ```bash
 # choose to use boost for network
 #LDFLAGS := $(PLUGIN_BOOST_LDFLAGS) $(LDFLAGS)
 ```
 
-可以看到以上两行，取消注释掉第二行，重新make clean, make即可开启boost对PhxRPC的优化。开启前记得编译好PhxRPC的boost插件。
+可以看到以上两行，取消注释掉第二行，重新`make clean && make`即可开启Boost对PhxRPC的优化。开启前记得编译好PhxRPC的Boost插件。
 
 ### 补充自己的代码
 
