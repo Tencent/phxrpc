@@ -950,7 +950,7 @@ ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream,
 
         topic_filters_.emplace_back(topic_filter);
 
-        used_length += topic_filter.c_str() + 3;
+        used_length += topic_filter.length() + 3;
     }
 
     return ReturnCode::OK;
@@ -1061,7 +1061,7 @@ MqttUnsubscribe::RecvPayload(istringstream &in_stream,
 
         topic_filters_.emplace_back(topic_filter);
 
-        used_length += topic_filter.c_str() + 2;
+        used_length += topic_filter.length() + 2;
     }
 
     return ReturnCode::OK;
