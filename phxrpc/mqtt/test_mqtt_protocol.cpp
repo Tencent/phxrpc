@@ -96,6 +96,8 @@ int main(int argc, char *argv[]) {
         cout << "Req:" << endl;
         MqttPublish publish;
         publish.set_topic_name("test_topic_1");
+        string content{"test_msg_1"};
+        publish.SetContent(content.c_str(), content.length());
         publish.set_packet_identifier(11);
         TraceMsg(publish);
 

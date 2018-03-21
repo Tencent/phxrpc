@@ -119,12 +119,14 @@ class MqttMessage : virtual public BaseMessage {
     virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) = 0;
 
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const = 0;
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) = 0;
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) = 0;
 
     virtual ReturnCode Send(BaseTcpStream &socket) const override;
 
     ReturnCode SendRemaining(std::ostringstream &out_stream) const;
-    ReturnCode RecvRemaining(std::istringstream &in_stream);
+    ReturnCode RecvRemaining(std::istringstream &in_stream,
+                             const int remaining_length);
 
     // packet identifier
     ReturnCode SendPacketIdentifier(std::ostringstream &out_stream) const;
@@ -196,7 +198,8 @@ class MqttConnect final : public MqttRequest {
     virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
 
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override;
 
     bool clean_session() const { return clean_session_; }
     void set_clean_session(const bool clean_session) {
@@ -242,7 +245,8 @@ class MqttConnack final : public MqttResponse {
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;
     }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override {
         return ReturnCode::OK;
     }
 
@@ -277,7 +281,8 @@ class MqttPublish final : public MqttRequest {
     virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
 
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override;
 
     const std::string &topic_name() const { return topic_name_; }
     void set_topic_name(const std::string &topic_name) {
@@ -302,7 +307,8 @@ class MqttPuback final : public MqttResponse {
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;
     }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override {
         return ReturnCode::OK;
     }
 };
@@ -327,7 +333,8 @@ class MqttSubscribe final : public MqttRequest {
     virtual ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override;
 
     const std::vector<std::string> &topic_filters() const {
         return topic_filters_;
@@ -357,7 +364,8 @@ class MqttSuback final : public MqttResponse {
     virtual ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override;
 
     const std::string &return_codes() const { return return_codes_; }
     void set_return_codes(const std::string &return_codes) {
@@ -388,7 +396,8 @@ class MqttUnsubscribe final : public MqttRequest {
     virtual ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override;
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override;
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override;
 
     const std::vector<std::string> &topic_filters() const {
         return topic_filters_;
@@ -421,7 +430,8 @@ class MqttUnsuback final : public MqttResponse {
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;
     }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override {
         return ReturnCode::OK;
     }
 };
@@ -453,7 +463,8 @@ class MqttPingreq final : public MqttRequest {
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;
     }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override {
         return ReturnCode::OK;
     }
 };
@@ -482,7 +493,8 @@ class MqttPingresp final : public MqttResponse {
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;
     }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override {
         return ReturnCode::OK;
     }
 };
@@ -509,7 +521,8 @@ class MqttDisconnect final : public MqttRequest {
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;
     }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override {
         return ReturnCode::OK;
     }
 };
@@ -538,7 +551,8 @@ class MqttFakeDisconnack final : public MqttResponse {
     virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;
     }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream,
+                                   const int remaining_length) override {
         return ReturnCode::OK;
     }
 };

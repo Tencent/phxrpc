@@ -319,7 +319,9 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree,
         fprintf(write, "\n");
 
         if (0 == strcmp("PhxMqttPublish", mqtt_it->GetName())) {
+            fprintf(write, "    if (nullptr == opt_map.Get('t')) return -1;\n");
             fprintf(write, "    if (nullptr == opt_map.Get('s')) return -1;\n\n");
+            fprintf(write, "    req.set_topic_name(opt_map.Get('t'));\n");
             fprintf(write, "    req.set_content(opt_map.Get('s'));\n");
         }
 

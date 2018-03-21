@@ -81,8 +81,8 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
         SyntaxFunc publish_func;
         publish_func.SetCmdID(-202);
         publish_func.SetName("PhxMqttPublish");
-        publish_func.SetOptString("s:");
-        publish_func.SetUsage("-s <string>");
+        publish_func.SetOptString("t:s:");
+        publish_func.SetUsage("-t <topic_name> -s <string>");
         publish_func.GetReq()->SetType("phxrpc::MqttPublishPb");
         publish_func.GetResp()->SetType("phxrpc::MqttPubackPb");
         mqtt_funcs.push_back(publish_func);

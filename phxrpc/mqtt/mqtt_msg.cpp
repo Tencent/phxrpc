@@ -476,7 +476,8 @@ ReturnCode MqttMessage::SendRemaining(ostringstream &out_stream) const {
     return ret;
 }
 
-ReturnCode MqttMessage::RecvRemaining(istringstream &in_stream) {
+ReturnCode MqttMessage::RecvRemaining(istringstream &in_stream,
+                                      const int remaining_length) {
     ReturnCode ret{RecvVariableHeader(in_stream)};
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "RecvVariableHeader err %d", ret);
@@ -484,9 +485,10 @@ ReturnCode MqttMessage::RecvRemaining(istringstream &in_stream) {
         return ret;
     }
 
-    ret = RecvPayload(in_stream);
+    ret = RecvPayload(in_stream, remaining_length);
     if (ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvPayload err %d", ret);
+        phxrpc::log(LOG_ERR, "RecvPayload err %d remaining_length %d",
+                    ret, remaining_length);
 
         return ret;
     }
@@ -668,7 +670,8 @@ ReturnCode MqttConnect::SendPayload(ostringstream &out_stream) const {
     return SendUnicode(out_stream, client_identifier_);
 }
 
-ReturnCode MqttConnect::RecvPayload(istringstream &in_stream) {
+ReturnCode MqttConnect::RecvPayload(istringstream &in_stream,
+                                    const int remaining_length) {
     return RecvUnicode(in_stream, client_identifier_);
 }
 
@@ -821,11 +824,21 @@ ReturnCode MqttPublish::RecvVariableHeader(istringstream &in_stream) {
 }
 
 ReturnCode MqttPublish::SendPayload(ostringstream &out_stream) const {
-    return SendUnicode(out_stream, GetContent());
+    return SendChars(out_stream, GetContent().data(), GetContent().size());
 }
 
-ReturnCode MqttPublish::RecvPayload(istringstream &in_stream) {
-    return RecvUnicode(in_stream, GetContent());
+ReturnCode MqttPublish::RecvPayload(istringstream &in_stream,
+                                    const int remaining_length) {
+    const int variable_header_length{static_cast<int>(topic_name_.length()) + 4};
+    const int payload_length{remaining_length - variable_header_length};
+    if (0 == payload_length)
+      return ReturnCode::OK;
+    if (0 > payload_length)
+      return ReturnCode::ERROR_LENGTH_UNDERFLOW;
+
+    string &payload_buffer(GetContent());
+    payload_buffer.resize(payload_length);
+    return RecvChars(in_stream, &payload_buffer[0], payload_length);
 }
 
 
@@ -904,8 +917,17 @@ ReturnCode MqttSubscribe::SendPayload(ostringstream &out_stream) const {
     return ReturnCode::OK;
 }
 
-ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream) {
-    while (EOF != in_stream.peek()) {
+ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream,
+                                      const int remaining_length) {
+    const int variable_header_length{2};
+    const int payload_length{remaining_length - variable_header_length};
+    if (0 == payload_length)
+      return ReturnCode::OK;
+    if (0 > payload_length)
+      return ReturnCode::ERROR_LENGTH_UNDERFLOW;
+
+    int used_length{0};
+    while (used_length < payload_length && EOF != in_stream.peek()) {
         string topic_filter;
         ReturnCode ret{RecvUnicode(in_stream, topic_filter)};
         if (ReturnCode::ERROR_LENGTH_OVERFLOW != ret) {
@@ -927,6 +949,8 @@ ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream) {
         }
 
         topic_filters_.emplace_back(topic_filter);
+
+        used_length += topic_filter.c_str() + 3;
     }
 
     return ReturnCode::OK;
@@ -958,7 +982,8 @@ ReturnCode MqttSuback::SendPayload(ostringstream &out_stream) const {
     return ReturnCode::OK;
 }
 
-ReturnCode MqttSuback::RecvPayload(istringstream &in_stream) {
+ReturnCode MqttSuback::RecvPayload(istringstream &in_stream,
+                                   const int remaining_length) {
     while (EOF != in_stream.peek()) {
         char return_code{0x0};
         ReturnCode ret{RecvChar(in_stream, return_code)};
@@ -1011,8 +1036,17 @@ MqttUnsubscribe::SendPayload(ostringstream &out_stream) const {
 }
 
 ReturnCode
-MqttUnsubscribe::RecvPayload(istringstream &in_stream) {
-    while (EOF != in_stream.peek()){
+MqttUnsubscribe::RecvPayload(istringstream &in_stream,
+                             const int remaining_length) {
+    const int variable_header_length{2};
+    const int payload_length{remaining_length - variable_header_length};
+    if (0 == payload_length)
+      return ReturnCode::OK;
+    if (0 > payload_length)
+      return ReturnCode::ERROR_LENGTH_UNDERFLOW;
+
+    int used_length{0};
+    while (used_length < payload_length && EOF != in_stream.peek()){
         string topic_filter;
         ReturnCode ret{RecvUnicode(in_stream, topic_filter)};
         if (ReturnCode::ERROR_LENGTH_OVERFLOW != ret) {
@@ -1026,6 +1060,8 @@ MqttUnsubscribe::RecvPayload(istringstream &in_stream) {
         }
 
         topic_filters_.emplace_back(topic_filter);
+
+        used_length += topic_filter.c_str() + 2;
     }
 
     return ReturnCode::OK;

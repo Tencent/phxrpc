@@ -84,7 +84,7 @@ ReturnCode MqttProtocol::RecvMessage(BaseTcpStream &socket,
     istringstream ss(remaining_buffer);
 
     if (msg->control_packet_type() == control_packet_type) {
-        return msg->RecvRemaining(ss);
+        return msg->RecvRemaining(ss, remaining_buffer.size());
     }
     phxrpc::log(LOG_ERR, "msg_type %d != recv_type %d",
                 static_cast<int>(msg->control_packet_type()),
@@ -110,27 +110,27 @@ ReturnCode MqttProtocol::ServerRecv(BaseTcpStream &socket, BaseRequest *&req) {
     if (MqttMessage::ControlPacketType::CONNECT == control_packet_type) {
         MqttConnect *connect{new MqttConnect};
         req = connect;
-        return connect->RecvRemaining(ss);
+        return connect->RecvRemaining(ss, remaining_buffer.size());
     } else if (MqttMessage::ControlPacketType::PUBLISH == control_packet_type) {
         MqttPublish *publish{new MqttPublish};
         req = publish;
-        return publish->RecvRemaining(ss);
+        return publish->RecvRemaining(ss, remaining_buffer.size());
     } else if (MqttMessage::ControlPacketType::SUBSCRIBE == control_packet_type) {
         MqttSubscribe *subscribe{new MqttSubscribe};
         req = subscribe;
-        return subscribe->RecvRemaining(ss);
+        return subscribe->RecvRemaining(ss, remaining_buffer.size());
     } else if (MqttMessage::ControlPacketType::UNSUBSCRIBE == control_packet_type) {
         MqttUnsubscribe *unsubscribe{new MqttUnsubscribe};
         req = unsubscribe;
-        return unsubscribe->RecvRemaining(ss);
+        return unsubscribe->RecvRemaining(ss, remaining_buffer.size());
     } else if (MqttMessage::ControlPacketType::PINGREQ == control_packet_type) {
         MqttPingreq *pingreq{new MqttPingreq};
         req = pingreq;
-        return pingreq->RecvRemaining(ss);
+        return pingreq->RecvRemaining(ss, remaining_buffer.size());
     } else if (MqttMessage::ControlPacketType::DISCONNECT == control_packet_type) {
         MqttDisconnect *disconnect{new MqttDisconnect};
         req = disconnect;
-        return disconnect->RecvRemaining(ss);
+        return disconnect->RecvRemaining(ss, remaining_buffer.size());
     }
     phxrpc::log(LOG_ERR, "type %d not supported", static_cast<int>(control_packet_type));
 
