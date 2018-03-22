@@ -75,7 +75,7 @@ class HshaServerConfig : public ServerConfig {
     HshaServerConfig();
     virtual ~HshaServerConfig() override;
 
-    bool DoRead(Config &config);
+    bool DoRead(Config &config) override;
 
     void SetMaxConnections(const int max_connections);
     int GetMaxConnections() const;

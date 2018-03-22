@@ -38,11 +38,14 @@ class MqttProtocol : public BaseProtocol {
     MqttProtocol() = default;
     virtual ~MqttProtocol() override = default;
 
+    // client send
     static ReturnCode SendMessage(BaseTcpStream &socket,
                                   const MqttMessage *const msg);
+    // client receive
     static ReturnCode RecvMessage(BaseTcpStream &socket,
                                   MqttMessage *const msg);
 
+    // server receive
     virtual ReturnCode ServerRecv(BaseTcpStream &socket,
                                   BaseRequest *&req) override;
 };

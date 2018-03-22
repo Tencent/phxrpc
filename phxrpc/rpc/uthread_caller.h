@@ -94,7 +94,6 @@ class UThreadCaller {
     google::protobuf::MessageLite *request_;
     google::protobuf::MessageLite *response_;
     ClientMonitor &client_monitor_;
-    Protocol protocol_;
     std::string uri_;
     int cmd_id_;
     Endpoint_t ep_;

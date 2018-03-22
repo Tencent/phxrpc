@@ -39,7 +39,7 @@ namespace phxrpc {
 using namespace std;
 
 
-const char MqttMessage::FixedHeader[]{
+const char MqttMessage::SampleFixedHeader[]{
     '\x00',  // FAKE_NONE
     '\x10',  // CONNECT
     '\x20',  // CONNACK
@@ -57,25 +57,6 @@ const char MqttMessage::FixedHeader[]{
     '\xe0',  // DISCONNECT
     '\xf0',  // FAKE_DISCONNACK
 };
-
-//const bool MqttMessage::NeedPacketIdentifier[]{
-//    false,  // FAKE_NONE
-//    false,  // CONNECT
-//    false,  // CONNACK
-//    true,  // PUBLISH QoS 1
-//    true,  // PUBACK
-//    true,  // PUBREC
-//    true,  // PUBREL
-//    true,  // PUBCOMP
-//    true,  // SUBSCRIBE
-//    true,  // SUBACK
-//    true,  // UNSUBSCRIBE
-//    true,  // UNSUBACK
-//    false,  // PINGREQ
-//    false,  // PINGRESP
-//    false,  // DISCONNECT
-//    false,  // FAKE_DISCONNACK
-//};
 
 int MqttMessage::EncodeUint16(string &dest, const uint16_t src) {
     dest.clear();
@@ -300,20 +281,49 @@ MqttMessage::MqttMessage() {
 
 MqttMessage::~MqttMessage() {}
 
+uint8_t MqttMessage::EncodeFixedHeader(const FixedHeader &fixed_header) {
+    const int control_packet_type_int{static_cast<int>(fixed_header.control_packet_type)};
+    const char fixed_header_char{SampleFixedHeader[control_packet_type_int]};
+    uint8_t fixed_header_byte{static_cast<uint8_t>(fixed_header_char)};
+    if (ControlPacketType::PUBLISH == fixed_header.control_packet_type) {
+        fixed_header.dup ? (fixed_header_byte |= 0x8) : (fixed_header_byte &= ~0x8);
+        fixed_header_byte &= ~0x6;
+        fixed_header_byte |= (static_cast<uint8_t>(fixed_header.qos) << 1);
+        fixed_header.retain ? (fixed_header_byte |= 0x1) : (fixed_header_byte &= ~0x1);
+    }
+
+    return fixed_header_byte;
+}
+
+MqttMessage::FixedHeader MqttMessage::DecodeFixedHeader(const uint8_t fixed_header_byte) {
+    FixedHeader fixed_header;
+
+    fixed_header.dup = static_cast<bool>((fixed_header_byte >> 3) & 0x01);
+    fixed_header.qos = static_cast<int>((fixed_header_byte >> 1) & 0x03);
+    fixed_header.retain = static_cast<bool>(fixed_header_byte & 0x01);
+
+    uint8_t temp{fixed_header_byte};
+    temp >>= 4;
+    temp &= 0x0f;
+    // must convert to unsigned first
+    fixed_header.control_packet_type = static_cast<ControlPacketType>(temp);
+
+    return fixed_header;
+}
+
 ReturnCode MqttMessage::SendFixedHeaderAndRemainingBuffer(
-        BaseTcpStream &out_stream,
-        const ControlPacketType control_packet_type,
+        BaseTcpStream &out_stream, const FixedHeader &fixed_header,
         const string &remaining_buffer) {
-    char fixed_header{FixedHeader[static_cast<int>(control_packet_type)]};
-    ReturnCode ret{SendChar(out_stream, fixed_header)};
+    uint8_t fixed_header_byte{EncodeFixedHeader(fixed_header)};
+    ReturnCode ret{SendChar(out_stream, static_cast<char>(fixed_header_byte))};
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "SendChar err %d", ret);
 
         return ret;
     } else {
-        phxrpc::log(LOG_DEBUG, "SendChar type %d fixed_header %u",
-                    static_cast<int>(control_packet_type),
-                    static_cast<uint8_t>(fixed_header));
+        phxrpc::log(LOG_DEBUG, "SendChar type %d fixed_header_byte %u",
+                    static_cast<int>(fixed_header.control_packet_type),
+                    static_cast<uint8_t>(fixed_header_byte));
     }
 
     const int remaining_length{static_cast<const int>(remaining_buffer.size())};
@@ -336,25 +346,21 @@ ReturnCode MqttMessage::SendFixedHeaderAndRemainingBuffer(
 }
 
 ReturnCode MqttMessage::RecvFixedHeaderAndRemainingBuffer(
-        BaseTcpStream &in_stream, ControlPacketType &control_packet_type,
+        BaseTcpStream &in_stream, FixedHeader &fixed_header,
         string &remaining_buffer) {
-    char fixed_header{0x0};
-    ReturnCode ret{RecvChar(in_stream, fixed_header)};
+    char fixed_header_char{0x0};
+    ReturnCode ret{RecvChar(in_stream, fixed_header_char)};
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "RecvChar err %d", ret);
 
         return ret;
     }
 
-    uint8_t temp{static_cast<uint8_t>(fixed_header)};
-    temp >>= 4;
-    temp &= 0x0f;
-    // must convert to unsigned first
-    control_packet_type = static_cast<ControlPacketType>(temp);
+    fixed_header = DecodeFixedHeader(static_cast<uint8_t>(fixed_header_char));
 
-    phxrpc::log(LOG_DEBUG, "RecvChar type %d fixed_header %u",
-                static_cast<int>(control_packet_type),
-                static_cast<uint8_t>(fixed_header));
+    phxrpc::log(LOG_DEBUG, "RecvChar type %d fixed_header %x",
+                static_cast<int>(fixed_header.control_packet_type),
+                static_cast<uint8_t>(fixed_header_char));
 
     int remaining_length{0};
     ret = RecvRemainingLength(in_stream, remaining_length);
@@ -442,7 +448,7 @@ ReturnCode MqttMessage::Send(BaseTcpStream &socket) const {
         return ret;
     }
 
-    ret = SendFixedHeaderAndRemainingBuffer(socket, control_packet_type(), ss.str());
+    ret = SendFixedHeaderAndRemainingBuffer(socket, fixed_header(), ss.str());
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "SendFixedHeaderAndRemainingBuffer err %d", ret);
 
@@ -476,8 +482,7 @@ ReturnCode MqttMessage::SendRemaining(ostringstream &out_stream) const {
     return ret;
 }
 
-ReturnCode MqttMessage::RecvRemaining(istringstream &in_stream,
-                                      const int remaining_length) {
+ReturnCode MqttMessage::RecvRemaining(istringstream &in_stream) {
     ReturnCode ret{RecvVariableHeader(in_stream)};
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "RecvVariableHeader err %d", ret);
@@ -485,26 +490,18 @@ ReturnCode MqttMessage::RecvRemaining(istringstream &in_stream,
         return ret;
     }
 
-    ret = RecvPayload(in_stream, remaining_length);
+    ret = RecvPayload(in_stream);
     if (ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvPayload err %d remaining_length %d",
-                    ret, remaining_length);
+        phxrpc::log(LOG_ERR, "RecvPayload err %d", ret);
 
         return ret;
     }
+    //phxrpc::log(LOG_DEBUG, "RecvPayload \"%s\"", GetContent().c_str());
 
     return ret;
 }
 
 ReturnCode MqttMessage::SendPacketIdentifier(ostringstream &out_stream) const {
-    //const int packet_type{static_cast<int>(control_packet_type_)};
-    //if (!NeedPacketIdentifier[packet_type]) {
-    //    phxrpc::log(LOG_WARNING, "type %d ignored packet identifier",
-    //                packet_type);
-
-    //    return ReturnCode::OK;
-    //}
-
     ReturnCode ret{SendUint16(out_stream, packet_identifier_)};
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "SendUint16 err %d", ret);
@@ -516,14 +513,6 @@ ReturnCode MqttMessage::SendPacketIdentifier(ostringstream &out_stream) const {
 }
 
 ReturnCode MqttMessage::RecvPacketIdentifier(istringstream &in_stream) {
-    //const int packet_type{static_cast<int>(control_packet_type_)};
-    //if (!NeedPacketIdentifier[packet_type]) {
-    //    phxrpc::log(LOG_WARNING, "type %d ignored packet identifier",
-    //                packet_type);
-
-    //    return ReturnCode::OK;
-    //}
-
     ReturnCode ret{RecvUint16(in_stream, packet_identifier_)};
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "RecvUint16 err %d", ret);
@@ -540,7 +529,7 @@ ReturnCode MqttResponse::ModifyResp(const bool keep_alive, const string &version
 
 
 MqttConnect::MqttConnect() : MqttRequest(Protocol::MQTT_CONNECT) {
-    set_control_packet_type(ControlPacketType::CONNECT);
+    mutable_fixed_header().control_packet_type = ControlPacketType::CONNECT;
 
     proto_name_.resize(6);
     proto_name_[0] = 0;
@@ -670,14 +659,13 @@ ReturnCode MqttConnect::SendPayload(ostringstream &out_stream) const {
     return SendUnicode(out_stream, client_identifier_);
 }
 
-ReturnCode MqttConnect::RecvPayload(istringstream &in_stream,
-                                    const int remaining_length) {
+ReturnCode MqttConnect::RecvPayload(istringstream &in_stream) {
     return RecvUnicode(in_stream, client_identifier_);
 }
 
 
 MqttConnack::MqttConnack() : MqttResponse(Protocol::MQTT_CONNECT) {
-    set_control_packet_type(ControlPacketType::CONNACK);
+    mutable_fixed_header().control_packet_type = ControlPacketType::CONNACK;
 }
 
 ReturnCode MqttConnack::ToPb(google::protobuf::Message *const message) const {
@@ -750,7 +738,7 @@ ReturnCode MqttConnack::RecvVariableHeader(istringstream &in_stream) {
 
 
 MqttPublish::MqttPublish() : MqttRequest(Protocol::MQTT_PUBLISH) {
-    set_control_packet_type(ControlPacketType::PUBLISH);
+    mutable_fixed_header().control_packet_type = ControlPacketType::PUBLISH;
 }
 
 ReturnCode MqttPublish::ToPb(google::protobuf::Message *const message) const {
@@ -795,11 +783,13 @@ ReturnCode MqttPublish::SendVariableHeader(ostringstream &out_stream) const {
         return ret;
     }
 
-    ret = SendPacketIdentifier(out_stream);
-    if (ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendPacketIdentifier err %d", ret);
+    if (0 < fixed_header().qos) {
+        ret = SendPacketIdentifier(out_stream);
+        if (ReturnCode::OK != ret) {
+            phxrpc::log(LOG_ERR, "SendPacketIdentifier err %d", ret);
 
-        return ret;
+            return ret;
+        }
     }
 
     return ret;
@@ -813,11 +803,13 @@ ReturnCode MqttPublish::RecvVariableHeader(istringstream &in_stream) {
         return ret;
     }
 
-    ret = RecvPacketIdentifier(in_stream);
-    if (ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvPacketIdentifier err %d", ret);
+    if (0 < fixed_header().qos) {
+        ret = RecvPacketIdentifier(in_stream);
+        if (ReturnCode::OK != ret) {
+            phxrpc::log(LOG_ERR, "RecvPacketIdentifier err %d", ret);
 
-        return ret;
+            return ret;
+        }
     }
 
     return ret;
@@ -827,10 +819,12 @@ ReturnCode MqttPublish::SendPayload(ostringstream &out_stream) const {
     return SendChars(out_stream, GetContent().data(), GetContent().size());
 }
 
-ReturnCode MqttPublish::RecvPayload(istringstream &in_stream,
-                                    const int remaining_length) {
-    const int variable_header_length{static_cast<int>(topic_name_.length()) + 4};
-    const int payload_length{remaining_length - variable_header_length};
+ReturnCode MqttPublish::RecvPayload(istringstream &in_stream) {
+    int variable_header_length{static_cast<int>(topic_name_.length()) + 2};
+    if (0 < fixed_header().qos) {
+        variable_header_length += 2;
+    }
+    const int payload_length{remaining_length() - variable_header_length};
     if (0 == payload_length)
       return ReturnCode::OK;
     if (0 > payload_length)
@@ -843,7 +837,7 @@ ReturnCode MqttPublish::RecvPayload(istringstream &in_stream,
 
 
 MqttPuback::MqttPuback() : MqttResponse(Protocol::MQTT_PUBLISH) {
-    set_control_packet_type(ControlPacketType::PUBACK);
+    mutable_fixed_header().control_packet_type = ControlPacketType::PUBACK;
 }
 
 ReturnCode MqttPuback::ToPb(google::protobuf::Message *const message) const {
@@ -884,7 +878,7 @@ ReturnCode MqttPuback::RecvVariableHeader(istringstream &in_stream) {
 
 
 MqttSubscribe::MqttSubscribe() : MqttRequest(Protocol::MQTT_SUBSCRIBE) {
-    set_control_packet_type(ControlPacketType::SUBSCRIBE);
+    mutable_fixed_header().control_packet_type = ControlPacketType::SUBSCRIBE;
 }
 
 BaseResponse *MqttSubscribe::GenResponse() const { return new MqttSuback; }
@@ -917,10 +911,9 @@ ReturnCode MqttSubscribe::SendPayload(ostringstream &out_stream) const {
     return ReturnCode::OK;
 }
 
-ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream,
-                                      const int remaining_length) {
+ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream) {
     const int variable_header_length{2};
-    const int payload_length{remaining_length - variable_header_length};
+    const int payload_length{remaining_length() - variable_header_length};
     if (0 == payload_length)
       return ReturnCode::OK;
     if (0 > payload_length)
@@ -958,7 +951,7 @@ ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream,
 
 
 MqttSuback::MqttSuback() : MqttResponse(Protocol::MQTT_SUBSCRIBE) {
-    set_control_packet_type(ControlPacketType::SUBACK);
+    mutable_fixed_header().control_packet_type = ControlPacketType::SUBACK;
 }
 
 ReturnCode MqttSuback::SendVariableHeader(ostringstream &out_stream) const {
@@ -982,8 +975,7 @@ ReturnCode MqttSuback::SendPayload(ostringstream &out_stream) const {
     return ReturnCode::OK;
 }
 
-ReturnCode MqttSuback::RecvPayload(istringstream &in_stream,
-                                   const int remaining_length) {
+ReturnCode MqttSuback::RecvPayload(istringstream &in_stream) {
     while (EOF != in_stream.peek()) {
         char return_code{0x0};
         ReturnCode ret{RecvChar(in_stream, return_code)};
@@ -1006,7 +998,7 @@ ReturnCode MqttSuback::RecvPayload(istringstream &in_stream,
 
 
 MqttUnsubscribe::MqttUnsubscribe() : MqttRequest(Protocol::MQTT_UNSUBSCRIBE) {
-    set_control_packet_type(ControlPacketType::UNSUBSCRIBE);
+    mutable_fixed_header().control_packet_type = ControlPacketType::UNSUBSCRIBE;
 }
 
 BaseResponse *MqttUnsubscribe::GenResponse() const { return new MqttUnsuback; }
@@ -1036,10 +1028,9 @@ MqttUnsubscribe::SendPayload(ostringstream &out_stream) const {
 }
 
 ReturnCode
-MqttUnsubscribe::RecvPayload(istringstream &in_stream,
-                             const int remaining_length) {
+MqttUnsubscribe::RecvPayload(istringstream &in_stream) {
     const int variable_header_length{2};
-    const int payload_length{remaining_length - variable_header_length};
+    const int payload_length{remaining_length() - variable_header_length};
     if (0 == payload_length)
       return ReturnCode::OK;
     if (0 > payload_length)
@@ -1069,7 +1060,7 @@ MqttUnsubscribe::RecvPayload(istringstream &in_stream,
 
 
 MqttUnsuback::MqttUnsuback() : MqttResponse(Protocol::MQTT_UNSUBSCRIBE) {
-    set_control_packet_type(ControlPacketType::UNSUBACK);
+    mutable_fixed_header().control_packet_type = ControlPacketType::UNSUBACK;
 }
 
 ReturnCode MqttUnsuback::SendVariableHeader(ostringstream &out_stream) const {
@@ -1082,19 +1073,19 @@ ReturnCode MqttUnsuback::RecvVariableHeader(istringstream &in_stream) {
 
 
 MqttPingreq::MqttPingreq() : MqttRequest(Protocol::MQTT_PING) {
-    set_control_packet_type(ControlPacketType::PINGREQ);
+    mutable_fixed_header().control_packet_type = ControlPacketType::PINGREQ;
 }
 
 BaseResponse *MqttPingreq::GenResponse() const { return new MqttPingresp; }
 
 
 MqttPingresp::MqttPingresp() : MqttResponse(Protocol::MQTT_PING) {
-    set_control_packet_type(ControlPacketType::PINGRESP);
+    mutable_fixed_header().control_packet_type = ControlPacketType::PINGRESP;
 }
 
 
 MqttDisconnect::MqttDisconnect() : MqttRequest(Protocol::MQTT_DISCONNECT) {
-    set_control_packet_type(ControlPacketType::DISCONNECT);
+    mutable_fixed_header().control_packet_type = ControlPacketType::DISCONNECT;
 }
 
 ReturnCode MqttDisconnect::ToPb(google::protobuf::Message *const message) const {
@@ -1126,7 +1117,7 @@ BaseResponse *MqttDisconnect::GenResponse() const { return new MqttFakeDisconnac
 
 MqttFakeDisconnack::MqttFakeDisconnack()
         : MqttResponse(Protocol::MQTT_FAKE_DISCONNACK) {
-    set_control_packet_type(ControlPacketType::FAKE_DISCONNACK);
+    mutable_fixed_header().control_packet_type = ControlPacketType::FAKE_DISCONNACK;
     set_fake(true);
 }
 
