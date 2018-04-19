@@ -13,28 +13,41 @@ extend google.protobuf.MethodOptions {
 }
 
 message MqttConnectPb {
-    bool clean_session = 1;
-    uint32 keep_alive = 2;
-    string client_identifier = 3;
-    string proto_name = 4;
-    uint32 proto_level = 5;
+    bool clean_session = 11;
+    uint32 keep_alive = 12;
+    string client_identifier = 13;
+    string proto_name = 14;
+    uint32 proto_level = 15;
 }
 
 message MqttConnackPb {
-    bool session_present = 1;
-    uint32 connect_return_code = 2;
+    bool session_present = 11;
+    uint32 connect_return_code = 12;
 }
 
 message MqttPublishPb {
-    uint32 package_identifier = 1;
-    string topic_name = 2;
-    string content = 3;
+    bool dup = 1;
+    uint32 qos = 2;
+    bool retain = 3;
+    uint32 packet_identifier = 11;
+    string topic_name = 12;
+    string content = 13;
 }
 
 message MqttPubackPb {
-    uint32 package_identifier = 1;
+    uint32 packet_identifier = 11;
 }
 
 message MqttDisconnectPb {
+}
+
+message HttpPublishPb {
+    uint64 session_id = 1;
+    MqttPublishPb mqtt_publish = 11;
+}
+
+message HttpPubackPb {
+    uint64 session_id = 1;
+    MqttPubackPb mqtt_puback = 11;
 }
 

@@ -83,9 +83,8 @@ string &BaseMessage::GetContent() {
 }
 
 
-BaseRequest::BaseRequest(const BaseMessage::Protocol protocol) {
+BaseRequest::BaseRequest() {
     set_direction(BaseMessage::Direction::REQUEST);
-    set_protocol(protocol);
 }
 
 BaseRequest::~BaseRequest() {
@@ -102,9 +101,8 @@ const char *BaseRequest::GetURI() const {
 }
 
 
-BaseResponse::BaseResponse(const BaseMessage::Protocol protocol) {
+BaseResponse::BaseResponse() {
     set_direction(BaseMessage::Direction::RESPONSE);
-    set_protocol(protocol);
 }
 
 BaseResponse::~BaseResponse() {}

@@ -57,14 +57,17 @@ class BaseMessage {
         HTTP_GET = 101,
         HTTP_POST = 102,
         HTTP_HEAD = 103,
+        MQTT_FAKE_NONE = 200,
         MQTT_CONNECT = 201,
         MQTT_PUBLISH = 202,
-        MQTT_PUBREL = 203,
-        MQTT_SUBSCRIBE = 204,
-        MQTT_UNSUBSCRIBE = 205,
-        MQTT_PING = 206,
-        MQTT_DISCONNECT = 207,
-        MQTT_FAKE_DISCONNACK = 208,
+        MQTT_PUBACK = 203,
+        MQTT_PUBREC = 204,
+        MQTT_PUBREL = 205,
+        MQTT_PUBCOMP = 206,
+        MQTT_SUBSCRIBE = 207,
+        MQTT_UNSUBSCRIBE = 208,
+        MQTT_PING = 209,
+        MQTT_DISCONNECT = 210,
         MAX,
     };
 
@@ -110,7 +113,7 @@ class BaseResponse;
 
 class BaseRequest : virtual public BaseMessage {
   public:
-    BaseRequest(const Protocol protocol);
+    BaseRequest();
     virtual ~BaseRequest() override;
 
     void SetURI(const char *uri);
@@ -126,7 +129,7 @@ class BaseRequest : virtual public BaseMessage {
 
 class BaseResponse : virtual public BaseMessage {
   public:
-    BaseResponse(const Protocol protocol);
+    BaseResponse();
     virtual ~BaseResponse() override;
 
     virtual void SetPhxRpcResult(const int result) = 0;

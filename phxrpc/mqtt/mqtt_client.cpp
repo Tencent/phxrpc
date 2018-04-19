@@ -104,6 +104,17 @@ int MqttClient::Publish(BaseTcpStream &socket, const MqttPublish &req,
     return static_cast<int>(DoMethod(socket, &req, &resp));
 }
 
+int MqttClient::Puback(BaseTcpStream &socket, const MqttPuback &req,
+                       MqttClient::MqttStat &mqtt_stat) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp, mqtt_stat));
+}
+
+int MqttClient::Puback(BaseTcpStream &socket, const MqttPuback &req) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp));
+}
+
 int MqttClient::Subscribe(BaseTcpStream &socket, const MqttSubscribe &req,
                           MqttSuback &resp) {
     return static_cast<int>(DoMethod(socket, &req, &resp));
@@ -121,12 +132,12 @@ int MqttClient::Ping(BaseTcpStream &socket, const MqttPingreq &req,
 
 int MqttClient::Disconnect(BaseTcpStream &socket, const MqttDisconnect &req,
                            MqttClient::MqttStat &mqtt_stat) {
-    MqttFakeDisconnack resp;
+    MqttFakeResponse resp;
     return static_cast<int>(DoMethod(socket, &req, &resp, mqtt_stat));
 }
 
 int MqttClient::Disconnect(BaseTcpStream &socket, const MqttDisconnect &req) {
-    MqttFakeDisconnack resp;
+    MqttFakeResponse resp;
     return static_cast<int>(DoMethod(socket, &req, &resp));
 }
 

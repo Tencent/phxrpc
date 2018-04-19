@@ -48,14 +48,13 @@ class MqttMessage : virtual public BaseMessage {
         PINGREQ,
         PINGRESP,
         DISCONNECT,
-        FAKE_DISCONNACK,
         FAKE_MAX,
     };
 
     struct FixedHeader {
         ControlPacketType control_packet_type{ControlPacketType::FAKE_NONE};
         bool dup{0};
-        int qos{0};
+        uint32_t qos{0};
         bool retain{0};
     };
 
@@ -167,18 +166,18 @@ class MqttMessage : virtual public BaseMessage {
 };
 
 
-class MqttRequest : public MqttMessage, public BaseRequest {
+class MqttRequest : public virtual MqttMessage, public BaseRequest {
   public:
-    MqttRequest(const Protocol protocol) : BaseRequest(protocol) {}
+    MqttRequest() = default;
     virtual ~MqttRequest() = default;
 
   private:
 };
 
 
-class MqttResponse : public MqttMessage, public BaseResponse {
+class MqttResponse : public virtual MqttMessage, public BaseResponse {
   public:
-    MqttResponse(const Protocol protocol) : BaseResponse(protocol) {}
+    MqttResponse() = default;
     virtual ~MqttResponse() = default;
 
     virtual void SetPhxRpcResult(const int result) override {}
@@ -187,6 +186,35 @@ class MqttResponse : public MqttMessage, public BaseResponse {
     virtual ReturnCode ModifyResp(const bool keep_alive, const std::string &version) override;
 
   private:
+};
+
+
+class MqttFakeResponse final : public MqttResponse {
+  public:
+    MqttFakeResponse();
+    virtual ~MqttFakeResponse() = default;
+
+    virtual ReturnCode ToPb(google::protobuf::Message *const message) const override {
+        return ReturnCode::ERROR_UNIMPLEMENT;
+    }
+
+    virtual ReturnCode FromPb(const google::protobuf::Message &message) override {
+        return ReturnCode::ERROR_UNIMPLEMENT;
+    }
+
+    virtual ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override {
+        return ReturnCode::OK;
+    }
+    virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override {
+        return ReturnCode::OK;
+    }
+
+    virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
+        return ReturnCode::OK;
+    }
+    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
+        return ReturnCode::OK;
+    }
 };
 
 
@@ -226,14 +254,14 @@ class MqttConnect final : public MqttRequest {
     const std::string &proto_name() const { return proto_name_; }
 
     // read only
-    char proto_level() const { return proto_level_; }
+    uint8_t proto_level() const { return proto_level_; }
 
   private:
     bool clean_session_{false};
     uint16_t keep_alive_{0};
     std::string client_identifier_;
-    std::string proto_name_;
-    char proto_level_{4};
+    std::string proto_name_{"MQTT"};
+    uint8_t proto_level_{4};
 };
 
 
@@ -271,7 +299,7 @@ class MqttConnack final : public MqttResponse {
 };
 
 
-class MqttPublish final : public MqttRequest {
+class MqttPublish final : public virtual MqttRequest, public virtual MqttResponse {
   public:
     MqttPublish();
     virtual ~MqttPublish() = default;
@@ -298,13 +326,16 @@ class MqttPublish final : public MqttRequest {
 };
 
 
-class MqttPuback final : public MqttResponse {
+class MqttPuback final : public virtual MqttRequest, public virtual MqttResponse {
   public:
     MqttPuback();
     virtual ~MqttPuback() = default;
 
     virtual ReturnCode ToPb(google::protobuf::Message *const message) const override;
     virtual ReturnCode FromPb(const google::protobuf::Message &message) override;
+
+    virtual BaseResponse *GenResponse() const override;
+    virtual int IsKeepAlive() const override { return 1; };
 
     virtual ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override;
     virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override;
@@ -507,35 +538,6 @@ class MqttDisconnect final : public MqttRequest {
 
     virtual BaseResponse *GenResponse() const override;
     virtual int IsKeepAlive() const override { return 1; };
-
-    virtual ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override {
-        return ReturnCode::OK;
-    }
-    virtual ReturnCode RecvVariableHeader(std::istringstream &in_stream) override {
-        return ReturnCode::OK;
-    }
-
-    virtual ReturnCode SendPayload(std::ostringstream &out_stream) const override {
-        return ReturnCode::OK;
-    }
-    virtual ReturnCode RecvPayload(std::istringstream &in_stream) override {
-        return ReturnCode::OK;
-    }
-};
-
-
-class MqttFakeDisconnack final : public MqttResponse {
-  public:
-    MqttFakeDisconnack();
-    virtual ~MqttFakeDisconnack() = default;
-
-    virtual ReturnCode ToPb(google::protobuf::Message *const message) const override {
-        return ReturnCode::ERROR_UNIMPLEMENT;
-    }
-
-    virtual ReturnCode FromPb(const google::protobuf::Message &message) override {
-        return ReturnCode::ERROR_UNIMPLEMENT;
-    }
 
     virtual ReturnCode SendVariableHeader(std::ostringstream &out_stream) const override {
         return ReturnCode::OK;

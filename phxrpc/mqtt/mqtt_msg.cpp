@@ -471,6 +471,17 @@ ReturnCode MqttMessage::SendRemaining(ostringstream &out_stream) const {
 
         return ret;
     }
+        // TODO: remove
+        //string remaining_buffer(out_stream.str());
+        //printf("remaining_buffer %zu\n", remaining_buffer.size());
+        //for (int i{0}; remaining_buffer.size() > i; ++i) {
+        //printf("%d\t", remaining_buffer.at(i));
+        //}
+        //printf("\n");
+        //for (int i{0}; remaining_buffer.size() > i; ++i) {
+        //printf("%c\t", remaining_buffer.at(i));
+        //}
+        //printf("\n");
 
     ret = SendPayload(out_stream);
     if (ReturnCode::OK != ret) {
@@ -478,6 +489,17 @@ ReturnCode MqttMessage::SendRemaining(ostringstream &out_stream) const {
 
         return ret;
     }
+        // TODO: remove
+        //remaining_buffer = out_stream.str();
+        //printf("remaining_buffer %zu\n", remaining_buffer.size());
+        //for (int i{0}; remaining_buffer.size() > i; ++i) {
+        //printf("%d\t", remaining_buffer.at(i));
+        //}
+        //printf("\n");
+        //for (int i{0}; remaining_buffer.size() > i; ++i) {
+        //printf("%c\t", remaining_buffer.at(i));
+        //}
+        //printf("\n");
 
     return ret;
 }
@@ -528,16 +550,16 @@ ReturnCode MqttResponse::ModifyResp(const bool keep_alive, const string &version
 }
 
 
-MqttConnect::MqttConnect() : MqttRequest(Protocol::MQTT_CONNECT) {
-    mutable_fixed_header().control_packet_type = ControlPacketType::CONNECT;
+MqttFakeResponse::MqttFakeResponse() {
+    set_protocol(Protocol::MQTT_FAKE_NONE);
+    mutable_fixed_header().control_packet_type = ControlPacketType::FAKE_NONE;
+    set_fake(true);
+}
 
-    proto_name_.resize(6);
-    proto_name_[0] = 0;
-    proto_name_[1] = 4;
-    proto_name_[2] = 'M';
-    proto_name_[3] = 'Q';
-    proto_name_[4] = 'T';
-    proto_name_[5] = 'T';
+
+MqttConnect::MqttConnect() {
+    set_protocol(Protocol::MQTT_CONNECT);
+    mutable_fixed_header().control_packet_type = ControlPacketType::CONNECT;
 }
 
 ReturnCode MqttConnect::ToPb(google::protobuf::Message *const message) const {
@@ -579,10 +601,9 @@ ReturnCode MqttConnect::FromPb(const google::protobuf::Message &message) {
 BaseResponse *MqttConnect::GenResponse() const { return new MqttConnack; }
 
 ReturnCode MqttConnect::SendVariableHeader(ostringstream &out_stream) const {
-    ReturnCode ret{SendChars(out_stream, proto_name_.data(),
-                             proto_name_.size())};
+    ReturnCode ret{SendUnicode(out_stream, proto_name_)};
     if (ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "SendChars err %d", ret);
+        phxrpc::log(LOG_ERR, "SendUnicode err %d", ret);
 
         return ret;
     }
@@ -614,27 +635,27 @@ ReturnCode MqttConnect::SendVariableHeader(ostringstream &out_stream) const {
 }
 
 ReturnCode MqttConnect::RecvVariableHeader(istringstream &in_stream) {
-    char proto_name[6]{0x0};
-    ReturnCode ret{RecvChars(in_stream, proto_name, 6)};
+    ReturnCode ret{RecvUnicode(in_stream, proto_name_)};
     if (ReturnCode::OK != ret) {
-        phxrpc::log(LOG_ERR, "RecvChars err %d", ret);
+        phxrpc::log(LOG_ERR, "RecvUnicode err %d", ret);
 
         return ret;
     }
-    proto_name_.resize(6);
-    proto_name_[0] = proto_name[0];
-    proto_name_[1] = proto_name[1];
-    proto_name_[2] = proto_name[2];
-    proto_name_[3] = proto_name[3];
-    proto_name_[4] = proto_name[4];
-    proto_name_[5] = proto_name[5];
 
-    ret = RecvChar(in_stream, proto_level_);
+    if ("MQTT" != proto_name_) {
+        phxrpc::log(LOG_ERR, "violate mqtt protocol");
+
+        return ReturnCode::ERROR_VIOLATE_PROTOCOL;
+    }
+
+    char proto_level{'\0'};
+    ret = RecvChar(in_stream, proto_level);
     if (ReturnCode::OK != ret) {
         phxrpc::log(LOG_ERR, "RecvChar err %d", ret);
 
         return ret;
     }
+    proto_level_ = proto_level;
 
     char connect_flags{0x0};
     ret = RecvChar(in_stream, connect_flags);
@@ -664,7 +685,8 @@ ReturnCode MqttConnect::RecvPayload(istringstream &in_stream) {
 }
 
 
-MqttConnack::MqttConnack() : MqttResponse(Protocol::MQTT_CONNECT) {
+MqttConnack::MqttConnack() {
+    set_protocol(Protocol::MQTT_CONNECT);
     mutable_fixed_header().control_packet_type = ControlPacketType::CONNACK;
 }
 
@@ -737,16 +759,21 @@ ReturnCode MqttConnack::RecvVariableHeader(istringstream &in_stream) {
 }
 
 
-MqttPublish::MqttPublish() : MqttRequest(Protocol::MQTT_PUBLISH) {
+MqttPublish::MqttPublish() {
+    set_protocol(Protocol::MQTT_PUBLISH);
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBLISH;
 }
 
 ReturnCode MqttPublish::ToPb(google::protobuf::Message *const message) const {
     phxrpc::MqttPublishPb publish;
 
+    publish.set_dup(fixed_header().dup);
+    publish.set_qos(fixed_header().qos);
+    publish.set_retain(fixed_header().retain);
+
     publish.set_topic_name(topic_name_);
     publish.set_content(GetContent());
-    publish.set_package_identifier(packet_identifier());
+    publish.set_packet_identifier(packet_identifier());
 
     try {
         message->CopyFrom(publish);
@@ -766,9 +793,14 @@ ReturnCode MqttPublish::FromPb(const google::protobuf::Message &message) {
         return ReturnCode::ERROR;
     }
 
+    FixedHeader &fixed_header(mutable_fixed_header());
+    fixed_header.dup = publish.dup();
+    fixed_header.qos = publish.qos();
+    fixed_header.retain = publish.retain();
+
     topic_name_ = publish.topic_name();
     SetContent(publish.content().data(), publish.content().length());
-    set_packet_identifier(publish.package_identifier());
+    set_packet_identifier(publish.packet_identifier());
 
     return ReturnCode::OK;
 }
@@ -836,14 +868,15 @@ ReturnCode MqttPublish::RecvPayload(istringstream &in_stream) {
 }
 
 
-MqttPuback::MqttPuback() : MqttResponse(Protocol::MQTT_PUBLISH) {
+MqttPuback::MqttPuback() {
+    set_protocol(Protocol::MQTT_PUBACK);
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBACK;
 }
 
 ReturnCode MqttPuback::ToPb(google::protobuf::Message *const message) const {
     phxrpc::MqttPubackPb puback;
 
-    puback.set_package_identifier(packet_identifier());
+    puback.set_packet_identifier(packet_identifier());
 
     try {
         message->CopyFrom(puback);
@@ -863,10 +896,12 @@ ReturnCode MqttPuback::FromPb(const google::protobuf::Message &message) {
         return ReturnCode::ERROR;
     }
 
-    set_packet_identifier(puback.package_identifier());
+    set_packet_identifier(puback.packet_identifier());
 
     return ReturnCode::OK;
 }
+
+BaseResponse *MqttPuback::GenResponse() const { return new MqttFakeResponse; }
 
 ReturnCode MqttPuback::SendVariableHeader(ostringstream &out_stream) const {
     return SendPacketIdentifier(out_stream);
@@ -877,7 +912,8 @@ ReturnCode MqttPuback::RecvVariableHeader(istringstream &in_stream) {
 }
 
 
-MqttSubscribe::MqttSubscribe() : MqttRequest(Protocol::MQTT_SUBSCRIBE) {
+MqttSubscribe::MqttSubscribe() {
+    set_protocol(Protocol::MQTT_SUBSCRIBE);
     mutable_fixed_header().control_packet_type = ControlPacketType::SUBSCRIBE;
 }
 
@@ -950,7 +986,8 @@ ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream) {
 }
 
 
-MqttSuback::MqttSuback() : MqttResponse(Protocol::MQTT_SUBSCRIBE) {
+MqttSuback::MqttSuback() {
+    set_protocol(Protocol::MQTT_SUBSCRIBE);
     mutable_fixed_header().control_packet_type = ControlPacketType::SUBACK;
 }
 
@@ -997,7 +1034,8 @@ ReturnCode MqttSuback::RecvPayload(istringstream &in_stream) {
 }
 
 
-MqttUnsubscribe::MqttUnsubscribe() : MqttRequest(Protocol::MQTT_UNSUBSCRIBE) {
+MqttUnsubscribe::MqttUnsubscribe() {
+    set_protocol(Protocol::MQTT_UNSUBSCRIBE);
     mutable_fixed_header().control_packet_type = ControlPacketType::UNSUBSCRIBE;
 }
 
@@ -1059,7 +1097,8 @@ MqttUnsubscribe::RecvPayload(istringstream &in_stream) {
 }
 
 
-MqttUnsuback::MqttUnsuback() : MqttResponse(Protocol::MQTT_UNSUBSCRIBE) {
+MqttUnsuback::MqttUnsuback() {
+    set_protocol(Protocol::MQTT_UNSUBSCRIBE);
     mutable_fixed_header().control_packet_type = ControlPacketType::UNSUBACK;
 }
 
@@ -1072,19 +1111,22 @@ ReturnCode MqttUnsuback::RecvVariableHeader(istringstream &in_stream) {
 }
 
 
-MqttPingreq::MqttPingreq() : MqttRequest(Protocol::MQTT_PING) {
+MqttPingreq::MqttPingreq() {
+    set_protocol(Protocol::MQTT_PING);
     mutable_fixed_header().control_packet_type = ControlPacketType::PINGREQ;
 }
 
 BaseResponse *MqttPingreq::GenResponse() const { return new MqttPingresp; }
 
 
-MqttPingresp::MqttPingresp() : MqttResponse(Protocol::MQTT_PING) {
+MqttPingresp::MqttPingresp() {
+    set_protocol(Protocol::MQTT_PING);
     mutable_fixed_header().control_packet_type = ControlPacketType::PINGRESP;
 }
 
 
-MqttDisconnect::MqttDisconnect() : MqttRequest(Protocol::MQTT_DISCONNECT) {
+MqttDisconnect::MqttDisconnect() {
+    set_protocol(Protocol::MQTT_DISCONNECT);
     mutable_fixed_header().control_packet_type = ControlPacketType::DISCONNECT;
 }
 
@@ -1112,14 +1154,7 @@ ReturnCode MqttDisconnect::FromPb(const google::protobuf::Message &message) {
     return ReturnCode::OK;
 }
 
-BaseResponse *MqttDisconnect::GenResponse() const { return new MqttFakeDisconnack; }
-
-
-MqttFakeDisconnack::MqttFakeDisconnack()
-        : MqttResponse(Protocol::MQTT_FAKE_DISCONNACK) {
-    mutable_fixed_header().control_packet_type = ControlPacketType::FAKE_DISCONNACK;
-    set_fake(true);
-}
+BaseResponse *MqttDisconnect::GenResponse() const { return new MqttFakeResponse; }
 
 
 }  // namespace phxrpc

@@ -137,7 +137,6 @@ int MqttCaller::PhxMqttPublishCall(const phxrpc::MqttPublishPb &publish,
 
     uint64_t call_begin{Timer::GetSteadyClockMS()};
     MqttClient::MqttStat mqtt_stat;
-    publish_.set_packet_identifier(packet_identifier_++);
     ret = MqttClient::Publish(socket_, publish_, puback_, mqtt_stat);
     MonitorReport(client_monitor_, mqtt_stat.send_error_,
                   mqtt_stat.recv_error_, publish_.GetContent().size(),
@@ -157,6 +156,34 @@ int MqttCaller::PhxMqttPublishCall(const phxrpc::MqttPublishPb &publish,
 
             return ret;
         }
+    }
+
+    return ret;
+}
+
+int MqttCaller::PhxMqttPubackCall(const phxrpc::MqttPubackPb &puback) {
+    int ret{-1};
+
+    // unpack request
+    {
+        ret = static_cast<int>(puback_.FromPb(puback));
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return ret;
+        }
+    }
+
+    uint64_t call_begin{Timer::GetSteadyClockMS()};
+    MqttClient::MqttStat mqtt_stat;
+    ret = MqttClient::Puback(socket_, puback_, mqtt_stat);
+    MonitorReport(client_monitor_, mqtt_stat.send_error_,
+                  mqtt_stat.recv_error_, puback_.GetContent().size(),
+                  0, call_begin, Timer::GetSteadyClockMS());
+
+    if (0 != ret) {
+        phxrpc::log(LOG_ERR, "mqtt puback call err %d", ret);
+        return ret;
     }
 
     return ret;

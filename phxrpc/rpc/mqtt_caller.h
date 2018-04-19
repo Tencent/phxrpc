@@ -62,6 +62,7 @@ class MqttCaller {
                            phxrpc::MqttConnackPb *connack);
     int PhxMqttPublishCall(const phxrpc::MqttPublishPb &publish,
                            phxrpc::MqttPubackPb *puback);
+    int PhxMqttPubackCall(const phxrpc::MqttPubackPb &puback);
     int PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &disconnect);
 
     void SetCmdId(const int cmd_id);
@@ -80,8 +81,6 @@ class MqttCaller {
     MqttPublish publish_;
     MqttPuback puback_;
     MqttDisconnect disconnect_;
-
-    uint16_t packet_identifier_{1};
 };
 
 

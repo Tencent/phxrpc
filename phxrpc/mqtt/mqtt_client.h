@@ -66,6 +66,11 @@ class MqttClient {
                        MqttPuback &resp);
 
     // @return true: socket ok; false: socket error
+    static int Puback(BaseTcpStream &socket, const MqttPuback &req,
+                      MqttStat &mqtt_stat);
+    static int Puback(BaseTcpStream &socket, const MqttPuback &req);
+
+    // @return true: socket ok; false: socket error
     static int Subscribe(BaseTcpStream &socket, const MqttSubscribe &req,
                          MqttSuback &resp);
 

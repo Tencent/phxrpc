@@ -134,8 +134,8 @@ const char *HttpMessage::GetHeaderValue(const char *name) const {
 
 //---------------------------------------------------------
 
-HttpRequest::HttpRequest()
-        : HttpMessage(), BaseRequest(Protocol::HTTP_POST) {
+HttpRequest::HttpRequest() {
+    set_protocol(Protocol::HTTP_POST);
     SetVersion("HTTP/1.0");
     memset(method_, 0, sizeof(method_));
     memset(client_ip_, 0, sizeof(client_ip_));
@@ -221,8 +221,8 @@ int HttpRequest::IsKeepAlive() const {
 
 //---------------------------------------------------------
 
-HttpResponse::HttpResponse()
-        : HttpMessage(), BaseResponse(Protocol::HTTP_POST) {
+HttpResponse::HttpResponse() {
+    set_protocol(Protocol::HTTP_POST);
     SetVersion("HTTP/1.0");
     status_code_ = 200;
     snprintf(reason_phrase_, sizeof(reason_phrase_), "%s", "OK");
