@@ -33,4 +33,5 @@ See the AUTHORS file for names of contributors.
 #include "rpc/server_monitor.h"
 #include "rpc/monitor_factory.h"
 #include "rpc/server_base.h"
+#include "rpc/resource_pool.h"
 

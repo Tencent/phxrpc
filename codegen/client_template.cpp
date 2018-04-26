@@ -74,13 +74,16 @@ const char *PHXRPC_CLIENT_CPP_TEMPLATE =
 #include "$ClientFile$.h"
 
 #include <cstdlib>
-#include <iostream>
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include "$StubFile$.h"
 
 #include "phxrpc/rpc.h"
+
+
+using namespace std;
 
 
 static phxrpc::ClientConfig global_$ClientClassLower$_config_;
@@ -100,7 +103,7 @@ const char *$ClientClass$::GetPackageName() {
 }
 
 $ClientClass$::$ClientClass$() {
-    static std::mutex monitor_mutex;
+    static mutex monitor_mutex;
     if (!global_$ClientClassLower$_monitor_.get()) {
         monitor_mutex.lock();
         if (!global_$ClientClassLower$_monitor_.get()) {
@@ -126,13 +129,16 @@ const char *PHXRPC_UTHREAD_CLIENT_CPP_TEMPLATE =
 #include "$ClientFile$_uthread.h"
 
 #include <cstdlib>
-#include <iostream>
 #include <memory>
 #include <mutex>
+#include <string>
 
 #include "$StubFile$.h"
 
 #include "phxrpc/rpc.h"
+
+
+using namespace std;
 
 
 static phxrpc::ClientConfig global_$ClientClassLower$_config_;
@@ -144,7 +150,7 @@ bool $ClientClass$::Init(const char *config_file) {
 }
 
 const char *$ClientClass$::GetPackageName() {
-    const char *ret = global_$ClientClassLower$_config_.GetPackageName();
+    const char *ret{global_$ClientClassLower$_config_.GetPackageName()};
     if (strlen(ret) == 0) {
         ret = "$PbPackageName$";
     }
@@ -153,7 +159,7 @@ const char *$ClientClass$::GetPackageName() {
 
 $ClientClass$::$ClientClass$(phxrpc::UThreadEpollScheduler *uthread_scheduler) {
     uthread_scheduler_ = uthread_scheduler;
-    static std::mutex monitor_mutex;
+    static mutex monitor_mutex;
     if (!global_$ClientClassLower$_monitor_.get()) {
         monitor_mutex.lock();
         if (!global_$ClientClassLower$_monitor_.get()) {
@@ -178,11 +184,87 @@ const char *PHXRPC_CLIENT_FUNC_TEMPLATE =
 {
     const phxrpc::Endpoint_t *ep = global_$ClientClassLower$_config_.GetRandom();
 
-    if (ep != nullptr) {
+    if (ep) {
+        auto &&socket_pool = phxrpc::ResourcePoll<uint64_t, phxrpc::BlockTcpStream>::GetInstance();
+        // TODO:
+        uint64_t key(ep->port);
+        auto socket = move(socket_pool->Get(key));
+
+        if (nullptr == socket.get()) {
+            socket.reset(new phxrpc::BlockTcpStream());
+
+            bool open_ret{phxrpc::PhxrpcTcpUtils::Open(socket.get(), ep->ip, ep->port,
+                    global_$ClientClassLower$_config_.GetConnectTimeoutMS(), nullptr, 0,
+                    *(global_$ClientClassLower$_monitor_.get()))};
+            if (!open_ret) {
+                phxrpc::log(LOG_ERR, "Open %s:%d err %d", ep->ip, ep->port, open_ret);
+
+                return -1;
+            }
+            socket->SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
+        }
+
+        $StubClass$ stub(*(socket.get()), *(global_$ClientClassLower$_monitor_.get()));
+        int ret{stub.$Func$};
+        socket_pool->Put(key, socket);
+
+        return ret;
+    }
+
+    return -1;
+}
+)";
+
+//////////////////////////////////////////////////////////////////////
+
+const char *PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
+        R"(
+{
+    const phxrpc::Endpoint_t *ep = global_$ClientClassLower$_config_.GetRandom();
+
+    if (uthread_scheduler_ && ep) {
+        auto &&socket_pool = phxrpc::ResourcePoll<uint64_t, phxrpc::UThreadTcpStream>::GetInstance();
+        // TODO:
+        uint64_t key(ep->port);
+        auto socket = move(socket_pool->Get(key));
+
+        if (nullptr == socket.get()) {
+            socket.reset(new phxrpc::UThreadTcpStream());
+
+            bool open_ret{phxrpc::PhxrpcTcpUtils::Open(uthread_scheduler_, socket.get(), ep->ip, ep->port,
+                    global_$ClientClassLower$_config_.GetConnectTimeoutMS(),
+                    *(global_$ClientClassLower$_monitor_.get()))};
+            if (!open_ret) {
+                phxrpc::log(LOG_ERR, "Open %s:%d err %d", ep->ip, ep->port, open_ret);
+
+                return -1;
+            }
+            socket->SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
+        }
+
+        $StubClass$ stub(*(socket.get()), *(global_$ClientClassLower$_monitor_.get()));
+        int ret{stub.$Func$};
+        socket_pool->Put(key, socket);
+
+        return ret;
+    }
+
+    return -1;
+}
+)";
+
+//////////////////////////////////////////////////////////////////////
+
+const char *PHXRPC_SHORT_CLIENT_FUNC_TEMPLATE =
+        R"(
+{
+    const phxrpc::Endpoint_t *ep = global_$ClientClassLower$_config_.GetRandom();
+
+    if (ep) {
         phxrpc::BlockTcpStream socket;
-        bool open_ret = phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
+        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(&socket, ep->ip, ep->port,
                 global_$ClientClassLower$_config_.GetConnectTimeoutMS(), nullptr, 0,
-                *(global_$ClientClassLower$_monitor_.get()));
+                *(global_$ClientClassLower$_monitor_.get()))};
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
 
@@ -197,16 +279,16 @@ const char *PHXRPC_CLIENT_FUNC_TEMPLATE =
 
 //////////////////////////////////////////////////////////////////////
 
-const char *PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
+const char *PHXRPC_UTHREAD_SHORT_CLIENT_FUNC_TEMPLATE =
         R"(
 {
     const phxrpc::Endpoint_t *ep = global_$ClientClassLower$_config_.GetRandom();
 
-    if (uthread_scheduler_ != nullptr && ep != nullptr) {
+    if (uthread_scheduler_ && ep) {
         phxrpc::UThreadTcpStream socket;
-        bool open_ret = phxrpc::PhxrpcTcpUtils::Open(uthread_scheduler_, &socket, ep->ip, ep->port,
+        bool open_ret{phxrpc::PhxrpcTcpUtils::Open(uthread_scheduler_, &socket, ep->ip, ep->port,
                 global_$ClientClassLower$_config_.GetConnectTimeoutMS(),
-                *(global_$ClientClassLower$_monitor_.get()));
+                *(global_$ClientClassLower$_monitor_.get()))};
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
 
@@ -224,8 +306,8 @@ const char *PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
 const char *PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE =
         R"(
 {
-    int ret = -1;
-    size_t echo_server_count = 2;
+    int ret{-1};
+    size_t echo_server_count{2};
     uthread_begin;
     for (size_t i{0}; echo_server_count > i; ++i) {
         uthread_t [=, &uthread_s, &ret](void *) {
@@ -236,7 +318,7 @@ const char *PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE =
                         global_$ClientClassLower$_config_.GetConnectTimeoutMS(), *(global_$ClientClassLower$_monitor_.get()))) {
                     socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
                     $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
-                    int this_ret = stub.PhxEcho(req, resp);
+                    int this_ret{stub.PhxEcho(req, resp)};
                     if (this_ret == 0) {
                         ret = this_ret;
                         uthread_s.Close();
@@ -265,11 +347,11 @@ PackageName = $PbPackageName$
 
 [Server0]
 IP = 127.0.0.1
-Port = 16161
+Port = 80
 
 [Server1]
 IP = 127.0.0.1
-Port = 16161
+Port = 80
 
 )";
 

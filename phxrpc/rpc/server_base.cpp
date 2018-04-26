@@ -21,13 +21,15 @@ See the AUTHORS file for names of contributors.
 
 #include "server_base.h"
 
-#include <unistd.h>
+#include <cstdlib>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <unistd.h>
+
 
 namespace phxrpc {
 
-void ServerUtils :: Daemonize() {
+
+void ServerUtils::Daemonize() {
     int fd;
 
     if (fork() != 0) exit(0); /* parent exits */
@@ -43,6 +45,7 @@ void ServerUtils :: Daemonize() {
         if (fd > STDERR_FILENO) close(fd);
     }
 }
+
 
 }
 

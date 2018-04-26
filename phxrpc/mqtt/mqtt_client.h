@@ -72,13 +72,19 @@ class MqttClient {
 
     // @return true: socket ok; false: socket error
     static int Subscribe(BaseTcpStream &socket, const MqttSubscribe &req,
+                         MqttSuback &resp, MqttStat &mqtt_stat);
+    static int Subscribe(BaseTcpStream &socket, const MqttSubscribe &req,
                          MqttSuback &resp);
 
     // @return true: socket ok; false: socket error
     static int Unsubscribe(BaseTcpStream &socket, const MqttUnsubscribe &req,
+                           MqttUnsuback &resp, MqttStat &mqtt_stat);
+    static int Unsubscribe(BaseTcpStream &socket, const MqttUnsubscribe &req,
                            MqttUnsuback &resp);
 
     // @return true: socket ok; false: socket error
+    static int Ping(BaseTcpStream &socket, const MqttPingreq &req,
+                    MqttPingresp &resp, MqttStat &mqtt_stat);
     static int Ping(BaseTcpStream &socket, const MqttPingreq &req,
                     MqttPingresp &resp);
 

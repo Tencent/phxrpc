@@ -24,6 +24,7 @@ See the AUTHORS file for names of contributors.
 #include <atomic>
 #include <condition_variable>
 #include <functional>
+#include <list>
 #include <map>
 #include <mutex>
 #include <thread>
@@ -41,19 +42,110 @@ See the AUTHORS file for names of contributors.
 namespace phxrpc {
 
 
-class WorkerPool;
+struct ResidentMessage final {
+    std::string topic_name;
+    std::string content;
+    uint32_t qos{0u};
+};
+
+
+class MqttSession final {
+  public:
+    //enum class Status {
+    //    None = 0,
+    //    Connected,
+    //    Closed,
+    //};
+
+    void Heartbeat();
+    bool IsExpired();
+
+    uint64_t session_id{0uLL};
+    // not use unique_ptr because socket is own by stream
+    UThreadSocket_t *socket{nullptr};
+    std::unique_ptr<UThreadTcpStream> stream;
+    //Status status{Status::None};
+    SessionAttribute session_attribute;
+    std::vector<ResidentMessage> resident_messages;
+
+  private:
+    uint64_t expire_time_ms_{0uLL};
+};
+
+
+class SessionManager final {
+  public:
+    MqttSession *Create(const int fd, UThreadEpollScheduler *const scheduler,
+                        const int socket_timeout_ms);
+
+    MqttSession *GetByClientId(const std::string &client_id);
+
+    MqttSession *GetBySessionId(const uint64_t session_id);
+
+    MqttSession *GetByFd(const int fd);
+
+    void DeleteBySessionId(const uint64_t session_id);
+
+  private:
+    static std::atomic_uint32_t s_session_num;
+
+    std::list<MqttSession> sessions_;
+};
+
+
+class SessionRouter final {
+  public:
+    void Add(const uint64_t session_id, const int idx);
+    int Get(const uint64_t session_id) const;
+    void Delete(const uint64_t session_id);
+
+  private:
+    mutable std::mutex mutex_;
+    std::map<uint64_t, int> session_id2thread_index_map_;
+};
+
+
+class NotifierPoolRouter final {
+  public:
+    struct NotifierId {
+        NotifierId(const uint64_t session_id_value, const uint32_t packet_id_value);
+
+        __uint128_t ToUint128() const;
+        void FromUint128(const __uint128_t &value);
+
+        uint64_t session_id{0uLL};
+        uint32_t packet_id{0u};
+    };
+
+    void Add(const NotifierId &notifier_id, const std::pair<int, int> idx);
+    std::pair<int, int> Get(const NotifierId &notifier_id) const;
+    void Delete(const NotifierId &notifier_id);
+
+  private:
+    void Add(const __uint128_t &session_packet_id, const std::pair<int, int> idx);
+    std::pair<int, int> Get(const __uint128_t &session_packet_id) const;
+    void Delete(const __uint128_t &session_packet_id);
+
+    mutable std::mutex mutex_;
+    std::map<__uint128_t, std::pair<int, int>> session_packet_id2idx_map_;
+};
+
+
+//////////////////////////////////
 
 class DataFlow final {
   public:
     DataFlow();
     ~DataFlow();
 
-    void PushRequest(void * args, BaseRequest * request);
-    int PluckRequest(void *& args, BaseRequest *& request);
-    int PickRequest(void *& args, BaseRequest *& request);
-    void PushResponse(void * args, BaseResponse * response);
-    int PluckResponse(void *& args, BaseResponse *& response);
+    void PushRequest(void *args, BaseRequest *req);
+    int PluckRequest(void *&args, BaseRequest *&req);
+    int PickRequest(void *&args, BaseRequest *&req);
+    void PushResponse(void *args, BaseResponse *resp);
+    int PluckResponse(void *&args, BaseResponse *&resp);
+    int PickResponse(void *&args, BaseResponse *&resp);
     bool CanPushRequest(const int max_queue_length);
+    bool CanPluckRequest();
     bool CanPluckResponse();
 
     void BreakOut();
@@ -64,23 +156,63 @@ class DataFlow final {
             enqueue_time_ms = 0;
             args = nullptr;
         }
-        QueueExtData(void * t_args) {
+        QueueExtData(void *t_args) {
             enqueue_time_ms = Timer::GetSteadyClockMS();
             args = t_args;
         }
         uint64_t enqueue_time_ms;
-        void * args;
+        void *args;
     };
-    ThdQueue<std::pair<QueueExtData, BaseRequest *> > in_queue_;
-    ThdQueue<std::pair<QueueExtData, BaseResponse *> > out_queue_;
+
+    mutable std::mutex mutex_;
+    ThdQueue<std::pair<QueueExtData, BaseRequest *>> in_queue_;
+    ThdQueue<std::pair<QueueExtData, BaseResponse *>> out_queue_;
 };
 
-/////////////////////////////////
+
+//class CrossUnitDataFlow final {
+//  public:
+//    CrossUnitDataFlow();
+//    ~CrossUnitDataFlow();
+//
+//    void PushRequest(void *args, google::protobuf::Message *req);
+//    int PluckRequest(void *&args, google::protobuf::Message *&req);
+//    int PickRequest(void *&args, google::protobuf::Message *&req);
+//    void PushResponse(void *args, google::protobuf::Message *resp);
+//    int PluckResponse(void *&args, google::protobuf::Message *&resp);
+//    int PickResponse(void *&args, google::protobuf::Message *&resp);
+//    bool CanPushRequest(const int max_queue_length);
+//    bool CanPluckRequest();
+//    bool CanPluckResponse();
+//
+//    void BreakOut();
+//
+//  private:
+//    struct QueueExtData {
+//        QueueExtData() {
+//            enqueue_time_ms = 0;
+//            args = nullptr;
+//        }
+//        QueueExtData(void *t_args) {
+//            enqueue_time_ms = Timer::GetSteadyClockMS();
+//            args = t_args;
+//        }
+//        uint64_t enqueue_time_ms;
+//        void *args;
+//    };
+//    ThdQueue<std::pair<QueueExtData, google::protobuf::Message *>> in_queue_;
+//    ThdQueue<std::pair<QueueExtData, google::protobuf::Message *>> out_queue_;
+//};
+
+
+//////////////////////////////////
 
 #define RPC_TIME_COST_CAL_RATE 1000
 #define QUEUE_WAIT_TIME_COST_CAL_RATE 1000
 #define MAX_QUEUE_WAIT_TIME_COST 500
 #define MAX_ACCEPT_QUEUE_LENGTH 102400
+
+class WorkerPool;
 
 class HshaServerStat final {
   public:
@@ -102,10 +234,12 @@ class HshaServerStat final {
     void MonitorReport();
 
     friend class HshaServerIO;
+    friend class FaServerIO;
     friend class WorkerPool;
     friend class Worker;
     friend class HshaServerQos;
     friend class HshaServerAcceptor;
+    friend class FaServerAcceptor;
     //const HshaServerConfig *config_;
     std::mutex mutex_;
     std::condition_variable cv_;
@@ -187,7 +321,7 @@ class HshaServerStat final {
 
 class HshaServerQos final {
   public:
-    HshaServerQos(const HshaServerConfig * config, HshaServerStat * hsha_server_stat);
+    HshaServerQos(const HshaServerConfig *config, HshaServerStat *hsha_server_stat);
     ~HshaServerQos();
 
     void CalFunc();
@@ -195,21 +329,22 @@ class HshaServerQos final {
     bool CanEnqueue();
 
   private:
-    const HshaServerConfig * config_;
-    HshaServerStat * hsha_server_stat_;
+    const HshaServerConfig *config_{nullptr};
+    HshaServerStat *hsha_server_stat_{nullptr};
     std::mutex mutex_;
     std::condition_variable cv_;
     std::thread thread_;
-    bool break_out_;
-    int enqueue_reject_rate_;
-    int inqueue_avg_wait_time_costs_per_second_cal_last_seq_;
+    bool break_out_{false};
+    int enqueue_reject_rate_{0};
+    int inqueue_avg_wait_time_costs_per_second_cal_last_seq_{0};
 };
 
 //////////////////////////////////
 
 class Worker final {
   public:
-    Worker(WorkerPool *pool, int uthread_count, int utherad_stack_size);
+    Worker(const int idx, WorkerPool *const pool,
+           const int uthread_count, const int utherad_stack_size);
     ~Worker();
 
     void Func();
@@ -220,14 +355,18 @@ class Worker final {
     void HandlerNewRequestFunc();
     void UThreadFunc(void *args, BaseRequest *req, int queue_wait_time_ms);
     void WorkerLogic(void *args, BaseRequest *req, int queue_wait_time_ms);
-    void Notify();
+    void NotifyEpoll();
+    int NotifyTarget(const NotifierPoolRouter::NotifierId &notifier_id, BaseResponse *resp);
 
   private:
-    WorkerPool *pool_;
+    int idx_{-1};
+    WorkerPool *pool_{nullptr};
     int uthread_count_;
     int utherad_stack_size_;
-    bool shut_down_;
-    UThreadEpollScheduler *worker_scheduler_;
+    bool shut_down_{false};
+    UThreadEpollScheduler *worker_scheduler_{nullptr};
+    // TODO: support thread mode
+    UThreadNotifierPool *notifier_pool_{nullptr};
     std::thread thread_;
 };
 
@@ -237,25 +376,33 @@ typedef std::function<void(const BaseRequest *, BaseResponse *, DispatcherArgs_t
 
 class WorkerPool final {
   public:
-    WorkerPool(UThreadEpollScheduler * scheduler,
-            int thread_count,
-            int uthread_count_per_thread,
-            int utherad_stack_size,
-            DataFlow * data_flow,
-            HshaServerStat * hsha_server_stat,
-            Dispatch_t dispatch,
-            void * args);
+    WorkerPool(const int idx, UThreadEpollScheduler *scheduler,
+               const HshaServerConfig *config,
+               const int thread_count,
+               const int uthread_count_per_thread,
+               const int utherad_stack_size,
+               NotifierPoolRouter *const notifier_pool_router,
+               DataFlow *const data_flow,
+               DataFlow *const cross_unit_data_flow,
+               HshaServerStat *const hsha_server_stat,
+               Dispatch_t dispatch,
+               void *args);
     ~WorkerPool();
 
-    void Notify();
+    void NotifyEpoll();
+    int NotifyTarget(const int idx, const NotifierPoolRouter::NotifierId &notifier_id, BaseResponse *resp);
 
   private:
     friend class Worker;
-    UThreadEpollScheduler * scheduler_;
-    DataFlow * data_flow_;
-    HshaServerStat * hsha_server_stat_;
+    int idx_{-1};
+    UThreadEpollScheduler *scheduler_{nullptr};
+    const HshaServerConfig *config_{nullptr};
+    NotifierPoolRouter *notifier_pool_router_{nullptr};
+    DataFlow *data_flow_{nullptr};
+    DataFlow *cross_unit_data_flow_{nullptr};
+    HshaServerStat *hsha_server_stat_{nullptr};
     Dispatch_t dispatch_;
-    void * args_;
+    void *args_{nullptr};
     std::vector<Worker *> worker_list_;
     size_t last_notify_idx_;
     std::mutex mutex_;
@@ -265,9 +412,10 @@ class WorkerPool final {
 
 class HshaServerIO final {
   public:
-    HshaServerIO(int idx, UThreadEpollScheduler * scheduler, const HshaServerConfig * config,
-            DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos,
-            WorkerPool * worker_pool);
+    HshaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
+                 const HshaServerConfig *config,
+                 DataFlow *data_flow, HshaServerStat *hsha_server_stat,
+                 HshaServerQos *hsha_server_qos, WorkerPool *worker_pool);
     ~HshaServerIO();
 
     void RunForever();
@@ -281,14 +429,53 @@ class HshaServerIO final {
     UThreadSocket_t *ActiveSocketFunc();
 
   private:
-    //int idx_;
-    UThreadEpollScheduler * scheduler_;
-    const HshaServerConfig * config_;
-    DataFlow * data_flow_;
-    //int listen_fd_;
-    HshaServerStat * hsha_server_stat_;
-    HshaServerQos * hsha_server_qos_;
-    WorkerPool * worker_pool_;
+    int idx_{-1};
+    UThreadEpollScheduler *scheduler_{nullptr};
+    const HshaServerConfig *config_{nullptr};
+    DataFlow *data_flow_{nullptr};
+    HshaServerStat *hsha_server_stat_{nullptr};
+    HshaServerQos *hsha_server_qos_{nullptr};
+    WorkerPool *worker_pool_{nullptr};
+
+    std::queue<int> accepted_fd_list_;
+    std::mutex queue_mutex_;
+};
+
+/////////////////////////////////
+
+class FaServerIO final {
+  public:
+    FaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
+               const HshaServerConfig *config, DataFlow *data_flow,
+               HshaServerStat *hsha_server_stat, HshaServerQos *hsha_server_qos,
+               WorkerPool *worker_pool, SessionManager *session_mgr,
+               SessionRouter *session_router);
+    ~FaServerIO();
+
+    void RunForever();
+
+    bool AddAcceptedFd(int accepted_fd);
+
+    void HandlerAcceptedFd();
+
+    void UThreadIFunc(int accept_fd);
+
+    //UThreadSocket_t *ActiveSocketFunc();
+
+    void HandlerNewResponseFunc();
+
+    void UThreadOFunc(void *args, BaseResponse *resp, int queue_wait_time_ms);
+
+  private:
+    int idx_{-1};
+    UThreadEpollScheduler *scheduler_{nullptr};
+    const HshaServerConfig *config_{nullptr};
+    DataFlow *data_flow_{nullptr};
+    HshaServerStat *hsha_server_stat_{nullptr};
+    HshaServerQos *hsha_server_qos_{nullptr};
+    WorkerPool *worker_pool_{nullptr};
+    SessionManager *session_mgr_{nullptr};
+    SessionRouter *session_router_{nullptr};
 
     std::queue<int> accepted_fd_list_;
     std::mutex queue_mutex_;
@@ -300,16 +487,19 @@ class HshaServer;
 class HshaServerUnit final {
   public:
     HshaServerUnit(HshaServer *hsha_server,
-            int idx,
+            const int idx,
             int worker_thread_count,
             int worker_uthread_count_per_thread,
             int worker_utherad_stack_size,
+            NotifierPoolRouter *const notifier_pool_router,
             Dispatch_t dispatch,
             void *args);
     ~HshaServerUnit();
 
     void RunFunc();
     bool AddAcceptedFd(int accepted_fd);
+    int NotifyTargetWorker(const int idx, const NotifierPoolRouter::NotifierId &notifier_id,
+                           BaseResponse *resp);
 
   private:
     HshaServer *hsha_server_;
@@ -322,16 +512,58 @@ class HshaServerUnit final {
 
 /////////////////////////////////
 
-class HshaServerAcceptor final {
+class FaServerUnit final {
   public:
-    HshaServerAcceptor(HshaServer * hsha_server);
-    ~HshaServerAcceptor();
+    FaServerUnit(HshaServer *hsha_server,
+            const int idx,
+            int worker_thread_count,
+            int worker_uthread_count_per_thread,
+            int worker_utherad_stack_size,
+            NotifierPoolRouter *const notifier_pool_router,
+            Dispatch_t dispatch,
+            void *args, SessionRouter *session_router);
+    ~FaServerUnit();
 
-    void LoopAccept(const char * bind_ip, const int port);
+    void RunFunc();
+    bool AddAcceptedFd(int accepted_fd);
+    void PushResponse(void *args, BaseResponse *const resp);
 
   private:
-    HshaServer * hsha_server_;
-    size_t idx_;
+    HshaServer *hsha_server_;
+    UThreadEpollScheduler scheduler_;
+    DataFlow data_flow_;
+    WorkerPool worker_pool_;
+    SessionManager session_mgr_;
+    FaServerIO fa_server_io_;
+    std::thread thread_;
+};
+
+/////////////////////////////////
+
+class HshaServerAcceptor final {
+  public:
+    HshaServerAcceptor(HshaServer *hsha_server);
+    ~HshaServerAcceptor();
+
+    void LoopAccept(const char *bind_ip, const int port);
+
+  private:
+    HshaServer *hsha_server_{nullptr};
+    size_t idx_{};
+};
+
+/////////////////////////////////
+
+class FaServerAcceptor final {
+  public:
+    FaServerAcceptor(HshaServer *hsha_server);
+    ~FaServerAcceptor();
+
+    void LoopAccept(const char *bind_ip, const int port);
+
+  private:
+    HshaServer *hsha_server_{nullptr};
+    size_t idx_{0};
 };
 
 /////////////////////////////////
@@ -343,13 +575,28 @@ class HshaServer final {
 
     void RunForever();
 
-    const HshaServerConfig * config_;
+    const HshaServerConfig *config_{nullptr};
     ServerMonitorPtr hsha_server_monitor_;
     HshaServerStat hsha_server_stat_;
     HshaServerQos hsha_server_qos_;
     HshaServerAcceptor hsha_server_acceptor_;
+    FaServerAcceptor fa_server_acceptor_;
 
     std::vector<HshaServerUnit *> server_unit_list_;
+    std::vector<FaServerUnit *> fa_server_unit_list_;
+
+    std::thread hsha_accept_thread_;
+    std::thread fa_accept_thread_;
+    std::thread cross_unit_req_thread_;
+    std::thread cross_unit_resp_thread_;
+
+    SessionRouter session_router_;
+    DataFlow cross_unit_data_flow_;
+    NotifierPoolRouter notifier_pool_router_;
+
+  private:
+    void LoopReadCrossUnitRequest();
+    void LoopReadCrossUnitResponse();
 };
 
 

@@ -49,7 +49,8 @@ class ProtoUtils {
     static int LoadExtension(const char * file, phxrpc::SyntaxTree * stree,
             google::protobuf::compiler::DiskSourceTree & tree);
 
-    static int AddEcho(phxrpc::SyntaxTree * stree);
+    static int AddEcho(phxrpc::SyntaxTree *stree);
+    static int AddHttpPublish(phxrpc::SyntaxTree *stree);
 
     ProtoUtils();
     virtual ~ProtoUtils();

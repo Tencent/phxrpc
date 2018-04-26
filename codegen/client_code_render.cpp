@@ -79,7 +79,7 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetStubClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetStubClassName(stree->GetName(), clasname, sizeof(clasname));
 
     {
         fprintf(write, "class %s {\n", clasname);
@@ -122,7 +122,7 @@ void ClientCodeRender::GetStubFuncDeclaration(SyntaxTree *stree,
                                               int is_header, string *result) {
     char clasname[128]{0}, type_name[128]{0};
 
-    name_render_.GetStubClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetStubClassName(stree->GetName(), clasname, sizeof(clasname));
 
     if (is_header) {
         phxrpc::StrAppendFormat(result, "int %s(", func->GetName());
@@ -130,12 +130,12 @@ void ClientCodeRender::GetStubFuncDeclaration(SyntaxTree *stree,
         phxrpc::StrAppendFormat(result, "int %s::%s(", clasname, func->GetName());
     }
 
-    name_render_.GetMessageClasname(func->GetReq()->GetType(), type_name, sizeof(type_name));
+    name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
     phxrpc::StrAppendFormat(result, "const %s &req", type_name);
 
     const char *const resp_type{func->GetResp()->GetType()};
     if (resp_type && 0 < strlen(resp_type)) {
-        name_render_.GetMessageClasname(resp_type, type_name, sizeof(type_name));
+        name_render_.GetMessageClassName(resp_type, type_name, sizeof(type_name));
         phxrpc::StrAppendFormat(result, ", %s *resp", type_name);
     }
 
@@ -170,7 +170,7 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetStubClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetStubClassName(stree->GetName(), clasname, sizeof(clasname));
 
     {
         fprintf(write, "%s::%s(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)\n",
@@ -212,8 +212,9 @@ void ClientCodeRender::GenerateMqttStubFunc(SyntaxTree *stree, const SyntaxFunc 
     fprintf(write, "%s {\n", buffer.c_str());
 
     fprintf(write, "    phxrpc::MqttCaller caller(socket_, client_monitor_);\n");
-    fprintf(write, "    caller.SetCmdId(%d);\n", func->GetCmdID());
-    if (0 == strcmp(func->GetName(), "PhxMqttDisconnect")) {
+    if (0 == strcmp(func->GetName(), "PhxMqttPuback")) {
+        fprintf(write, "    return caller.%sCall(req);\n", func->GetName());
+    } else if (0 == strcmp(func->GetName(), "PhxMqttDisconnect")) {
         fprintf(write, "    return caller.%sCall(req);\n", func->GetName());
     } else {
         fprintf(write, "    return caller.%sCall(req, resp);\n", func->GetName());
@@ -294,8 +295,8 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree *stree,
 
     char client_class[128]{0}, message_file[128]{0};
     char client_class_lower[128]{0};
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
-    name_render_.GetClientClasnameLower(stree->GetName(), client_class_lower, sizeof(client_class_lower));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassNameLower(stree->GetName(), client_class_lower, sizeof(client_class_lower));
     name_render_.GetMessageFileName(stree->GetProtoFile(), message_file, sizeof(message_file));
 
     string client_class_str = string(client_class);
@@ -330,10 +331,10 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree,
     char client_class[128]{0}, client_file[128]{0};
     char client_class_lower[128]{0};
     char stub_class[128]{0}, stub_file[128]{0};
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
-    name_render_.GetClientClasnameLower(stree->GetName(), client_class_lower, sizeof(client_class_lower));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassNameLower(stree->GetName(), client_class_lower, sizeof(client_class_lower));
     name_render_.GetClientFileName(stree->GetName(), client_file, sizeof(client_file));
-    name_render_.GetStubClasname(stree->GetName(), stub_class, sizeof(stub_class));
+    name_render_.GetStubClassName(stree->GetName(), stub_class, sizeof(stub_class));
     name_render_.GetStubFileName(stree->GetName(), stub_file, sizeof(stub_file));
 
     string client_class_str = string(client_class);
@@ -460,7 +461,7 @@ void ClientCodeRender::GetClienfuncDeclaration(SyntaxTree *stree,
                                                const bool is_uthread_mode) {
     char clasname[128]{0}, type_name[128]{0};
 
-    name_render_.GetClientClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetClientClassName(stree->GetName(), clasname, sizeof(clasname));
     string clasname_str = string(clasname);
     if (is_uthread_mode) {
         clasname_str += "UThread";
@@ -472,12 +473,12 @@ void ClientCodeRender::GetClienfuncDeclaration(SyntaxTree *stree,
         phxrpc::StrAppendFormat(result, "int %s::%s(", clasname_str.c_str(), func->GetName());
     }
 
-    name_render_.GetMessageClasname(func->GetReq()->GetType(), type_name, sizeof(type_name));
+    name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
     phxrpc::StrAppendFormat(result, "const %s &req", type_name);
 
     const char *const resp_type{func->GetResp()->GetType()};
     if (resp_type && 0 < strlen(resp_type)) {
-        name_render_.GetMessageClasname(resp_type, type_name, sizeof(type_name));
+        name_render_.GetMessageClassName(resp_type, type_name, sizeof(type_name));
         phxrpc::StrAppendFormat(result, ", %s *resp", type_name);
     }
 

@@ -559,6 +559,7 @@ MqttFakeResponse::MqttFakeResponse() {
 
 MqttConnect::MqttConnect() {
     set_protocol(Protocol::MQTT_CONNECT);
+    SetURI("/phxrpc/mqtt/connect");
     mutable_fixed_header().control_packet_type = ControlPacketType::CONNECT;
 }
 
@@ -761,6 +762,7 @@ ReturnCode MqttConnack::RecvVariableHeader(istringstream &in_stream) {
 
 MqttPublish::MqttPublish() {
     set_protocol(Protocol::MQTT_PUBLISH);
+    SetURI("/phxrpc/mqtt/publish");
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBLISH;
 }
 
@@ -805,7 +807,7 @@ ReturnCode MqttPublish::FromPb(const google::protobuf::Message &message) {
     return ReturnCode::OK;
 }
 
-BaseResponse *MqttPublish::GenResponse() const { return new MqttPuback; }
+BaseResponse *MqttPublish::GenResponse() const { return new MqttFakeResponse; }
 
 ReturnCode MqttPublish::SendVariableHeader(ostringstream &out_stream) const {
     ReturnCode ret{SendUnicode(out_stream, topic_name_)};
@@ -870,6 +872,7 @@ ReturnCode MqttPublish::RecvPayload(istringstream &in_stream) {
 
 MqttPuback::MqttPuback() {
     set_protocol(Protocol::MQTT_PUBACK);
+    SetURI("/phxrpc/mqtt/puback");
     mutable_fixed_header().control_packet_type = ControlPacketType::PUBACK;
 }
 
@@ -914,7 +917,46 @@ ReturnCode MqttPuback::RecvVariableHeader(istringstream &in_stream) {
 
 MqttSubscribe::MqttSubscribe() {
     set_protocol(Protocol::MQTT_SUBSCRIBE);
+    SetURI("/phxrpc/mqtt/subscribe");
     mutable_fixed_header().control_packet_type = ControlPacketType::SUBSCRIBE;
+}
+
+ReturnCode MqttSubscribe::ToPb(google::protobuf::Message *const message) const {
+    phxrpc::MqttSubscribePb subscribe;
+
+    subscribe.set_packet_identifier(packet_identifier());
+    google::protobuf::RepeatedPtrField<string> temp_topic_filters(
+            topic_filters_.begin(), topic_filters_.end());
+    subscribe.mutable_topic_filters()->Swap(&temp_topic_filters);
+    google::protobuf::RepeatedField<uint32_t> temp_qoss(
+            qoss_.begin(), qoss_.end());
+    subscribe.mutable_qoss()->Swap(&temp_qoss);
+
+    try {
+        message->CopyFrom(subscribe);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
+}
+
+ReturnCode MqttSubscribe::FromPb(const google::protobuf::Message &message) {
+    phxrpc::MqttSubscribePb subscribe;
+
+    try {
+        subscribe.CopyFrom(message);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    set_packet_identifier(subscribe.packet_identifier());
+    copy(subscribe.topic_filters().begin(), subscribe.topic_filters().end(),
+         back_inserter(topic_filters_));
+    copy(subscribe.qoss().begin(), subscribe.qoss().end(),
+         back_inserter(qoss_));
+
+    return ReturnCode::OK;
 }
 
 BaseResponse *MqttSubscribe::GenResponse() const { return new MqttSuback; }
@@ -959,7 +1001,7 @@ ReturnCode MqttSubscribe::RecvPayload(istringstream &in_stream) {
     while (used_length < payload_length && EOF != in_stream.peek()) {
         string topic_filter;
         ReturnCode ret{RecvUnicode(in_stream, topic_filter)};
-        if (ReturnCode::ERROR_LENGTH_OVERFLOW != ret) {
+        if (ReturnCode::ERROR_LENGTH_OVERFLOW == ret) {
             return ReturnCode::OK;
         }
 
@@ -991,6 +1033,39 @@ MqttSuback::MqttSuback() {
     mutable_fixed_header().control_packet_type = ControlPacketType::SUBACK;
 }
 
+ReturnCode MqttSuback::ToPb(google::protobuf::Message *const message) const {
+    phxrpc::MqttSubackPb suback;
+
+    suback.set_packet_identifier(packet_identifier());
+    google::protobuf::RepeatedField<uint32_t> temp_return_codes(
+            return_codes_.begin(), return_codes_.end());
+    suback.mutable_return_codes()->Swap(&temp_return_codes);
+
+    try {
+        message->CopyFrom(suback);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
+}
+
+ReturnCode MqttSuback::FromPb(const google::protobuf::Message &message) {
+    phxrpc::MqttSubackPb suback;
+
+    try {
+        suback.CopyFrom(message);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    set_packet_identifier(suback.packet_identifier());
+    copy(suback.return_codes().begin(), suback.return_codes().end(),
+         back_inserter(return_codes_));
+
+    return ReturnCode::OK;
+}
+
 ReturnCode MqttSuback::SendVariableHeader(ostringstream &out_stream) const {
     return SendPacketIdentifier(out_stream);
 }
@@ -1016,7 +1091,7 @@ ReturnCode MqttSuback::RecvPayload(istringstream &in_stream) {
     while (EOF != in_stream.peek()) {
         char return_code{0x0};
         ReturnCode ret{RecvChar(in_stream, return_code)};
-        if (ReturnCode::ERROR_LENGTH_OVERFLOW != ret) {
+        if (ReturnCode::ERROR_LENGTH_OVERFLOW == ret) {
             return ReturnCode::OK;
         }
 
@@ -1036,7 +1111,41 @@ ReturnCode MqttSuback::RecvPayload(istringstream &in_stream) {
 
 MqttUnsubscribe::MqttUnsubscribe() {
     set_protocol(Protocol::MQTT_UNSUBSCRIBE);
+    SetURI("/phxrpc/mqtt/unsubscribe");
     mutable_fixed_header().control_packet_type = ControlPacketType::UNSUBSCRIBE;
+}
+
+ReturnCode MqttUnsubscribe::ToPb(google::protobuf::Message *const message) const {
+    phxrpc::MqttUnsubscribePb unsubscribe;
+
+    unsubscribe.set_packet_identifier(packet_identifier());
+    google::protobuf::RepeatedPtrField<string> temp_topic_filters(
+            topic_filters_.begin(), topic_filters_.end());
+    unsubscribe.mutable_topic_filters()->Swap(&temp_topic_filters);
+
+    try {
+        message->CopyFrom(unsubscribe);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
+}
+
+ReturnCode MqttUnsubscribe::FromPb(const google::protobuf::Message &message) {
+    phxrpc::MqttUnsubscribePb unsubscribe;
+
+    try {
+        unsubscribe.CopyFrom(message);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    set_packet_identifier(unsubscribe.packet_identifier());
+    copy(unsubscribe.topic_filters().begin(), unsubscribe.topic_filters().end(),
+         back_inserter(topic_filters_));
+
+    return ReturnCode::OK;
 }
 
 BaseResponse *MqttUnsubscribe::GenResponse() const { return new MqttUnsuback; }
@@ -1078,7 +1187,7 @@ MqttUnsubscribe::RecvPayload(istringstream &in_stream) {
     while (used_length < payload_length && EOF != in_stream.peek()){
         string topic_filter;
         ReturnCode ret{RecvUnicode(in_stream, topic_filter)};
-        if (ReturnCode::ERROR_LENGTH_OVERFLOW != ret) {
+        if (ReturnCode::ERROR_LENGTH_OVERFLOW == ret) {
             return ReturnCode::OK;
         }
 
@@ -1102,6 +1211,34 @@ MqttUnsuback::MqttUnsuback() {
     mutable_fixed_header().control_packet_type = ControlPacketType::UNSUBACK;
 }
 
+ReturnCode MqttUnsuback::ToPb(google::protobuf::Message *const message) const {
+    phxrpc::MqttUnsubackPb unsuback;
+
+    unsuback.set_packet_identifier(packet_identifier());
+
+    try {
+        message->CopyFrom(unsuback);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
+}
+
+ReturnCode MqttUnsuback::FromPb(const google::protobuf::Message &message) {
+    phxrpc::MqttUnsubackPb unsuback;
+
+    try {
+        unsuback.CopyFrom(message);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    set_packet_identifier(unsuback.packet_identifier());
+
+    return ReturnCode::OK;
+}
+
 ReturnCode MqttUnsuback::SendVariableHeader(ostringstream &out_stream) const {
     return SendPacketIdentifier(out_stream);
 }
@@ -1113,7 +1250,32 @@ ReturnCode MqttUnsuback::RecvVariableHeader(istringstream &in_stream) {
 
 MqttPingreq::MqttPingreq() {
     set_protocol(Protocol::MQTT_PING);
+    SetURI("/phxrpc/mqtt/ping");
     mutable_fixed_header().control_packet_type = ControlPacketType::PINGREQ;
+}
+
+ReturnCode MqttPingreq::ToPb(google::protobuf::Message *const message) const {
+    phxrpc::MqttPingreqPb pingreq;
+
+    try {
+        message->CopyFrom(pingreq);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
+}
+
+ReturnCode MqttPingreq::FromPb(const google::protobuf::Message &message) {
+    phxrpc::MqttPingreqPb pingreq;
+
+    try {
+        pingreq.CopyFrom(message);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
 }
 
 BaseResponse *MqttPingreq::GenResponse() const { return new MqttPingresp; }
@@ -1124,9 +1286,34 @@ MqttPingresp::MqttPingresp() {
     mutable_fixed_header().control_packet_type = ControlPacketType::PINGRESP;
 }
 
+ReturnCode MqttPingresp::ToPb(google::protobuf::Message *const message) const {
+    phxrpc::MqttPingrespPb pingresp;
+
+    try {
+        message->CopyFrom(pingresp);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
+}
+
+ReturnCode MqttPingresp::FromPb(const google::protobuf::Message &message) {
+    phxrpc::MqttPingrespPb pingresp;
+
+    try {
+        pingresp.CopyFrom(message);
+    } catch (exception) {
+        return ReturnCode::ERROR;
+    }
+
+    return ReturnCode::OK;
+}
+
 
 MqttDisconnect::MqttDisconnect() {
     set_protocol(Protocol::MQTT_DISCONNECT);
+    SetURI("/phxrpc/mqtt/disconnect");
     mutable_fixed_header().control_packet_type = ControlPacketType::DISCONNECT;
 }
 

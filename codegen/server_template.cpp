@@ -19,7 +19,7 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-const char * PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
+const char *PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
         R"(
 
 #include <iostream>
@@ -31,9 +31,9 @@ const char * PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
 #include "$ServiceImplFile$.h"
 #include "$ServerConfigFile$.h"
 
-#include "phxrpc/rpc.h"
-#include "phxrpc/msg.h"
 #include "phxrpc/file.h"
+#include "phxrpc/msg.h"
+#include "phxrpc/rpc.h"
 
 
 using namespace std;
@@ -42,14 +42,15 @@ using namespace std;
 void Dispatch(const phxrpc::BaseRequest *request,
               phxrpc::BaseResponse *response,
               phxrpc::DispatcherArgs_t *args) {
-    ServiceArgs_t *service_args = (ServiceArgs_t *)(args->service_args);
+    ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
-    $ServiceImplClass$ service(*service_args);
+    $ServiceImplClass$ service(*service_args, args->pool_idx, args->worker_idx,
+            args->notifier_pool, args->notifier_pool_router, args->data_flow,
+            args->cross_unit_data_flow, (phxrpc::ServiceContext *)(args->context));
     $DispatcherClass$ dispatcher(service, args);
 
     phxrpc::BaseDispatcher<$DispatcherClass$> base_dispatcher(
-            dispatcher, $DispatcherClass$::GetMqttFuncMap(),
-            $DispatcherClass$::GetURIFuncMap());
+            dispatcher, $DispatcherClass$::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(request, response)) {
         response->DispatchErr();
     }
@@ -71,11 +72,11 @@ int main(int argc, char **argv) {
     int c;
     while (EOF != (c = getopt(argc, argv, "c:vl:d"))) {
         switch (c) {
-            case 'c' : config_file = optarg; break;
-            case 'd' : daemonize = true; break;
-            case 'l' : log_level = atoi(optarg); break;
+            case 'c': config_file = optarg; break;
+            case 'd': daemonize = true; break;
+            case 'l': log_level = atoi(optarg); break;
 
-            case 'v' :
+            case 'v':
             default: ShowUsage(argv[0]); break;
         }
     }
@@ -113,7 +114,7 @@ int main(int argc, char **argv) {
 
 //////////////////////////////////////////////////////////////////////
 
-const char * PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE =
+const char *PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE =
         R"(
 
 #include <iostream>
@@ -125,9 +126,9 @@ const char * PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE =
 #include "$ServiceImplFile$.h"
 #include "$ServerConfigFile$.h"
 
-#include "phxrpc/rpc.h"
-#include "phxrpc/msg.h"
 #include "phxrpc/file.h"
+#include "phxrpc/msg.h"
+#include "phxrpc/rpc.h"
 
 
 using namespace std;
@@ -136,14 +137,17 @@ using namespace std;
 void Dispatch(const phxrpc::BaseRequest *request,
               phxrpc::BaseResponse *response,
               phxrpc::DispatcherArgs_t *args) {
-    ServiceArgs_t *service_args = (ServiceArgs_t *)(args->service_args);
+    ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
-    $ServiceImplClass$ service(*service_args, args->server_worker_uthread_scheduler);
+    $ServiceImplClass$ service(*service_args, args->server_worker_uthread_scheduler,
+            args->pool_idx, args->worker_idx,
+            args->notifier_pool, args->notifier_pool_router,
+            args->data_flow, args->cross_unit_data_flow,
+            (phxrpc::ServiceContext *)(args->context));
     $DispatcherClass$ dispatcher(service, args);
 
     phxrpc::BaseDispatcher<$DispatcherClass$> base_dispatcher(
-            dispatcher, $DispatcherClass$::GetMqttFuncMap(),
-            $DispatcherClass$::GetURIFuncMap());
+            dispatcher, $DispatcherClass$::GetURIFuncMap());
     if (!base_dispatcher.Dispatch(request, response)) {
         response->DispatchErr();
     }
@@ -165,11 +169,11 @@ int main(int argc, char **argv) {
     int c;
     while (EOF != (c = getopt( argc, argv, "c:vl:d"))) {
         switch (c) {
-            case 'c' : config_file = optarg; break;
-            case 'd' : daemonize = true; break;
-            case 'l' : log_level = atoi(optarg); break;
+            case 'c': config_file = optarg; break;
+            case 'd': daemonize = true; break;
+            case 'l': log_level = atoi(optarg); break;
 
-            case 'v' :
+            case 'v':
             default: ShowUsage(argv[0]); break;
         }
     }
@@ -207,7 +211,7 @@ int main(int argc, char **argv) {
 
 //////////////////////////////////////////////////////////////////////
 
-const char * PHXRPC_EPOLL_SERVER_CONFIG_HPP_TEMPLATE =
+const char *PHXRPC_EPOLL_SERVER_CONFIG_HPP_TEMPLATE =
         R"(
 
 #include "phxrpc/rpc.h"
@@ -231,7 +235,7 @@ class $ServerConfigClass$ {
 
 //////////////////////////////////////////////////////////////////////
 
-const char * PHXRPC_EPOLL_SERVER_CONFIG_CPP_TEMPLATE =
+const char *PHXRPC_EPOLL_SERVER_CONFIG_CPP_TEMPLATE =
         R"(
 
 #include "$ServerConfigFile$.h"
@@ -263,12 +267,13 @@ phxrpc::HshaServerConfig &$ServerConfigClass$::GetHshaServerConfig() {
 
 //////////////////////////////////////////////////////////////////////
 
-const char * PHXRPC_EPOLL_SERVER_ETC_TEMPLATE =
+const char *PHXRPC_EPOLL_SERVER_ETC_TEMPLATE =
         R"(
 
 [Server]
 BindIP = 127.0.0.1
-Port = 16161
+Port = 80
+MqttPort = 1883
 MaxThreads = 16
 IOThreadCount = 3
 PackageName = $PbPackageName$
@@ -282,18 +287,19 @@ LogDir = ~/log
 LogLevel = 3
 
 [ServerTimeout]
-SocketTimeoutMS = 5000
+SocketTimeoutMS = 30000
 
 )";
 
 //////////////////////////////////////////////////////////////////////
 
-const char * PHXRPC_EPOLL_UTHREAD_SERVER_ETC_TEMPLATE =
+const char *PHXRPC_EPOLL_UTHREAD_SERVER_ETC_TEMPLATE =
         R"(
 
 [Server]
 BindIP = 127.0.0.1
-Port = 16161
+Port = 80
+MqttPort = 1883
 MaxThreads = 16
 WorkerUThreadCount = 50
 WorkerUThreadStackSize = 65536
@@ -309,13 +315,13 @@ LogDir = ~/log
 LogLevel = 3
 
 [ServerTimeout]
-SocketTimeoutMS = 5000
+SocketTimeoutMS = 30000
 
 )";
 
 //////////////////////////////////////////////////////////////////////
 
-const char * PHXRPC_SERVER_MAKEFILE_TEMPLATE =
+const char *PHXRPC_SERVER_MAKEFILE_TEMPLATE =
         R"(
 
 include $PhxRPCMKDir$/phxrpc.mk
@@ -400,7 +406,7 @@ clean:
 
 /////////////////////////////////////////////////////////////////////
 
-const char * PHXRPC_UTHREAD_SERVER_MAKEFILE_TEMPLATE =
+const char *PHXRPC_UTHREAD_SERVER_MAKEFILE_TEMPLATE =
         R"(
 
 include $PhxRPCMKDir$/phxrpc.mk

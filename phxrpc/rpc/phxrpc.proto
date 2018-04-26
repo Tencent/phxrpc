@@ -38,6 +38,32 @@ message MqttPubackPb {
     uint32 packet_identifier = 11;
 }
 
+message MqttSubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+    repeated uint32 qoss = 13;
+}
+
+message MqttSubackPb {
+    uint32 packet_identifier = 11;
+    repeated uint32 return_codes = 12;
+}
+
+message MqttUnsubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+}
+
+message MqttUnsubackPb {
+    uint32 packet_identifier = 11;
+}
+
+message MqttPingreqPb {
+}
+
+message MqttPingrespPb {
+}
+
 message MqttDisconnectPb {
 }
 

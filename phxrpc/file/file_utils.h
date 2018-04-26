@@ -22,17 +22,24 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include <string>
+#include <vector>
+
 
 namespace phxrpc {
 
-class FileUtils {
-public:
-    static bool ReadFile(const char * path, std::string * content);
 
-private:
+class FileUtils final {
+  public:
+    static bool ReadFile(const char *path, std::string *content);
+
+    static void StrSplitList(const std::string &str, const std::string &delimiters,
+                             std::vector<std::string> &results);
+
+  private:
     FileUtils();
     ~FileUtils();
 };
+
 
 }
 

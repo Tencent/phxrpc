@@ -56,9 +56,6 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
 
     fprintf(write, "#pragma once\n");
     fprintf(write, "\n");
-
-    fprintf(write, "#include <cstdio>\n");
-    fprintf(write, "\n");
     fprintf(write, "\n");
 
     fprintf(write, "namespace phxrpc {\n");
@@ -73,7 +70,7 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "class %s {\n", clasname);
     fprintf(write, "  public:\n");
@@ -161,7 +158,7 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "%s::%s() {\n", clasname, clasname);
     fprintf(write, "}\n");
@@ -172,7 +169,7 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char client_class[128]{0};
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
 
     for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
          ++mqtt_it) {
@@ -215,11 +212,6 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree,
     name_render_.GetToolFileName(stree->GetName(), toolfile, sizeof(toolfile));
 
     fprintf(write, "#include \"%s.h\"\n", toolfile);
-
-    fprintf(write, "\n");
-
-    fprintf(write, "#include <cstdio>\n");
-
     fprintf(write, "\n");
     fprintf(write, "\n");
 
@@ -235,12 +227,12 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "class %sImpl : public %s {\n", clasname, clasname);
     fprintf(write, "  public:\n");
     fprintf(write, "    %sImpl();\n", clasname);
-    fprintf(write, "    virtual ~%sImpl();\n", clasname);
+    fprintf(write, "    virtual ~%sImpl() override;\n", clasname);
     fprintf(write, "\n");
 
     for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
@@ -290,7 +282,7 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolImplClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolImplClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "%s::%s() {\n", clasname, clasname);
     fprintf(write, "}\n");
@@ -301,36 +293,95 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char client_class[128]{0}, req_class[128]{0}, resp_class[128]{0};
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
 
     for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
          ++mqtt_it) {
-        name_render_.GetMessageClasname(mqtt_it->GetReq()->GetType(), req_class, sizeof(req_class));
+        name_render_.GetMessageClassName(mqtt_it->GetReq()->GetType(), req_class, sizeof(req_class));
         const char *const resp_type{mqtt_it->GetResp()->GetType()};
         if (resp_type && 0 < strlen(resp_type)) {
-            name_render_.GetMessageClasname(mqtt_it->GetResp()->GetType(), resp_class, sizeof(resp_class));
+            name_render_.GetMessageClassName(mqtt_it->GetResp()->GetType(), resp_class, sizeof(resp_class));
         }
 
         fprintf(write, "int %s::%s(phxrpc::OptMap &opt_map) {\n", clasname, mqtt_it->GetName());
+        fprintf(write, "    %s client;\n", client_class);
+        fprintf(write, "    int ret{-1};\n\n");
+
+        if (0 == strcmp("PhxMqttPublish", mqtt_it->GetName()) ||
+            0 == strcmp("PhxMqttPuback", mqtt_it->GetName()) ||
+            0 == strcmp("PhxMqttSubscribe", mqtt_it->GetName()) ||
+            0 == strcmp("PhxMqttUnsubscribe", mqtt_it->GetName()) ||
+            0 == strcmp("PhxMqttPing", mqtt_it->GetName())) {
+            fprintf(write, "    phxrpc::MqttConnectPb connect_req;\n");
+            fprintf(write, "    phxrpc::MqttConnackPb connect_resp;\n\n");
+            fprintf(write, "    if (nullptr == opt_map.Get('l')) return -1;\n\n");
+            fprintf(write, "    connect_req.set_client_identifier(opt_map.Get('l'));\n");
+            fprintf(write, "    connect_req.set_proto_name(\"MQTT\");\n");
+            fprintf(write, "    connect_req.set_proto_level(4);\n\n");
+            fprintf(write, "    ret = client.PhxMqttConnect(connect_req, &connect_resp);\n");
+            fprintf(write, "    printf(\"%%s connect return %%d\\n\", __func__, ret);\n");
+            fprintf(write, "    printf(\"connect resp: {\\n%%s}\\n\", connect_resp.DebugString().c_str());\n\n");
+        }
+
         fprintf(write, "    %s req;\n", req_class);
         if (resp_type && 0 < strlen(resp_type)) {
             fprintf(write, "    %s resp;\n", resp_class);
         }
         fprintf(write, "\n");
 
-        if (0 == strcmp("PhxMqttPublish", mqtt_it->GetName())) {
+        if (0 == strcmp("PhxMqttConnect", mqtt_it->GetName())) {
+            fprintf(write, "    if (nullptr == opt_map.Get('l')) return -1;\n\n");
+            fprintf(write, "    req.set_client_identifier(opt_map.Get('l'));\n");
+            fprintf(write, "    req.set_proto_name(\"MQTT\");\n");
+            fprintf(write, "    req.set_proto_level(4);\n\n");
+        } else if (0 == strcmp("PhxMqttPublish", mqtt_it->GetName())) {
+            fprintf(write, "    uint32_t dup{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('d', &dup)) dup = 0;\n");
+            fprintf(write, "    uint32_t qos{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('q', &qos)) qos = 0;\n");
+            fprintf(write, "    uint32_t retain{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('r', &retain)) retain = 0;\n\n");
             fprintf(write, "    if (nullptr == opt_map.Get('t')) return -1;\n");
+            fprintf(write, "    uint32_t packet_identifier{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('p', &packet_identifier)) packet_identifier = 0;\n");
             fprintf(write, "    if (nullptr == opt_map.Get('s')) return -1;\n\n");
+            fprintf(write, "    req.set_dup(0 != dup);\n");
+            fprintf(write, "    req.set_qos(qos);\n");
+            fprintf(write, "    req.set_retain(0 != retain);\n\n");
             fprintf(write, "    req.set_topic_name(opt_map.Get('t'));\n");
-            fprintf(write, "    req.set_content(opt_map.Get('s'));\n");
+            fprintf(write, "    req.set_packet_identifier(packet_identifier);\n");
+            fprintf(write, "    req.set_content(opt_map.Get('s'));\n\n");
+        } else if (0 == strcmp("PhxMqttPuback", mqtt_it->GetName())) {
+            fprintf(write, "    uint32_t packet_identifier{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('p', &packet_identifier)) packet_identifier = 0;\n\n");
+            fprintf(write, "    req.set_packet_identifier(packet_identifier);\n\n");
+        } else if (0 == strcmp("PhxHttpPublish", mqtt_it->GetName())) {
+            fprintf(write, "    const char *session_id_string{opt_map.Get('e')};\n");
+            fprintf(write, "    if (!session_id_string) return -1;\n");
+            fprintf(write, "    uint64_t session_id{strtoull(session_id_string, nullptr, 16)};\n\n");
+            fprintf(write, "    uint32_t dup{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('d', &dup)) dup = 0;\n");
+            fprintf(write, "    uint32_t qos{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('q', &qos)) qos = 0;\n");
+            fprintf(write, "    uint32_t retain{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('r', &retain)) retain = 0;\n\n");
+            fprintf(write, "    if (nullptr == opt_map.Get('t')) return -1;\n");
+            fprintf(write, "    uint32_t packet_identifier{0u};\n");
+            fprintf(write, "    if (!opt_map.GetUInt('p', &packet_identifier)) packet_identifier = 0;\n");
+            fprintf(write, "    if (nullptr == opt_map.Get('s')) return -1;\n\n");
+            fprintf(write, "    req.mutable_mqtt_publish()->set_session_id(session_id);\n\n");
+            fprintf(write, "    req.mutable_mqtt_publish()->set_dup(0 != dup);\n");
+            fprintf(write, "    req.mutable_mqtt_publish()->set_qos(qos);\n");
+            fprintf(write, "    req.mutable_mqtt_publish()->set_retain(0 != retain);\n\n");
+            fprintf(write, "    req.mutable_mqtt_publish()->set_topic_name(opt_map.Get('t'));\n");
+            fprintf(write, "    req.mutable_mqtt_publish()->set_packet_identifier(packet_identifier);\n");
+            fprintf(write, "    req.mutable_mqtt_publish()->set_content(opt_map.Get('s'));\n\n");
         }
 
-        fprintf(write, "\n");
-        fprintf(write, "    %s client;\n", client_class);
         if (resp_type && 0 < strlen(resp_type)) {
-            fprintf(write, "    int ret{client.%s(req, &resp)};\n", mqtt_it->GetName());
+            fprintf(write, "    ret = client.%s(req, &resp);\n", mqtt_it->GetName());
         } else {
-            fprintf(write, "    int ret{client.%s(req)};\n", mqtt_it->GetName());
+            fprintf(write, "    ret = client.%s(req);\n", mqtt_it->GetName());
         }
         fprintf(write, "    printf(\"%%s return %%d\\n\", __func__, ret);\n");
         if (resp_type && 0 < strlen(resp_type)) {
@@ -341,13 +392,12 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree,
         fprintf(write, "}\n");
         fprintf(write, "\n");
     }
-    fprintf(write, "\n");
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
-        name_render_.GetMessageClasname(fit->GetReq()->GetType(), req_class, sizeof(req_class));
-        name_render_.GetMessageClasname(fit->GetResp()->GetType(), resp_class, sizeof(resp_class));
+        name_render_.GetMessageClassName(fit->GetReq()->GetType(), req_class, sizeof(req_class));
+        name_render_.GetMessageClassName(fit->GetResp()->GetType(), resp_class, sizeof(resp_class));
 
         fprintf(write, "int %s::%s(phxrpc::OptMap &opt_map) {\n", clasname, fit->GetName());
         fprintf(write, "    %s req;\n", req_class);
@@ -389,11 +439,11 @@ void ToolCodeRender::GenerateToolMainCpp(SyntaxTree *stree, FILE *write) {
     char tool_impl_class[128]{0}, tool_impl_file[128]{0};
     char client_class[128]{0}, client_file[128]{0};
 
-    name_render_.GetToolClasname(stree->GetName(), tool_class, sizeof(tool_class));
+    name_render_.GetToolClassName(stree->GetName(), tool_class, sizeof(tool_class));
     name_render_.GetToolFileName(stree->GetName(), tool_file, sizeof(tool_file));
-    name_render_.GetToolImplClasname(stree->GetName(), tool_impl_class, sizeof(tool_impl_class));
+    name_render_.GetToolImplClassName(stree->GetName(), tool_impl_class, sizeof(tool_impl_class));
     name_render_.GetToolImplFileName(stree->GetName(), tool_impl_file, sizeof(tool_impl_file));
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
     name_render_.GetClientFileName(stree->GetName(), client_file, sizeof(client_file));
 
     string content(PHXRPC_TOOL_MAIN_TEMPLATE);

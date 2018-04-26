@@ -116,6 +116,8 @@ ReturnCode MqttProtocol::ServerRecv(BaseTcpStream &socket, BaseRequest *&req) {
         MqttConnect *connect{new MqttConnect};
         connect->set_fixed_header(fixed_header);
         connect->set_remaining_length(remaining_buffer.size());
+        // TODO: remove
+        phxrpc::log(LOG_ERR, "remaining_length %zu", remaining_buffer.size());
         req = connect;
         return connect->RecvRemaining(ss);
     } else if (MqttMessage::ControlPacketType::PUBLISH ==
@@ -125,6 +127,13 @@ ReturnCode MqttProtocol::ServerRecv(BaseTcpStream &socket, BaseRequest *&req) {
         publish->set_remaining_length(remaining_buffer.size());
         req = publish;
         return publish->RecvRemaining(ss);
+    } else if (MqttMessage::ControlPacketType::PUBACK ==
+               fixed_header.control_packet_type) {
+        MqttPuback *puback{new MqttPuback};
+        puback->set_fixed_header(fixed_header);
+        puback->set_remaining_length(remaining_buffer.size());
+        req = puback;
+        return puback->RecvRemaining(ss);
     } else if (MqttMessage::ControlPacketType::SUBSCRIBE ==
                fixed_header.control_packet_type) {
         MqttSubscribe *subscribe{new MqttSubscribe};

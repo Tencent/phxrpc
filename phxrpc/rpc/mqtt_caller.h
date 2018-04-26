@@ -51,21 +51,18 @@ class MqttCaller {
 
     virtual ~MqttCaller();
 
-    MqttConnect &GetConnect();
-    MqttPublish &GetPublish();
-    MqttDisconnect &GetDisconnect();
-
-    MqttConnack &GetConnack();
-    MqttPuback &GetPuback();
-
-    int PhxMqttConnectCall(const phxrpc::MqttConnectPb &connect,
-                           phxrpc::MqttConnackPb *connack);
-    int PhxMqttPublishCall(const phxrpc::MqttPublishPb &publish,
-                           phxrpc::MqttPubackPb *puback);
-    int PhxMqttPubackCall(const phxrpc::MqttPubackPb &puback);
-    int PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &disconnect);
-
-    void SetCmdId(const int cmd_id);
+    int PhxMqttConnectCall(const phxrpc::MqttConnectPb &req,
+                           phxrpc::MqttConnackPb *resp);
+    int PhxMqttPublishCall(const phxrpc::MqttPublishPb &req,
+                           phxrpc::MqttPubackPb *resp);
+    int PhxMqttPubackCall(const phxrpc::MqttPubackPb &req);
+    int PhxMqttSubscribeCall(const phxrpc::MqttSubscribePb &req,
+                             phxrpc::MqttSubackPb *resp);
+    int PhxMqttUnsubscribeCall(const phxrpc::MqttUnsubscribePb &req,
+                               phxrpc::MqttUnsubackPb *resp);
+    int PhxMqttPingCall(const phxrpc::MqttPingreqPb &req,
+                        phxrpc::MqttPingrespPb *resp);
+    int PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &req);
 
   private:
     void MonitorReport(phxrpc::ClientMonitor &client_monitor, bool send_error,
@@ -75,12 +72,6 @@ class MqttCaller {
     BaseTcpStream &socket_;
     ClientMonitor &client_monitor_;
     int cmd_id_;
-
-    MqttConnect connect_;
-    MqttConnack connack_;
-    MqttPublish publish_;
-    MqttPuback puback_;
-    MqttDisconnect disconnect_;
 };
 
 

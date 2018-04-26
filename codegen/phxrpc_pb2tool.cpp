@@ -74,6 +74,8 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
         SyntaxFunc connect_func;
         connect_func.SetCmdID(-201);
         connect_func.SetName("PhxMqttConnect");
+        connect_func.SetOptString("l:");
+        connect_func.SetUsage("-l <client_identifier>");
         connect_func.GetReq()->SetType("phxrpc::MqttConnectPb");
         connect_func.GetResp()->SetType("phxrpc::MqttConnackPb");
         mqtt_funcs.push_back(connect_func);
@@ -81,15 +83,53 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
         SyntaxFunc publish_func;
         publish_func.SetCmdID(-202);
         publish_func.SetName("PhxMqttPublish");
-        publish_func.SetOptString("t:s:");
-        publish_func.SetUsage("-t <topic_name> -s <string>");
+        publish_func.SetOptString("l:d:q:r:t:p:s:");
+        publish_func.SetUsage("-l <client_identifier> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>");
         publish_func.GetReq()->SetType("phxrpc::MqttPublishPb");
         publish_func.GetResp()->SetType("phxrpc::MqttPubackPb");
         mqtt_funcs.push_back(publish_func);
 
+        SyntaxFunc puback_func;
+        puback_func.SetCmdID(-203);
+        puback_func.SetName("PhxMqttPuback");
+        puback_func.SetOptString("l:p:");
+        puback_func.SetUsage("-l <client_identifier> -p <packet_identifier>");
+        puback_func.GetReq()->SetType("phxrpc::MqttPubackPb");
+        puback_func.GetResp()->SetType("");
+        mqtt_funcs.push_back(puback_func);
+
+        SyntaxFunc subscribe_func;
+        subscribe_func.SetCmdID(-204);
+        subscribe_func.SetName("PhxMqttSubscribe");
+        subscribe_func.SetOptString("l:p:t:q:");
+        subscribe_func.SetUsage("-l <client_identifier> -p <packet_identifier> -t <topic_filters> -q <qoss>");
+        subscribe_func.GetReq()->SetType("phxrpc::MqttSubscribePb");
+        subscribe_func.GetResp()->SetType("phxrpc::MqttSubackPb");
+        mqtt_funcs.push_back(subscribe_func);
+
+        SyntaxFunc unsubscribe_func;
+        unsubscribe_func.SetCmdID(-205);
+        unsubscribe_func.SetName("PhxMqttUnsubscribe");
+        unsubscribe_func.SetOptString("l:p:t:");
+        unsubscribe_func.SetUsage("-l <client_identifier> -p <packet_identifier> -t <topic_filters>");
+        unsubscribe_func.GetReq()->SetType("phxrpc::MqttUnsubscribePb");
+        unsubscribe_func.GetResp()->SetType("phxrpc::MqttUnsubackPb");
+        mqtt_funcs.push_back(unsubscribe_func);
+
+        SyntaxFunc ping_func;
+        ping_func.SetCmdID(-206);
+        ping_func.SetName("PhxMqttPing");
+        ping_func.SetOptString("l:");
+        ping_func.SetUsage("-l <client_identifier>");
+        ping_func.GetReq()->SetType("phxrpc::MqttPingreqPb");
+        ping_func.GetResp()->SetType("phxrpc::MqttPingrespPb");
+        mqtt_funcs.push_back(ping_func);
+
         SyntaxFunc disconnect_func;
         disconnect_func.SetCmdID(-207);
         disconnect_func.SetName("PhxMqttDisconnect");
+        disconnect_func.SetOptString("l:");
+        disconnect_func.SetUsage("-l <client_identifier>");
         disconnect_func.GetReq()->SetType("phxrpc::MqttDisconnectPb");
         disconnect_func.GetResp()->SetType("");
         mqtt_funcs.push_back(disconnect_func);

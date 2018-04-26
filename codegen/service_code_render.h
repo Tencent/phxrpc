@@ -66,7 +66,7 @@ class ServiceCodeRender {
 
   protected:
     struct FunctionItem {
-        std::string protocol_name;
+        std::string uri;
         std::string function_name;
     };
 
@@ -74,19 +74,17 @@ class ServiceCodeRender {
             const SyntaxFunc *const func, int is_header, int is_impl,
             int need_param_name, std::string *result);
 
-    virtual void GenerateMqttDispatcherFunc(SyntaxTree *stree,
+    virtual void GenerateDispatcherMqttFunc(SyntaxTree *stree,
                                             const SyntaxFunc *const func,
                                             FILE *write);
 
-    virtual void GenerateDispatcherFunc(SyntaxTree *stree,
-                                        const SyntaxFunc *const func,
-                                        FILE *write);
+    virtual void GenerateDispatcherHttpFunc(SyntaxTree *stree,
+                                            const SyntaxFunc *const func,
+                                            FILE *write);
 
-    virtual void GenerateMqttFuncMap(SyntaxTree *stree,
-                                     const std::vector<FunctionItem> functions,
-                                     FILE *write);
-
-    virtual void GenerateURIFuncMap(SyntaxTree *stree, FILE *write);
+    virtual void GenerateURIFuncMap(SyntaxTree *stree,
+                                    const std::vector<FunctionItem> functions,
+                                    FILE *write);
 
     NameRender &name_render_;
 };

@@ -84,11 +84,37 @@ void Proto2Service(const char *program, const char *pb_file,
         SyntaxFunc publish_func;
         publish_func.SetCmdID(-202);
         publish_func.SetName("PhxMqttPublish");
-        publish_func.SetOptString("s:");
-        publish_func.SetUsage("-s <string>");
         publish_func.GetReq()->SetType("phxrpc::MqttPublishPb");
-        publish_func.GetResp()->SetType("phxrpc::MqttPubackPb");
+        publish_func.GetResp()->SetType("");
         mqtt_funcs.push_back(publish_func);
+
+        SyntaxFunc puback_func;
+        puback_func.SetCmdID(-203);
+        puback_func.SetName("PhxMqttPuback");
+        puback_func.GetReq()->SetType("phxrpc::MqttPubackPb");
+        puback_func.GetResp()->SetType("");
+        mqtt_funcs.push_back(puback_func);
+
+        SyntaxFunc subscribe_func;
+        subscribe_func.SetCmdID(-204);
+        subscribe_func.SetName("PhxMqttSubscribe");
+        subscribe_func.GetReq()->SetType("phxrpc::MqttSubscribePb");
+        subscribe_func.GetResp()->SetType("phxrpc::MqttSubackPb");
+        mqtt_funcs.push_back(subscribe_func);
+
+        SyntaxFunc unsubscribe_func;
+        unsubscribe_func.SetCmdID(-205);
+        unsubscribe_func.SetName("PhxMqttUnsubscribe");
+        unsubscribe_func.GetReq()->SetType("phxrpc::MqttUnsubscribePb");
+        unsubscribe_func.GetResp()->SetType("phxrpc::MqttUnsubackPb");
+        mqtt_funcs.push_back(unsubscribe_func);
+
+        SyntaxFunc ping_func;
+        ping_func.SetCmdID(-206);
+        ping_func.SetName("PhxMqttPing");
+        ping_func.GetReq()->SetType("phxrpc::MqttPingreqPb");
+        ping_func.GetResp()->SetType("phxrpc::MqttPingrespPb");
+        mqtt_funcs.push_back(ping_func);
 
         SyntaxFunc disconnect_func;
         disconnect_func.SetCmdID(-207);

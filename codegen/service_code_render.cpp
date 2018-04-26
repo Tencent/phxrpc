@@ -59,19 +59,23 @@ void ServiceCodeRender::GenerateServiceHpp(SyntaxTree *stree,
 
     fprintf(write, "\n");
 
+    fprintf(write, "#include \"phxrpc/msg/base_msg.h\"\n");
+
+    fprintf(write, "\n");
+
     name_render_.GetMessageFileName(stree->GetProtoFile(), filename, sizeof(filename));
     fprintf(write, "#include \"%s.h\"\n", filename);
 
     fprintf(write, "\n");
     fprintf(write, "\n");
 
-    char clasname[128]{0};
-    name_render_.GetServiceClasname(stree->GetName(), clasname, sizeof(clasname));
+    char service_name[128]{0};
+    name_render_.GetServiceClassName(stree->GetName(), service_name, sizeof(service_name));
 
-    fprintf(write, "class %s {\n", clasname);
+    fprintf(write, "class %s {\n", service_name);
     fprintf(write, "  public:\n");
-    fprintf(write, "    %s();\n", clasname);
-    fprintf(write, "    virtual ~%s();\n", clasname);
+    fprintf(write, "    %s();\n", service_name);
+    fprintf(write, "    virtual ~%s();\n", service_name);
     fprintf(write, "\n");
 
     for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
@@ -118,14 +122,14 @@ void ServiceCodeRender::GenerateServiceCpp(SyntaxTree *stree,
     fprintf(write, "\n");
     fprintf(write, "\n");
 
-    char clasname[128]{0};
-    name_render_.GetServiceClasname(stree->GetName(), clasname, sizeof(clasname));
+    char service_name[128]{0};
+    name_render_.GetServiceClassName(stree->GetName(), service_name, sizeof(service_name));
 
-    fprintf(write, "%s::%s() {\n", clasname, clasname);
+    fprintf(write, "%s::%s() {\n", service_name, service_name);
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
-    fprintf(write, "%s::~%s() {\n", clasname, clasname);
+    fprintf(write, "%s::~%s() {\n", service_name, service_name);
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
@@ -184,31 +188,50 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree *stree,
     fprintf(write, "\n");
     fprintf(write, "\n");
 
-    char clasname[128]{0}, base_name[128]{0}, config_name[128]{0};
-    name_render_.GetServiceClasname(stree->GetName(), base_name, sizeof(base_name));
-    name_render_.GetServiceImplClasname(stree->GetName(), clasname, sizeof(clasname));
-    name_render_.GetServerConfigClasname(stree->GetName(), config_name, sizeof(config_name));
+    char service_impl_name[128]{0}, base_name[128]{0}, config_name[128]{0};
+    name_render_.GetServiceClassName(stree->GetName(), base_name, sizeof(base_name));
+    name_render_.GetServiceImplClassName(stree->GetName(), service_impl_name, sizeof(service_impl_name));
+    name_render_.GetServerConfigClassName(stree->GetName(), config_name, sizeof(config_name));
 
     fprintf(write, "class %s;\n", config_name);
     fprintf(write, "\n");
+
+    fprintf(write, "namespace phxrpc {\n");
+    fprintf(write, "\n");
+    fprintf(write, "class DataFlow;\n");
+    fprintf(write, "class NotifierPoolRouter;\n");
+    fprintf(write, "struct ServiceContext;\n");
+    fprintf(write, "\n");
+    fprintf(write, "}\n");
     fprintf(write, "\n");
 
     fprintf(write, "typedef struct tagServiceArgs {\n");
     fprintf(write, "    %s *config;\n", config_name);
-    fprintf(write, "    //You can add other arguments here and initiate in main().\n");
+    fprintf(write, "    // you can add other arguments here and initiate in main().\n");
     fprintf(write, "} ServiceArgs_t;\n");
     fprintf(write, "\n");
-    fprintf(write, "\n");
 
-    fprintf(write, "class %s : public %s {\n", clasname, base_name);
+    fprintf(write, "class %s : public %s {\n", service_impl_name, base_name);
     fprintf(write, "  public:\n");
     if (!is_uthread_mode) {
-        fprintf(write, "    %s(ServiceArgs_t &app_args);\n", clasname);
+        fprintf(write, "    %s(ServiceArgs_t &app_args,\n", service_impl_name);
+        fprintf(write, "            const int pool_idx, const int worker_idx,\n");
+        fprintf(write, "            phxrpc::UThreadNotifierPool *const notifier_pool,\n");
+        fprintf(write, "            phxrpc::NotifierPoolRouter *const notifier_pool_router,\n");
+        fprintf(write, "            phxrpc::DataFlow *const data_flow, "
+                "phxrpc::DataFlow *const cross_unit_data_flow,\n");
+        fprintf(write, "            phxrpc::ServiceContext *context);\n");
     } else {
-        fprintf(write, "    %s(ServiceArgs_t &app_args,\n", clasname);
-        fprintf(write, "            phxrpc::UThreadEpollScheduler *worker_uthread_scheduler);\n", clasname);
+        fprintf(write, "    %s(ServiceArgs_t &app_args,\n", service_impl_name);
+        fprintf(write, "            phxrpc::UThreadEpollScheduler *worker_uthread_scheduler,\n");
+        fprintf(write, "            const int pool_idx, const int worker_idx,\n");
+        fprintf(write, "            phxrpc::UThreadNotifierPool *const notifier_pool,\n");
+        fprintf(write, "            phxrpc::NotifierPoolRouter *const notifier_pool_router,\n");
+        fprintf(write, "            phxrpc::DataFlow *const data_flow, "
+                "phxrpc::DataFlow *const cross_unit_data_flow,\n");
+        fprintf(write, "            phxrpc::ServiceContext *context);\n");
     }
-    fprintf(write, "    virtual ~%s();\n", clasname);
+    fprintf(write, "    virtual ~%s() override;\n", service_impl_name);
     fprintf(write, "\n");
 
     for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
@@ -229,10 +252,17 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     fprintf(write, "  private:\n");
-    fprintf(write, "    ServiceArgs_t &args_;\n" );
+    fprintf(write, "    ServiceArgs_t &args_;\n");
     if (is_uthread_mode) {
-        fprintf(write, "    phxrpc::UThreadEpollScheduler *worker_uthread_scheduler_;\n" );
+        fprintf(write, "    phxrpc::UThreadEpollScheduler *worker_uthread_scheduler_{nullptr};\n");
     }
+    fprintf(write, "    int pool_idx_{-1};\n");
+    fprintf(write, "    int worker_idx_{-1};\n");
+    fprintf(write, "    phxrpc::UThreadNotifierPool *notifier_pool_{nullptr};\n");
+    fprintf(write, "    phxrpc::NotifierPoolRouter *notifier_pool_router_{nullptr};\n");
+    fprintf(write, "    phxrpc::DataFlow *data_flow_{nullptr};\n");
+    fprintf(write, "    phxrpc::DataFlow *cross_unit_data_flow_{nullptr};\n");
+    fprintf(write, "    phxrpc::ServiceContext *context_{nullptr};\n");
 
     fprintf(write, "};\n");
 
@@ -264,25 +294,48 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree *stree,
     fprintf(write, "#include \"%s.h\"\n", filename);
     fprintf(write, "#include \"phxrpc/file.h\"\n");
 
-    fprintf(write, "\n");
-    fprintf(write, "\n");
+    fprintf(write, "\n\n");
+    fprintf(write, "using namespace std;\n");
+    fprintf(write, "\n\n");
 
-    char clasname[128]{0}, config_name[128]{0};
-    name_render_.GetServiceImplClasname(stree->GetName(), clasname, sizeof(clasname));
-    name_render_.GetServerConfigClasname(stree->GetName(), config_name, sizeof(config_name));
+    char service_impl_name[128]{0}, config_name[128]{0};
+    name_render_.GetServiceImplClassName(stree->GetName(), service_impl_name, sizeof(service_impl_name));
+    name_render_.GetServerConfigClassName(stree->GetName(), config_name, sizeof(config_name));
 
     if (!is_uthread_mode) {
-        fprintf(write, "%s::%s(ServiceArgs_t &app_args)\n", clasname, clasname);
-        fprintf(write, "    : args_(app_args) {\n");
+        fprintf(write, "%s::%s(ServiceArgs_t &app_args,\n", service_impl_name, service_impl_name);
+        fprintf(write, "        const int pool_idx, const int worker_idx,\n");
+        fprintf(write, "        phxrpc::UThreadNotifierPool *const notifier_pool,\n");
+        fprintf(write, "        phxrpc::NotifierPoolRouter *const notifier_pool_router,\n");
+        fprintf(write, "        phxrpc::DataFlow *const data_flow, "
+                "phxrpc::DataFlow *const cross_unit_data_flow,\n");
+        fprintf(write, "        phxrpc::ServiceContext *context)\n");
+        fprintf(write, "        : args_(app_args), pool_idx_(pool_idx), worker_idx_(worker_idx),\n");
+        fprintf(write, "          notifier_pool_(notifier_pool), "
+                "notifier_pool_router_(notifier_pool_router),\n");
+        fprintf(write, "          data_flow_(data_flow), "
+                "cross_unit_data_flow_(cross_unit_data_flow), context_(context) {\n");
     } else {
-        fprintf(write, "%s::%s(ServiceArgs_t &app_args,\n", clasname, clasname);
-        fprintf(write, "        phxrpc::UThreadEpollScheduler *worker_uthread_scheduler)\n", clasname, clasname);
-        fprintf(write, "        : args_(app_args), worker_uthread_scheduler_(worker_uthread_scheduler) {\n");
+        fprintf(write, "%s::%s(ServiceArgs_t &app_args,\n", service_impl_name, service_impl_name);
+        fprintf(write, "        phxrpc::UThreadEpollScheduler *const worker_uthread_scheduler,\n");
+        fprintf(write, "        const int pool_idx, const int worker_idx,\n");
+        fprintf(write, "        phxrpc::UThreadNotifierPool *const notifier_pool,\n");
+        fprintf(write, "        phxrpc::NotifierPoolRouter *const notifier_pool_router,\n");
+        fprintf(write, "        phxrpc::DataFlow *const data_flow, "
+                "phxrpc::DataFlow *const cross_unit_data_flow,\n");
+        fprintf(write, "        phxrpc::ServiceContext *context)\n");
+        fprintf(write, "        : args_(app_args),\n");
+        fprintf(write, "          worker_uthread_scheduler_(worker_uthread_scheduler),\n");
+        fprintf(write, "          pool_idx_(pool_idx), worker_idx_(worker_idx),\n");
+        fprintf(write, "          notifier_pool_(notifier_pool), "
+                "notifier_pool_router_(notifier_pool_router),\n");
+        fprintf(write, "          data_flow_(data_flow), "
+                "cross_unit_data_flow_(cross_unit_data_flow), context_(context) {\n");
     }
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
-    fprintf(write, "%s::~%s() {\n", clasname, clasname);
+    fprintf(write, "%s::~%s() {\n", service_impl_name, service_impl_name);
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
@@ -292,8 +345,16 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree *stree,
         GetServiceFuncDeclaration(stree, &(*mqtt_it), 0, 1, 1, &buffer);
         fprintf(write, "%s {\n", buffer.c_str());
 
-        if (0 == strcmp("PhxMqttPublish", mqtt_it->GetName())) {
-            fprintf(write, "    // TODO: process req.content()\n");
+        if (0 == strcmp("PhxMqttConnect", mqtt_it->GetName())) {
+            fprintf(write, "    context_->client_identifier = req.client_identifier();\n");
+            fprintf(write, "\n");
+            fprintf(write, "    return 0;\n");
+        } else if (0 == strcmp("PhxMqttPublish", mqtt_it->GetName())) {
+            fprintf(write, "    // TODO: req.packet_identifier(), req.content()\n");
+            fprintf(write, "\n");
+            fprintf(write, "    return -1;\n");
+        } else if (0 == strcmp("PhxMqttPuback", mqtt_it->GetName())) {
+            fprintf(write, "    // TODO: req.packet_identifier()\n");
             fprintf(write, "\n");
             fprintf(write, "    return -1;\n");
         } else {
@@ -327,26 +388,26 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree *stree,
 void ServiceCodeRender::GetServiceFuncDeclaration(SyntaxTree *stree,
         const SyntaxFunc *const func, int is_header, int is_impl,
         int need_param_name, string *result) {
-    char clasname[128]{0}, type_name[128]{0};
+    char service_impl_name[128]{0}, type_name[128]{0};
 
     if (is_impl) {
-        name_render_.GetServiceImplClasname(stree->GetName(), clasname, sizeof(clasname));
+        name_render_.GetServiceImplClassName(stree->GetName(), service_impl_name, sizeof(service_impl_name));
     } else {
-        name_render_.GetServiceClasname(stree->GetName(), clasname, sizeof(clasname));
+        name_render_.GetServiceClassName(stree->GetName(), service_impl_name, sizeof(service_impl_name));
     }
 
     if (is_header) {
         StrAppendFormat(result, "int %s(", func->GetName());
     } else {
-        StrAppendFormat(result, "int %s::%s(", clasname, func->GetName());
+        StrAppendFormat(result, "int %s::%s(", service_impl_name, func->GetName());
     }
 
-    name_render_.GetMessageClasname(func->GetReq()->GetType(), type_name, sizeof(type_name));
+    name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
     StrAppendFormat(result, "const %s &%s", type_name, need_param_name ? "req" : "/* req */");
 
     const char *const resp_type{func->GetResp()->GetType()};
     if (resp_type && 0 < strlen(resp_type)) {
-        name_render_.GetMessageClasname(func->GetResp()->GetType(), type_name, sizeof(type_name));
+        name_render_.GetMessageClassName(func->GetResp()->GetType(), type_name, sizeof(type_name));
         StrAppendFormat(result, ", %s *%s", type_name, need_param_name ? "resp" : "/* resp */");
     }
 
@@ -371,37 +432,33 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree,
 
     fprintf(write, "\n");
 
-    fprintf(write, "#include \"phxrpc/http.h\"\n");
     fprintf(write, "#include \"phxrpc/rpc.h\"\n");
-
     fprintf(write, "\n");
     fprintf(write, "\n");
 
-    char clasname[128]{0}, service_name[128]{0};
-    name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
-    name_render_.GetServiceClasname(stree->GetName(), service_name, sizeof(service_name));
+    char dispatcher_name[128]{0}, service_name[128]{0};
+    name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_name, sizeof(dispatcher_name));
+    name_render_.GetServiceClassName(stree->GetName(), service_name, sizeof(service_name));
 
     fprintf(write, "class %s;\n", service_name);
     fprintf(write, "\n");
 
-    fprintf(write, "class %s {\n", clasname);
+    fprintf(write, "class %s {\n", dispatcher_name);
 
     fprintf(write, "  public:\n");
-    fprintf(write, "    static const phxrpc::BaseDispatcher<%s>::MqttFuncMap &GetMqttFuncMap();\n", clasname);
-    fprintf(write, "    static const phxrpc::BaseDispatcher<%s>::URIFuncMap &GetURIFuncMap();\n", clasname);
+    fprintf(write, "    static const phxrpc::BaseDispatcher<%s>::URIFuncMap &GetURIFuncMap();\n", dispatcher_name);
     fprintf(write, "\n");
 
-    fprintf(write, "    %s(%s &service, phxrpc::DispatcherArgs_t *dispatcher_args);\n", clasname, service_name);
+    fprintf(write, "    %s(%s &service, phxrpc::DispatcherArgs_t *dispatcher_args);\n", dispatcher_name, service_name);
     fprintf(write, "\n");
 
-    fprintf(write, "    virtual ~%s();\n", clasname);
+    fprintf(write, "    virtual ~%s();\n", dispatcher_name);
     fprintf(write, "\n");
 
     for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
          ++mqtt_it) {
         fprintf(write, "    int %s(const phxrpc::BaseRequest *const req, "
-                "phxrpc::BaseResponse *const resp);\n",
-                mqtt_it->GetName());
+                "phxrpc::BaseResponse *const resp);\n", mqtt_it->GetName());
     }
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
@@ -416,7 +473,6 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree,
     fprintf(write, "  private:\n");
     fprintf(write, "    %s &service_;\n", service_name);
     fprintf(write, "    phxrpc::DispatcherArgs_t *dispatcher_args_;\n" );
-    fprintf(write, "\n");
 
     fprintf(write, "};\n");
 
@@ -443,28 +499,31 @@ void ServiceCodeRender::GenerateDispatcherCpp(SyntaxTree *stree,
     fprintf(write, "#include <errno.h>\n");
     fprintf(write, "\n");
 
+    fprintf(write, "#include \"phxrpc/mqtt.h\"\n");
+    fprintf(write, "#include \"phxrpc/http.h\"\n");
+    fprintf(write, "#include \"phxrpc/file.h\"\n");
+    fprintf(write, "\n");
+
     name_render_.GetMessageFileName(stree->GetProtoFile(), filename, sizeof(filename));
     fprintf(write, "#include \"%s.h\"\n", filename);
 
     name_render_.GetServiceFileName(stree->GetName(), filename, sizeof(filename));
     fprintf(write, "#include \"%s.h\"\n", filename);
 
-    fprintf(write, "#include \"phxrpc/http.h\"\n");
-    fprintf(write, "#include \"phxrpc/file.h\"\n");
-
     fprintf(write, "\n");
     fprintf(write, "\n");
 
-    char clasname[128]{0}, service_name[128]{0};
-    name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
-    name_render_.GetServiceClasname(stree->GetName(), service_name, sizeof(service_name));
+    char dispatcher_name[128]{0}, service_name[128]{0};
+    name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_name, sizeof(dispatcher_name));
+    name_render_.GetServiceClassName(stree->GetName(), service_name, sizeof(service_name));
 
-    fprintf(write, "%s::%s(%s &service, phxrpc::DispatcherArgs_t *dispatcher_args)\n", clasname, clasname, service_name);
+    fprintf(write, "%s::%s(%s &service, phxrpc::DispatcherArgs_t *dispatcher_args)\n",
+            dispatcher_name, dispatcher_name, service_name);
     fprintf(write, "        : service_(service), dispatcher_args_(dispatcher_args) {\n");
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
-    fprintf(write, "%s::~%s() {\n", clasname, clasname);
+    fprintf(write, "%s::~%s() {\n", dispatcher_name, dispatcher_name);
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
@@ -472,75 +531,72 @@ void ServiceCodeRender::GenerateDispatcherCpp(SyntaxTree *stree,
 
     if (0 < mqtt_funcs.size()) {
         FunctionItem connect_item;
-        connect_item.protocol_name = "MQTT_CONNECT";
+        connect_item.uri = "/phxrpc/mqtt/connect";
         connect_item.function_name = "PhxMqttConnect";
         functions.push_back(connect_item);
 
         FunctionItem publish_item;
-        publish_item.protocol_name = "MQTT_PUBLISH";
+        publish_item.uri = "/phxrpc/mqtt/publish";
         publish_item.function_name = "PhxMqttPublish";
         functions.push_back(publish_item);
 
+        FunctionItem puback_item;
+        puback_item.uri = "/phxrpc/mqtt/puback";
+        puback_item.function_name = "PhxMqttPuback";
+        functions.push_back(puback_item);
+
+        FunctionItem subscribe_item;
+        subscribe_item.uri = "/phxrpc/mqtt/subscribe";
+        subscribe_item.function_name = "PhxMqttSubscribe";
+        functions.push_back(subscribe_item);
+
+        FunctionItem unsubscribe_item;
+        unsubscribe_item.uri = "/phxrpc/mqtt/unsubscribe";
+        unsubscribe_item.function_name = "PhxMqttUnsubscribe";
+        functions.push_back(unsubscribe_item);
+
+        FunctionItem ping_item;
+        ping_item.uri = "/phxrpc/mqtt/ping";
+        ping_item.function_name = "PhxMqttPing";
+        functions.push_back(ping_item);
+
         FunctionItem disconnect_item;
-        disconnect_item.protocol_name = "MQTT_DISCONNECT";
+        disconnect_item.uri = "/phxrpc/mqtt/disconnect";
         disconnect_item.function_name = "PhxMqttDisconnect";
         functions.push_back(disconnect_item);
     }
 
-    GenerateMqttFuncMap(stree, functions, write);
-
-    fprintf(write, "\n");
-
-    GenerateURIFuncMap(stree, write);
+    GenerateURIFuncMap(stree, functions, write);
 
     fprintf(write, "\n");
 
     for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
          ++mqtt_it) {
-        GenerateMqttDispatcherFunc(stree, &(*mqtt_it), write);
+        GenerateDispatcherMqttFunc(stree, &(*mqtt_it), write);
     }
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
-        GenerateDispatcherFunc(stree, &(*fit), write);
+        GenerateDispatcherHttpFunc(stree, &(*fit), write);
     }
 }
 
-void ServiceCodeRender::GenerateMqttFuncMap(SyntaxTree *stree,
-                                            const vector<FunctionItem> functions,
-                                            FILE *write) {
-    char clasname[128]{0};
-    name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
+void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, const vector<FunctionItem> functions,
+                                           FILE *write) {
+    char dispatcher_name[128]{0};
+    name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_name, sizeof(dispatcher_name));
 
-    fprintf(write, "const phxrpc::BaseDispatcher<%s>::MqttFuncMap &%s::GetMqttFuncMap() {\n",
-            clasname, clasname);
+    fprintf(write, "const phxrpc::BaseDispatcher<%s>::URIFuncMap &%s::GetURIFuncMap() {\n",
+            dispatcher_name, dispatcher_name);
 
-    fprintf(write, "    static phxrpc::BaseDispatcher<%s>::MqttFuncMap mqtt_func_map = {\n",
-            clasname);
+    fprintf(write, "    static phxrpc::BaseDispatcher<%s>::URIFuncMap uri_func_map = {\n",
+            dispatcher_name);
 
     for (auto it(functions.cbegin()); functions.cend() != it; ++it) {
-        if (it != functions.cbegin()) {
-            fprintf(write, ",\n");
-        }
-        fprintf(write, "        {phxrpc::BaseMessage::Protocol::%s, &%s::%s}",
-                it->protocol_name.c_str(), clasname,
-                it->function_name.c_str());
+        fprintf(write, "        {\"%s\", &%s::%s},\n",
+                it->uri.c_str(), dispatcher_name, it->function_name.c_str());
     }
-    fprintf(write, "};\n");
-
-    fprintf(write, "    return mqtt_func_map;\n");
-
-    fprintf(write, "}\n");
-}
-
-void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
-    char clasname[128]{0};
-    name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
-
-    fprintf(write, "const phxrpc::BaseDispatcher<%s>::URIFuncMap &%s::GetURIFuncMap() {\n", clasname, clasname);
-
-    fprintf(write, "    static phxrpc::BaseDispatcher<%s>::URIFuncMap uri_func_map = {\n", clasname);
 
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
@@ -548,8 +604,9 @@ void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
         if (fit != flist->cbegin()) {
             fprintf(write, ",\n");
         }
-        fprintf(write, "        {\"/%s/%s\", &%s::%s}", SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()).c_str(), fit->GetName(), clasname,
-                fit->GetName());
+        fprintf(write, "        {\"/%s/%s\", &%s::%s}",
+                SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()).c_str(),
+                fit->GetName(), dispatcher_name, fit->GetName());
     }
     fprintf(write, "};\n");
 
@@ -558,26 +615,26 @@ void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
     fprintf(write, "}\n");
 }
 
-void ServiceCodeRender::GenerateMqttDispatcherFunc(SyntaxTree *stree,
+void ServiceCodeRender::GenerateDispatcherMqttFunc(SyntaxTree *stree,
                                                    const SyntaxFunc *const func,
                                                    FILE *write) {
-    char clasname[128]{0}, type_name[128]{0};
+    char dispatcher_name[128]{0}, type_name[128]{0};
 
-    name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_name, sizeof(dispatcher_name));
 
     fprintf(write, "int %s::%s(const phxrpc::BaseRequest *const req, "
             "phxrpc::BaseResponse *const resp) {\n",
-            clasname, func->GetName());
+            dispatcher_name, func->GetName());
     fprintf(write, "    dispatcher_args_->server_monitor->SvrCall(%d, \"%s\", 1);\n",
             func->GetCmdID(), func->GetName());
     fprintf(write, "\n");
     fprintf(write, "    int ret{0};\n");
     fprintf(write, "\n");
-    name_render_.GetMessageClasname(func->GetReq()->GetType(), type_name, sizeof(type_name));
+    name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
     fprintf(write, "    %s req_pb;\n", type_name);
     bool has_resp{func->GetResp()->GetType() && 0 < strlen(func->GetResp()->GetType())};
     if (has_resp) {
-        name_render_.GetMessageClasname(func->GetResp()->GetType(), type_name, sizeof(type_name));
+        name_render_.GetMessageClassName(func->GetResp()->GetType(), type_name, sizeof(type_name));
         fprintf(write, "    %s resp_pb;\n", type_name);
     }
     fprintf(write, "\n");
@@ -622,16 +679,16 @@ void ServiceCodeRender::GenerateMqttDispatcherFunc(SyntaxTree *stree,
     fprintf(write, "\n");
 }
 
-void ServiceCodeRender::GenerateDispatcherFunc(SyntaxTree *stree,
-                                               const SyntaxFunc *const func,
-                                               FILE *write) {
-    char clasname[128]{0}, type_name[128]{0};
+void ServiceCodeRender::GenerateDispatcherHttpFunc(SyntaxTree *stree,
+                                                   const SyntaxFunc *const func,
+                                                   FILE *write) {
+    char dispatcher_name[128]{0}, type_name[128]{0};
 
-    name_render_.GetDispatcherClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_name, sizeof(dispatcher_name));
 
     fprintf(write, "int %s::%s(const phxrpc::BaseRequest *const req, "
             "phxrpc::BaseResponse *const resp) {\n",
-            clasname, func->GetName());
+            dispatcher_name, func->GetName());
 
     fprintf(write, "    dispatcher_args_->server_monitor->SvrCall(%d, \"%s\", 1);\n",
             func->GetCmdID(), func->GetName());
@@ -640,10 +697,10 @@ void ServiceCodeRender::GenerateDispatcherFunc(SyntaxTree *stree,
     fprintf(write, "    int ret{0};\n");
     fprintf(write, "\n");
 
-    name_render_.GetMessageClasname(func->GetReq()->GetType(), type_name, sizeof(type_name));
+    name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
     fprintf(write, "    %s req_pb;\n", type_name);
 
-    name_render_.GetMessageClasname(func->GetResp()->GetType(), type_name, sizeof(type_name));
+    name_render_.GetMessageClassName(func->GetResp()->GetType(), type_name, sizeof(type_name));
     fprintf(write, "    %s resp_pb;\n", type_name);
 
     fprintf(write, "\n");

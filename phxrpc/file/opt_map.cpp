@@ -19,16 +19,18 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 
 #include "opt_map.h"
 
+
 namespace phxrpc {
 
-OptMap::OptMap(const char * optstring) {
+
+OptMap::OptMap(const char *optstring) {
     opt_string_ = strdup(optstring);
 }
 
@@ -61,7 +63,7 @@ size_t OptMap::GetNonOptCount() {
     return non_opt_.size();
 }
 
-const char * OptMap::GetNonOpt(size_t index) {
+const char *OptMap::GetNonOpt(size_t index) {
     if (index > 0 && index < non_opt_.size()) {
         return non_opt_[index].c_str();
     }
@@ -81,7 +83,7 @@ size_t OptMap::Count(char c) const {
     return (opt_.end() != iter) ? iter->second.size() : 0;
 }
 
-const char * OptMap::Get(char c, size_t index) const {
+const char *OptMap::Get(char c, size_t index) const {
     const option_map_::const_iterator iter = opt_.find(c);
 
     if (opt_.end() != iter) {
@@ -95,22 +97,50 @@ const char * OptMap::Get(char c, size_t index) const {
     }
 }
 
-bool OptMap::GetInt(char c, int * val, size_t index) const {
-    const char * tmp = Get(c, index);
-
-    if (NULL != tmp)
-        *val = atoi(tmp);
-
-    return NULL != tmp;
+bool OptMap::GetInt(char c, int *val, size_t index) const {
+    return GetInt32(c, val, index);
 }
 
-bool OptMap::GetUInt(char c, unsigned int * val, size_t index) const {
-    const char * tmp = Get(c, index);
+bool OptMap::GetInt32(char c, int *val, size_t index) const {
+    const char *tmp = Get(c, index);
 
-    if (NULL != tmp)
-        *val = strtoul(tmp, NULL, 10);
+    if (tmp)
+        *val = strtol(tmp, nullptr, 10);
 
-    return NULL != tmp;
+    return nullptr != tmp;
 }
 
+bool OptMap::GetInt64(char c, int64_t *val, size_t index) const {
+    const char *tmp = Get(c, index);
+
+    if (tmp)
+        *val = strtoll(tmp, nullptr, 10);
+
+    return nullptr != tmp;
 }
+
+bool OptMap::GetUInt(char c, uint32_t *val, size_t index) const {
+    return GetUInt32(c, val, index);
+}
+
+bool OptMap::GetUInt32(char c, uint32_t *val, size_t index) const {
+    const char *tmp = Get(c, index);
+
+    if (tmp)
+        *val = strtoul(tmp, nullptr, 10);
+
+    return nullptr != tmp;
+}
+
+bool OptMap::GetUInt64(char c, uint64_t *val, size_t index) const {
+    const char *tmp = Get(c, index);
+
+    if (tmp)
+        *val = strtoull(tmp, nullptr, 10);
+
+    return nullptr != tmp;
+}
+
+
+}
+

@@ -74,6 +74,9 @@ int ProtoUtils::Parse(const char * file, SyntaxTree * stree, std::map<std::strin
     if (0 == ret)
         AddEcho(stree);
 
+    if (0 == ret)
+        AddHttpPublish(stree);
+
     return ret;
 }
 
@@ -160,8 +163,8 @@ int ProtoUtils::LoadExtension(const char * filename, SyntaxTree * stree, DiskSou
     return 0;
 }
 
-int ProtoUtils::AddEcho(SyntaxTree * stree) {
-    char name[256] = { 0 };
+int ProtoUtils::AddEcho(SyntaxTree *stree) {
+    char name[256] = {0};
 
     snprintf(name, sizeof(name), "google.protobuf.StringValue");
 
@@ -169,14 +172,32 @@ int ProtoUtils::AddEcho(SyntaxTree * stree) {
     {
         SyntaxFunc echo_func;
         echo_func.SetName("PhxEcho");
-        echo_func.GetReq()->SetName("request");
+        echo_func.GetReq()->SetName("req");
         echo_func.GetReq()->SetType(name);
-        echo_func.GetResp()->SetName("response");
+        echo_func.GetResp()->SetName("resp");
         echo_func.GetResp()->SetType(name);
         echo_func.SetOptString("s:");
         echo_func.SetUsage("-s <string>");
 
         stree->GetFuncList()->insert(stree->GetFuncList()->begin(), echo_func);
+    }
+
+    return 0;
+}
+
+int ProtoUtils::AddHttpPublish(SyntaxTree *stree) {
+    // always add a publish function
+    {
+        SyntaxFunc publish_func;
+        publish_func.SetName("PhxHttpPublish");
+        publish_func.GetReq()->SetName("req");
+        publish_func.GetReq()->SetType("phxrpc::HttpPublishPb");
+        publish_func.GetResp()->SetName("resp");
+        publish_func.GetResp()->SetType("phxrpc::HttpPubackPb");
+        publish_func.SetOptString("e:d:q:r:t:p:s:");
+        publish_func.SetUsage("-e <session_id_hex> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>");
+
+        stree->GetFuncList()->insert(stree->GetFuncList()->begin(), publish_func);
     }
 
     return 0;
