@@ -104,10 +104,9 @@ int MqttCaller::PhxMqttConnectCall(const phxrpc::MqttConnectPb &req,
 }
 
 int MqttCaller::PhxMqttPublishCall(const phxrpc::MqttPublishPb &req,
-                                   phxrpc::MqttPubackPb *resp) {
+                                   google::protobuf::Empty *resp) {
     int ret{-1};
     phxrpc::MqttPublish publish;
-    phxrpc::MqttPuback puback;
 
     // unpack request
     {
@@ -121,11 +120,10 @@ int MqttCaller::PhxMqttPublishCall(const phxrpc::MqttPublishPb &req,
 
     uint64_t call_begin{Timer::GetSteadyClockMS()};
     MqttClient::MqttStat mqtt_stat;
-    ret = MqttClient::Publish(socket_, publish, puback, mqtt_stat);
+    ret = MqttClient::Publish(socket_, publish, mqtt_stat);
     MonitorReport(client_monitor_, mqtt_stat.send_error_,
                   mqtt_stat.recv_error_, publish.GetContent().size(),
-                  puback.GetContent().size(), call_begin,
-                  Timer::GetSteadyClockMS());
+                  0, call_begin, Timer::GetSteadyClockMS());
 
     if (0 != ret) {
         phxrpc::log(LOG_ERR, "mqtt publish call err %d", ret);
@@ -133,19 +131,20 @@ int MqttCaller::PhxMqttPublishCall(const phxrpc::MqttPublishPb &req,
     }
 
     // pack response
-    {
-        ret = static_cast<int>(puback.ToPb(resp));
-        if (0 != ret) {
-            phxrpc::log(LOG_ERR, "ToPb ret %d", ret);
+    //{
+    //    ret = static_cast<int>(puback.ToPb(resp));
+    //    if (0 != ret) {
+    //        phxrpc::log(LOG_ERR, "ToPb ret %d", ret);
 
-            return ret;
-        }
-    }
+    //        return ret;
+    //    }
+    //}
 
     return ret;
 }
 
-int MqttCaller::PhxMqttPubackCall(const phxrpc::MqttPubackPb &req) {
+int MqttCaller::PhxMqttPubackCall(const phxrpc::MqttPubackPb &req,
+                                  google::protobuf::Empty *resp) {
     int ret{-1};
     phxrpc::MqttPuback puback;
 
@@ -168,6 +167,96 @@ int MqttCaller::PhxMqttPubackCall(const phxrpc::MqttPubackPb &req) {
 
     if (0 != ret) {
         phxrpc::log(LOG_ERR, "mqtt puback call err %d", ret);
+        return ret;
+    }
+
+    return ret;
+}
+
+int MqttCaller::PhxMqttPubrecCall(const phxrpc::MqttPubrecPb &req,
+                                  google::protobuf::Empty *resp) {
+    int ret{-1};
+    phxrpc::MqttPubrec pubrec;
+
+    // unpack request
+    {
+        ret = static_cast<int>(pubrec.FromPb(req));
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return ret;
+        }
+    }
+
+    uint64_t call_begin{Timer::GetSteadyClockMS()};
+    MqttClient::MqttStat mqtt_stat;
+    ret = MqttClient::Pubrec(socket_, pubrec, mqtt_stat);
+    MonitorReport(client_monitor_, mqtt_stat.send_error_,
+                  mqtt_stat.recv_error_, pubrec.GetContent().size(),
+                  0, call_begin, Timer::GetSteadyClockMS());
+
+    if (0 != ret) {
+        phxrpc::log(LOG_ERR, "mqtt pubrec call err %d", ret);
+        return ret;
+    }
+
+    return ret;
+}
+
+int MqttCaller::PhxMqttPubrelCall(const phxrpc::MqttPubrelPb &req,
+                                  google::protobuf::Empty *resp) {
+    int ret{-1};
+    phxrpc::MqttPubrel pubrel;
+
+    // unpack request
+    {
+        ret = static_cast<int>(pubrel.FromPb(req));
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return ret;
+        }
+    }
+
+    uint64_t call_begin{Timer::GetSteadyClockMS()};
+    MqttClient::MqttStat mqtt_stat;
+    ret = MqttClient::Pubrel(socket_, pubrel, mqtt_stat);
+    MonitorReport(client_monitor_, mqtt_stat.send_error_,
+                  mqtt_stat.recv_error_, pubrel.GetContent().size(),
+                  0, call_begin, Timer::GetSteadyClockMS());
+
+    if (0 != ret) {
+        phxrpc::log(LOG_ERR, "mqtt pubrel call err %d", ret);
+        return ret;
+    }
+
+    return ret;
+}
+
+int MqttCaller::PhxMqttPubcompCall(const phxrpc::MqttPubcompPb &req,
+                                   google::protobuf::Empty *resp) {
+    int ret{-1};
+    phxrpc::MqttPubcomp pubcomp;
+
+    // unpack request
+    {
+        ret = static_cast<int>(pubcomp.FromPb(req));
+        if (0 != ret) {
+            phxrpc::log(LOG_ERR, "FromPb err %d", ret);
+
+            return ret;
+        }
+    }
+
+    uint64_t call_begin{Timer::GetSteadyClockMS()};
+    MqttClient::MqttStat mqtt_stat;
+    ret = MqttClient::Pubcomp(socket_, pubcomp, mqtt_stat);
+    MonitorReport(client_monitor_, mqtt_stat.send_error_,
+                  mqtt_stat.recv_error_, pubcomp.GetContent().size(),
+                  0, call_begin, Timer::GetSteadyClockMS());
+
+    if (0 != ret) {
+        phxrpc::log(LOG_ERR, "mqtt pubcomp call err %d", ret);
         return ret;
     }
 
@@ -300,7 +389,8 @@ int MqttCaller::PhxMqttPingCall(const phxrpc::MqttPingreqPb &req,
     return ret;
 }
 
-int MqttCaller::PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &req) {
+int MqttCaller::PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &req,
+                                      google::protobuf::Empty *resp) {
     int ret{-1};
     phxrpc::MqttDisconnect disconnect;
 
@@ -327,6 +417,13 @@ int MqttCaller::PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &req) {
     }
 
     return ret;
+}
+
+void MqttCaller::SetURI(const char *const uri, const int cmdid) {
+    cmd_id_ = cmdid;
+}
+
+void MqttCaller::SetKeepAlive(const bool keep_alive) {
 }
 
 

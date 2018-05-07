@@ -41,27 +41,27 @@ class ServiceCodeRender {
     virtual ~ServiceCodeRender();
 
     virtual void GenerateServiceHpp(SyntaxTree *stree,
-                                    const SyntaxFuncVector &mqtt_funcs,
+                                    const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                                     FILE *write);
 
     virtual void GenerateServiceCpp(SyntaxTree *stree,
-                                    const SyntaxFuncVector &mqtt_funcs,
+                                    const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                                     FILE *write);
 
     virtual void GenerateServiceImplHpp(SyntaxTree *stree,
-                                        const SyntaxFuncVector &mqtt_funcs,
+                                        const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                                         FILE *write, const bool is_uthread_mode);
 
     virtual void GenerateServiceImplCpp(SyntaxTree *stree,
-                                        const SyntaxFuncVector &mqtt_funcs,
+                                        const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                                         FILE *write, const bool is_uthread_mode);
 
     virtual void GenerateDispatcherHpp(SyntaxTree *stree,
-                                       const SyntaxFuncVector &mqtt_funcs,
+                                       const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                                        FILE *write);
 
     virtual void GenerateDispatcherCpp(SyntaxTree *stree,
-                                       const SyntaxFuncVector &mqtt_funcs,
+                                       const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                                        FILE *write);
 
   protected:
@@ -74,16 +74,12 @@ class ServiceCodeRender {
             const SyntaxFunc *const func, int is_header, int is_impl,
             int need_param_name, std::string *result);
 
-    virtual void GenerateDispatcherMqttFunc(SyntaxTree *stree,
-                                            const SyntaxFunc *const func,
-                                            FILE *write);
-
-    virtual void GenerateDispatcherHttpFunc(SyntaxTree *stree,
-                                            const SyntaxFunc *const func,
-                                            FILE *write);
+    virtual void GenerateDispatcherFunc(const SyntaxTree *const stree,
+                                        const SyntaxFunc *const func,
+                                        FILE *write, const bool use_content);
 
     virtual void GenerateURIFuncMap(SyntaxTree *stree,
-                                    const std::vector<FunctionItem> functions,
+                                    const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                                     FILE *write);
 
     NameRender &name_render_;

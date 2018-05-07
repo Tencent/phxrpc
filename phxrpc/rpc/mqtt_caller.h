@@ -32,6 +32,7 @@ namespace google {
 namespace protobuf {
 
 
+class Empty;
 class MessageLite;
 
 
@@ -54,15 +55,27 @@ class MqttCaller {
     int PhxMqttConnectCall(const phxrpc::MqttConnectPb &req,
                            phxrpc::MqttConnackPb *resp);
     int PhxMqttPublishCall(const phxrpc::MqttPublishPb &req,
-                           phxrpc::MqttPubackPb *resp);
-    int PhxMqttPubackCall(const phxrpc::MqttPubackPb &req);
+                           google::protobuf::Empty *resp);
+    int PhxMqttPubackCall(const phxrpc::MqttPubackPb &req,
+                          google::protobuf::Empty *resp);
+    int PhxMqttPubrecCall(const phxrpc::MqttPubrecPb &req,
+                          google::protobuf::Empty *resp);
+    int PhxMqttPubrelCall(const phxrpc::MqttPubrelPb &req,
+                          google::protobuf::Empty *resp);
+    int PhxMqttPubcompCall(const phxrpc::MqttPubcompPb &req,
+                           google::protobuf::Empty *resp);
     int PhxMqttSubscribeCall(const phxrpc::MqttSubscribePb &req,
                              phxrpc::MqttSubackPb *resp);
     int PhxMqttUnsubscribeCall(const phxrpc::MqttUnsubscribePb &req,
                                phxrpc::MqttUnsubackPb *resp);
     int PhxMqttPingCall(const phxrpc::MqttPingreqPb &req,
                         phxrpc::MqttPingrespPb *resp);
-    int PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &req);
+    int PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &req,
+                              google::protobuf::Empty *resp);
+
+    void SetURI(const char *const uri, const int cmdid);
+
+    void SetKeepAlive(const bool keep_alive);
 
   private:
     void MonitorReport(phxrpc::ClientMonitor &client_monitor, bool send_error,

@@ -98,6 +98,12 @@ const char *NameRender::GetStubClassName(const char *name, char *dest, int size)
     return dest;
 }
 
+const char *NameRender::GetCallerClassName(const char *name, char *dest, int size) {
+    snprintf(dest, size, "%s%c%sCaller", prefix_, toupper(*name), name + 1);
+
+    return dest;
+}
+
 const char *NameRender::GetStubFileName(const char *name, char *dest, int size) {
     snprintf(dest, size, "phxrpc_%s%c%s_stub", prefix_, toupper(*name), name + 1);
 

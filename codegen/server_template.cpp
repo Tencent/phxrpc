@@ -45,7 +45,7 @@ void Dispatch(const phxrpc::BaseRequest *request,
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
     $ServiceImplClass$ service(*service_args, args->pool_idx, args->worker_idx,
-            args->notifier_pool, args->notifier_pool_router, args->data_flow,
+            args->notifier_pool, args->notifier_pool_router,
             args->cross_unit_data_flow, (phxrpc::ServiceContext *)(args->context));
     $DispatcherClass$ dispatcher(service, args);
 
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     ServiceArgs_t service_args;
     service_args.config = &config;
 
-    phxrpc::HshaServer server(config.GetHshaServerConfig(), Dispatch, &service_args);
+    phxrpc::Server server(config.GetHshaServerConfig(), Dispatch, &service_args);
     server.RunForever();
 
     phxrpc::closelog();
@@ -142,7 +142,7 @@ void Dispatch(const phxrpc::BaseRequest *request,
     $ServiceImplClass$ service(*service_args, args->server_worker_uthread_scheduler,
             args->pool_idx, args->worker_idx,
             args->notifier_pool, args->notifier_pool_router,
-            args->data_flow, args->cross_unit_data_flow,
+            args->cross_unit_data_flow,
             (phxrpc::ServiceContext *)(args->context));
     $DispatcherClass$ dispatcher(service, args);
 
@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
     ServiceArgs_t service_args;
     service_args.config = &config;
 
-    phxrpc::HshaServer server(config.GetHshaServerConfig(), Dispatch, &service_args);
+    phxrpc::Server server(config.GetHshaServerConfig(), Dispatch, &service_args);
     server.RunForever();
 
     phxrpc::closelog();

@@ -44,757 +44,6 @@ using namespace std;
 namespace phxrpc {
 
 
-void MqttSession::Heartbeat() {
-    if (0 >= session_attribute.keep_alive) {
-        expire_time_ms_ = -1;
-    } else {
-        expire_time_ms_ = session_attribute.keep_alive * 1000 + Timer::GetSteadyClockMS();
-    }
-}
-
-bool MqttSession::IsExpired() {
-    return expire_time_ms_ <= Timer::GetSteadyClockMS();
-}
-
-
-MqttSession *SessionManager::Create(const int fd, UThreadEpollScheduler *const scheduler,
-                                    const int socket_timeout_ms) {
-    MqttSession session;
-    session.session_id = (Timer::GetTimestampMS() << 32) | (++s_session_num);
-    session.socket = scheduler->CreateSocket(fd);
-    UThreadSetSocketTimeout(*(session.socket), socket_timeout_ms);
-    session.stream.reset(new UThreadTcpStream);
-    session.stream->Attach(session.socket);
-
-    sessions_.emplace_back(move(session));
-
-    return &(sessions_.back());
-}
-
-MqttSession *SessionManager::GetByClientId(const string &client_id) {
-    for (auto &&session : sessions_) {
-        if (session.session_attribute.client_identifier == client_id)
-            return &session;
-    }
-
-    return nullptr;
-}
-
-MqttSession *SessionManager::GetBySessionId(const uint64_t session_id) {
-    for (auto &&session : sessions_) {
-        if (session.session_id == session_id)
-            return &session;
-    }
-
-    return nullptr;
-}
-
-MqttSession *SessionManager::GetByFd(const int fd) {
-    for (auto &&session : sessions_) {
-        if (UThreadSocketFd(*(session.socket)) == fd)
-            return &session;
-    }
-
-    return nullptr;
-}
-
-void SessionManager::DeleteBySessionId(const uint64_t session_id) {
-    for (auto it(sessions_.begin()); sessions_.end() != it; ++it) {
-        if (it->session_id == session_id) {
-            sessions_.erase(it);
-
-            return;
-        }
-    }
-}
-
-atomic_uint32_t SessionManager::s_session_num{0};
-
-
-void SessionRouter::Add(const uint64_t session_id, const int idx) {
-    lock_guard<mutex> lock(mutex_);
-    session_id2thread_index_map_[session_id] = idx;
-}
-
-int SessionRouter::Get(const uint64_t session_id) const {
-    lock_guard<mutex> lock(mutex_);
-    const auto &it(session_id2thread_index_map_.find(session_id));
-    if (session_id2thread_index_map_.end() == it) {
-        return -1;
-    }
-
-    return it->second;
-}
-
-void SessionRouter::Delete(const uint64_t session_id) {
-    lock_guard<mutex> lock(mutex_);
-    session_id2thread_index_map_.erase(session_id);
-}
-
-
-NotifierPoolRouter::NotifierId::NotifierId(const uint64_t session_id_value,
-                                           const uint32_t packet_id_value)
-        : session_id(session_id_value), packet_id(packet_id_value) {
-}
-
-__uint128_t NotifierPoolRouter::NotifierId::ToUint128() const {
-    return (static_cast<__uint128_t>(session_id) << 64 | packet_id);
-}
-
-void NotifierPoolRouter::NotifierId::FromUint128(const __uint128_t &value) {
-    session_id = static_cast<uint64_t>(value >> 64);
-    packet_id = static_cast<uint32_t>(value);
-}
-
-
-void NotifierPoolRouter::Add(const NotifierId &notifier_id, const pair<int, int> idx) {
-    Add(move(notifier_id.ToUint128()), idx);
-}
-
-pair<int, int> NotifierPoolRouter::Get(const NotifierId &notifier_id) const {
-    return Get(move(notifier_id.ToUint128()));
-}
-
-void NotifierPoolRouter::Delete(const NotifierId &notifier_id) {
-    Delete(move(notifier_id.ToUint128()));
-}
-
-void NotifierPoolRouter::Add(const __uint128_t &session_packet_id, const pair<int, int> idx) {
-    lock_guard<mutex> lock(mutex_);
-    session_packet_id2idx_map_[session_packet_id] = idx;
-}
-
-pair<int, int> NotifierPoolRouter::Get(const __uint128_t &session_packet_id) const {
-    lock_guard<mutex> lock(mutex_);
-    const auto &it(session_packet_id2idx_map_.find(session_packet_id));
-    if (session_packet_id2idx_map_.end() == it) {
-        return make_pair(-1, -1);
-    }
-
-    return it->second;
-}
-
-void NotifierPoolRouter::Delete(const __uint128_t &session_packet_id) {
-    lock_guard<mutex> lock(mutex_);
-    session_packet_id2idx_map_.erase(session_packet_id);
-}
-
-
-DataFlow::DataFlow() {
-}
-
-DataFlow::~DataFlow() {
-}
-
-void DataFlow::PushRequest(void *args, BaseRequest *req) {
-    in_queue_.push(make_pair(QueueExtData(args), req));
-}
-
-int DataFlow::PluckRequest(void *&args, BaseRequest *&req) {
-    pair<QueueExtData, BaseRequest *> rp;
-    bool succ = in_queue_.pluck(rp);
-    if (!succ) {
-        return 0;
-    }
-    args = rp.first.args;
-    req = rp.second;
-
-    auto now_time = Timer::GetSteadyClockMS();
-    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-}
-
-int DataFlow::PickRequest(void *& args, BaseRequest *&req) {
-    pair<QueueExtData, BaseRequest *> rp;
-    bool succ = in_queue_.pick(rp);
-    if (!succ) {
-        return 0;
-    }
-    args = rp.first.args;
-    req = rp.second;
-
-    auto now_time = Timer::GetSteadyClockMS();
-    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-}
-
-void DataFlow::PushResponse(void *args, BaseResponse *resp) {
-    lock_guard<mutex> lock(mutex_);
-    out_queue_.push(make_pair(QueueExtData(args), resp));
-}
-
-int DataFlow::PluckResponse(void *&args, BaseResponse *&resp) {
-    pair<QueueExtData, BaseResponse *> rp;
-    bool succ = out_queue_.pluck(rp);
-    if (!succ) {
-        return 0;
-    }
-    args = rp.first.args;
-    resp = rp.second;
-
-    auto now_time(Timer::GetSteadyClockMS());
-    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-}
-
-int DataFlow::PickResponse(void *&args, BaseResponse *&resp) {
-    pair<QueueExtData, BaseResponse *> rp;
-    bool succ = out_queue_.pick(rp);
-    if (!succ) {
-        return 0;
-    }
-    args = rp.first.args;
-    resp = rp.second;
-
-    auto now_time(Timer::GetSteadyClockMS());
-    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-}
-
-bool DataFlow::CanPushRequest(const int max_queue_length) {
-    return in_queue_.size() < (size_t)max_queue_length;
-}
-
-bool DataFlow::CanPluckRequest() {
-    return !in_queue_.empty();
-}
-
-bool DataFlow::CanPluckResponse() {
-    return !out_queue_.empty();
-}
-
-void DataFlow::BreakOut() {
-    in_queue_.break_out();
-    out_queue_.break_out();
-}
-
-
-//CrossUnitDataFlow::CrossUnitDataFlow() {
-//}
-//
-//CrossUnitDataFlow::~CrossUnitDataFlow() {
-//}
-//
-//void CrossUnitDataFlow::PushRequest(void *args, google::protobuf::Message *req) {
-//    in_queue_.push(make_pair(QueueExtData(args), req));
-//}
-//
-//int CrossUnitDataFlow::PluckRequest(void *&args, google::protobuf::Message *&req) {
-//    pair<QueueExtData, google::protobuf::Message *> rp;
-//    bool succ = in_queue_.pluck(rp);
-//    if (!succ) {
-//        return 0;
-//    }
-//    args = rp.first.args;
-//    req = rp.second;
-//
-//    auto now_time = Timer::GetSteadyClockMS();
-//    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-//}
-//
-//int CrossUnitDataFlow::PickRequest(void *& args, google::protobuf::Message *&req) {
-//    pair<QueueExtData, google::protobuf::Message *> rp;
-//    bool succ = in_queue_.pick(rp);
-//    if (!succ) {
-//        return 0;
-//    }
-//    args = rp.first.args;
-//    req = rp.second;
-//
-//    auto now_time = Timer::GetSteadyClockMS();
-//    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-//}
-//
-//void CrossUnitDataFlow::PushResponse(void *args, google::protobuf::Message *resp) {
-//    out_queue_.push(make_pair(QueueExtData(args), resp));
-//}
-//
-//int CrossUnitDataFlow::PluckResponse(void *&args, google::protobuf::Message *&resp) {
-//    pair<QueueExtData, google::protobuf::Message *> rp;
-//    bool succ = out_queue_.pluck(rp);
-//    if (!succ) {
-//        return 0;
-//    }
-//    args = rp.first.args;
-//    resp = rp.second;
-//
-//    auto now_time(Timer::GetSteadyClockMS());
-//    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-//}
-//
-//int CrossUnitDataFlow::PickResponse(void *&args, google::protobuf::Message *&resp) {
-//    pair<QueueExtData, google::protobuf::Message *> rp;
-//    bool succ = out_queue_.pick(rp);
-//    if (!succ) {
-//        return 0;
-//    }
-//    args = rp.first.args;
-//    resp = rp.second;
-//
-//    auto now_time(Timer::GetSteadyClockMS());
-//    return now_time > rp.first.enqueue_time_ms ? now_time - rp.first.enqueue_time_ms : 0;
-//}
-//
-//bool CrossUnitDataFlow::CanPushRequest(const int max_queue_length) {
-//    return in_queue_.size() < (size_t)max_queue_length;
-//}
-//
-//bool CrossUnitDataFlow::CanPluckRequest() {
-//    return !in_queue_.empty();
-//}
-//
-//bool CrossUnitDataFlow::CanPluckResponse() {
-//    return !out_queue_.empty();
-//}
-//
-//void CrossUnitDataFlow::BreakOut() {
-//    in_queue_.break_out();
-//    out_queue_.break_out();
-//}
-
-////////////////////////////////////////
-
-HshaServerStat::TimeCost::TimeCost() {
-    now_time_ms_ = Timer::GetSteadyClockMS();
-}
-
-HshaServerStat::TimeCost::~TimeCost() {
-}
-
-int HshaServerStat::TimeCost::Cost() {
-    auto now_time_ms =  Timer::GetSteadyClockMS();
-    auto cost_time_ms = now_time_ms > now_time_ms_ ? now_time_ms - now_time_ms_ : 0;
-    now_time_ms_ = now_time_ms;
-    return cost_time_ms;
-}
-
-HshaServerStat::HshaServerStat(const HshaServerConfig *config, ServerMonitorPtr hsha_server_monitor) :
-    /* config_(config), */ thread_(&HshaServerStat::CalFunc, this), break_out_(false),
-    hsha_server_monitor_(hsha_server_monitor) {
-    hold_fds_ = 0;
-    accepted_fds_ = 0;
-    accept_qps_ = 0;
-    rejected_fds_ = 0;
-    reject_qps_ = 0;
-    queue_full_rejected_after_accepted_fds_ = 0;
-    queue_full_rejected_after_accepted_qps_ = 0;
-    accept_fail_ = 0;
-    accept_fail_qps_ = 0;
-
-    io_read_requests_ = 0;
-    io_read_request_qps_ = 0;
-    io_read_bytes_ = 0;
-
-    io_write_responses_ = 0;
-    io_write_response_qps_ = 0;
-    io_write_bytes_ = 0;
-
-    io_read_fails_ = 0;
-    io_read_fail_qps_ = 0;
-    io_write_fails_ = 0;
-    io_write_fail_qps_ = 0;
-
-    inqueue_push_requests_ = 0;
-    inqueue_push_qps_ = 0;
-    inqueue_pop_requests_ = 0;
-    inqueue_pop_qps_ = 0;
-
-    outqueue_push_responses_ = 0;
-    outqueue_push_qps_ = 0;
-    outqueue_pop_responses_ = 0;
-    outqueue_pop_qps_ = 0;
-
-    worker_timeouts_ = 0;
-    worker_timeout_qps_ = 0;
-
-    rpc_time_costs_ = 0;
-    rpc_time_costs_count_ = 0;
-    rpc_avg_time_cost_per_second_ = 0;
-    rpc_time_cost_per_period_ = 0;
-
-    inqueue_wait_time_costs_ = 0;
-    inqueue_wait_time_costs_count_ = 0;
-    inqueue_avg_wait_time_costs_per_second_ = 0;
-    inqueue_avg_wait_time_costs_per_second_cal_seq_ = 0;
-    inqueue_wait_time_costs_per_period_ = 0;
-
-    outqueue_wait_time_costs_ = 0;
-    outqueue_wait_time_costs_count_ = 0;
-    outqueue_wait_time_costs_per_period_ = 0;
-    outqueue_avg_wait_time_costs_per_second_ = 0;
-
-    enqueue_fast_rejects_ = 0;
-    enqueue_fast_reject_qps_ = 0;
-
-    worker_idles_ = 0;
-
-    worker_drop_requests_ = 0;
-    worker_drop_reqeust_qps_ = 0;
-    worker_time_costs_ = 0;
-    worker_time_costs_count_ = 0;
-    worker_avg_time_cost_per_second_ = 0;
-    worker_time_cost_per_period_ = 0;
-    worker_time_costs_per_second_ = 0;
-}
-
-HshaServerStat::~HshaServerStat() {
-    break_out_ = true;
-    cv_.notify_all();
-    thread_.join();
-}
-
-void HshaServerStat::MonitorReport() {
-    //accept
-    hsha_server_monitor_->Accept( accept_qps_ );
-    hsha_server_monitor_->AcceptFail( accept_fail_qps_ );
-    hsha_server_monitor_->FastRejectAfterAccept( reject_qps_ );
-
-    //io
-    hsha_server_monitor_->ReadError( io_read_fail_qps_ );
-    hsha_server_monitor_->SendError( io_write_fail_qps_ );
-    hsha_server_monitor_->OutOfQueue( queue_full_rejected_after_accepted_qps_ );
-    hsha_server_monitor_->QueueDelay( rpc_time_cost_per_period_ );
-    hsha_server_monitor_->FastRejectAfterRead( enqueue_fast_reject_qps_ );
-    hsha_server_monitor_->RecvBytes( io_read_bytes_qps_ );
-    hsha_server_monitor_->SendBytes( io_write_bytes_qps_ );
-    hsha_server_monitor_->WaitInInQueue( inqueue_wait_time_costs_per_period_ );
-    hsha_server_monitor_->WaitInOutQueue( outqueue_wait_time_costs_per_period_ );
-
-    //worker
-    hsha_server_monitor_->RequestCount( accept_qps_ );
-    hsha_server_monitor_->ResponseCount( io_write_response_qps_ );
-    hsha_server_monitor_->RequestCost( worker_time_costs_per_second_ );
-    hsha_server_monitor_->WrokerInQueueTimeout( worker_drop_reqeust_qps_ );
-}
-
-void HshaServerStat::CalFunc() {
-    while (!break_out_) {
-        unique_lock<mutex> lock(mutex_);
-        cv_.wait_for(lock, chrono::seconds(1));
-
-        //acceptor
-        accept_qps_ = static_cast<int>(accepted_fds_);
-        accepted_fds_ = 0;
-        reject_qps_ = static_cast<int>(rejected_fds_);
-        rejected_fds_ = 0;
-        queue_full_rejected_after_accepted_qps_ = static_cast<int>(queue_full_rejected_after_accepted_fds_);
-        queue_full_rejected_after_accepted_fds_ = 0;
-        accept_fail_qps_ = static_cast<int>(accept_fail_);
-        accept_fail_ = 0;
-
-        //io
-        io_read_request_qps_ = static_cast<int>(io_read_requests_);
-        io_read_requests_ = 0;
-        io_write_response_qps_ = static_cast<int>(io_write_responses_);
-        io_write_responses_ = 0;
-
-        io_read_bytes_qps_ = static_cast<int>(io_read_bytes_);
-        io_read_bytes_ = 0;
-        io_write_bytes_qps_ = static_cast<int>(io_write_bytes_);
-        io_write_bytes_ = 0;
-
-        io_read_fail_qps_ = static_cast<int>(io_read_fails_);
-        io_read_fails_ = 0;
-        io_write_fail_qps_ = static_cast<int>(io_write_fails_);
-        io_write_fails_ = 0;
-
-        //queue
-        inqueue_push_qps_ = static_cast<int>(inqueue_push_requests_);
-        inqueue_push_requests_ = 0;
-        inqueue_pop_qps_ = static_cast<int>(inqueue_pop_requests_);
-        inqueue_pop_requests_ = 0;
-
-        outqueue_push_qps_ = static_cast<int>(outqueue_push_responses_);
-        outqueue_push_responses_ = 0;
-        outqueue_pop_qps_ = static_cast<int>(outqueue_pop_responses_);
-        outqueue_pop_responses_ = 0;
-
-        //worker
-        worker_timeout_qps_ = static_cast<int>(worker_timeouts_);
-        worker_timeouts_ = 0;
-
-        //time cost
-        rpc_time_cost_per_period_ = 0;
-        if (rpc_time_costs_count_ >= RPC_TIME_COST_CAL_RATE) {
-            rpc_avg_time_cost_per_second_ =
-                static_cast<long>(rpc_time_costs_) / rpc_time_costs_count_;
-            rpc_time_cost_per_period_ = static_cast<long>(rpc_time_costs_);
-            rpc_time_costs_ = 0;
-            rpc_time_costs_count_ = 0;
-        }
-
-        //worker time cost
-        worker_time_cost_per_period_ = 0;
-        if (worker_time_costs_count_ >= RPC_TIME_COST_CAL_RATE) {
-            worker_avg_time_cost_per_second_ =
-                static_cast<long>(worker_time_costs_) / worker_time_costs_count_;
-            worker_time_cost_per_period_ = static_cast<long>(worker_time_costs_);
-            worker_time_costs_ = 0;
-            worker_time_costs_count_ = 0;
-        }
-
-        inqueue_wait_time_costs_per_period_ = 0;
-        if (inqueue_wait_time_costs_count_ >= QUEUE_WAIT_TIME_COST_CAL_RATE) {
-            inqueue_avg_wait_time_costs_per_second_ =
-                static_cast<long>(inqueue_wait_time_costs_) / inqueue_wait_time_costs_count_;
-            inqueue_wait_time_costs_per_period_ = static_cast<long>(inqueue_wait_time_costs_);
-            inqueue_wait_time_costs_ = 0;
-            inqueue_wait_time_costs_count_ = 0;
-            inqueue_avg_wait_time_costs_per_second_cal_seq_++;
-        }
-
-        outqueue_wait_time_costs_per_period_ = 0;
-        if (outqueue_wait_time_costs_count_ >= QUEUE_WAIT_TIME_COST_CAL_RATE) {
-            outqueue_avg_wait_time_costs_per_second_ =
-                static_cast<long>(outqueue_wait_time_costs_) / outqueue_wait_time_costs_count_;
-            outqueue_wait_time_costs_per_period_ = static_cast<long>(outqueue_wait_time_costs_);
-            outqueue_wait_time_costs_ = 0;
-            outqueue_wait_time_costs_count_ = 0;
-        }
-
-        enqueue_fast_reject_qps_ = static_cast<int>(enqueue_fast_rejects_);
-        enqueue_fast_rejects_ = 0;
-
-        worker_drop_reqeust_qps_ = static_cast<int>(worker_drop_requests_);
-        worker_drop_requests_ = 0;
-
-        worker_time_costs_per_second_ = static_cast<long>(worker_time_costs_);
-        worker_time_costs_ = 0;
-
-        MonitorReport();
-
-        phxrpc::log(LOG_NOTICE, "[SERVER_STAT] hold_fds %d accept_qps %d accept_reject_qps %d queue_full_reject_qps %d"
-                " read_request_qps %d write_response_qps %d"
-                " inqueue_push_qps %d rpc_time_cost_avg %d worker_time_cost_avg %d"
-                " inqueue_wait_time_avg %d outqueue_wait_time_qvg %d"
-                " fast_reject_qps %d"
-                " worker_idles %d worker_drop_request_qps %d io_read_fails %d, io_write_fails %d",
-                static_cast<int>(hold_fds_), accept_qps_, reject_qps_, queue_full_rejected_after_accepted_qps_,
-                io_read_request_qps_, io_write_response_qps_,
-                inqueue_push_qps_, rpc_avg_time_cost_per_second_, worker_avg_time_cost_per_second_,
-                inqueue_avg_wait_time_costs_per_second_, outqueue_avg_wait_time_costs_per_second_,
-                enqueue_fast_reject_qps_,
-                static_cast<int>(worker_idles_), worker_drop_reqeust_qps_, io_read_fail_qps_, io_write_fail_qps_ );
-
-    }
-}
-
-////////////////////////////////////////
-
-HshaServerQos::HshaServerQos(const HshaServerConfig *config, HshaServerStat *hsha_server_stat)
-        : config_(config), hsha_server_stat_(hsha_server_stat),
-          thread_(&HshaServerQos::CalFunc, this) {
-}
-
-HshaServerQos::~HshaServerQos() {
-    break_out_ = true;
-    cv_.notify_all();
-    thread_.join();
-}
-
-bool HshaServerQos::CanAccept() {
-    return static_cast<int>(hsha_server_stat_->hold_fds_) < config_->GetMaxConnections();
-}
-
-bool HshaServerQos::CanEnqueue() {
-    static default_random_engine e_rand((int)time(nullptr));
-    return ((int)(e_rand() % 100)) >= enqueue_reject_rate_;
-}
-
-void HshaServerQos::CalFunc() {
-    while (!break_out_) {
-        unique_lock<mutex> lock(mutex_);
-        cv_.wait_for(lock, chrono::seconds(1));
-
-        //fast reject
-        if (hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_cal_seq_
-                != inqueue_avg_wait_time_costs_per_second_cal_last_seq_) {
-            //inqueue avg wait time reflesh
-            int avg_queue_wait_time = (hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_
-                    + hsha_server_stat_->outqueue_avg_wait_time_costs_per_second_) / 2;
-
-            int rate = config_->GetFastRejectAdjustRate();
-            if (avg_queue_wait_time > config_->GetFastRejectThresholdMS()) {
-                if (enqueue_reject_rate_ != 99) {
-                    enqueue_reject_rate_ = enqueue_reject_rate_ + rate > 99 ? 99 : enqueue_reject_rate_ + rate;
-                }
-            } else {
-                if (enqueue_reject_rate_ != 0) {
-                    enqueue_reject_rate_ = enqueue_reject_rate_ - rate < 0 ? 0 : enqueue_reject_rate_ - rate;
-                }
-            }
-            inqueue_avg_wait_time_costs_per_second_cal_last_seq_ =
-                hsha_server_stat_->inqueue_avg_wait_time_costs_per_second_cal_seq_;
-        }
-
-        phxrpc::log(LOG_NOTICE, "[SERVER_QOS] accept_reject_qps %d queue_full_reject_qps %d"
-                " fast_reject_qps %d fast_reject_rate %d",
-                hsha_server_stat_->reject_qps_, hsha_server_stat_->queue_full_rejected_after_accepted_qps_,
-                hsha_server_stat_->enqueue_fast_reject_qps_, enqueue_reject_rate_);
-    }
-}
-
-////////////////////////////////////////
-
-Worker::Worker(const int idx, WorkerPool *const pool,
-               const int uthread_count, int utherad_stack_size)
-        : idx_(idx), pool_(pool), uthread_count_(uthread_count),
-          utherad_stack_size_(utherad_stack_size),
-          thread_(&Worker::Func, this) {
-}
-
-Worker::~Worker() {
-    thread_.join();
-    delete worker_scheduler_;
-}
-
-void Worker::Func() {
-    if (uthread_count_ == 0) {
-        ThreadMode();
-    } else {
-        UThreadMode();
-    }
-}
-
-void Worker::ThreadMode() {
-    while (!shut_down_) {
-        pool_->hsha_server_stat_->worker_idles_++;
-
-        void *args{nullptr};
-        BaseRequest *request{nullptr};
-        int queue_wait_time_ms{pool_->data_flow_->PluckRequest(args, request)};
-        if (request == nullptr) {
-            //break out
-            continue;
-        }
-        pool_->hsha_server_stat_->worker_idles_--;
-
-        WorkerLogic(args, request, queue_wait_time_ms);
-    }
-}
-
-void Worker::UThreadMode() {
-    worker_scheduler_ = new UThreadEpollScheduler(utherad_stack_size_, uthread_count_, true);
-    assert(worker_scheduler_ != nullptr);
-    worker_scheduler_->SetHandlerNewRequestFunc(bind(&Worker::HandlerNewRequestFunc, this));
-    notifier_pool_ = new UThreadNotifierPool(worker_scheduler_, pool_->config_->GetSocketTimeoutMS());
-    worker_scheduler_->RunForever();
-}
-
-void Worker::HandlerNewRequestFunc() {
-    if (worker_scheduler_->IsTaskFull()) {
-        return;
-    }
-
-    void *args{nullptr};
-    BaseRequest *request{nullptr};
-    int queue_wait_time_ms{pool_->data_flow_->PickRequest(args, request)};
-    if (!request) {
-        return;
-    }
-
-    worker_scheduler_->AddTask(bind(&Worker::UThreadFunc, this, args,
-                                    request, queue_wait_time_ms), nullptr);
-}
-
-void Worker::UThreadFunc(void *args, BaseRequest *req, int queue_wait_time_ms) {
-    WorkerLogic(args, req, queue_wait_time_ms);
-}
-
-void Worker::WorkerLogic(void *args, BaseRequest *req, int queue_wait_time_ms) {
-    pool_->hsha_server_stat_->inqueue_pop_requests_++;
-    pool_->hsha_server_stat_->inqueue_wait_time_costs_ += queue_wait_time_ms;
-    pool_->hsha_server_stat_->inqueue_wait_time_costs_count_++;
-
-    BaseResponse *resp{req->GenResponse()};
-    if (queue_wait_time_ms < MAX_QUEUE_WAIT_TIME_COST) {
-        HshaServerStat::TimeCost time_cost;
-
-        DispatcherArgs_t dispatcher_args(pool_->idx_, idx_, pool_->hsha_server_stat_->hsha_server_monitor_,
-                worker_scheduler_, notifier_pool_, pool_->notifier_pool_router_,
-                pool_->data_flow_, pool_->cross_unit_data_flow_, pool_->args_, args);
-        pool_->dispatch_(req, resp, &dispatcher_args);
-
-        pool_->hsha_server_stat_->worker_time_costs_ += time_cost.Cost();
-        pool_->hsha_server_stat_->worker_time_costs_count_++;
-    } else {
-        pool_->hsha_server_stat_->worker_drop_requests_++;
-    }
-    // fa should also PushResponse, otherwise session_id (which args points to) will memory leak
-    pool_->data_flow_->PushResponse(args, resp);
-    pool_->hsha_server_stat_->outqueue_push_responses_++;
-
-    pool_->scheduler_->NotifyEpoll();
-
-    delete req;
-}
-
-void Worker::NotifyEpoll() {
-    if (uthread_count_ == 0) {
-        return;
-    }
-
-    worker_scheduler_->NotifyEpoll();
-}
-
-int Worker::NotifyTarget(const NotifierPoolRouter::NotifierId &notifier_id, BaseResponse *resp) {
-    UThreadNotifier *notifier{nullptr};
-    notifier_pool_->GetNotifier(move(notifier_id.ToUint128()), notifier);
-    if (!notifier)
-        return -1;
-
-    return notifier->SendNotify((void *)resp);
-}
-
-void Worker::Shutdown() {
-    shut_down_ = true;
-    pool_->data_flow_->BreakOut();
-}
-
-////////////////////////////////////////
-
-WorkerPool::WorkerPool(const int idx,
-                       UThreadEpollScheduler *scheduler,
-                       const HshaServerConfig *config,
-                       const int thread_count,
-                       const int uthread_count_per_thread,
-                       const int utherad_stack_size,
-                       NotifierPoolRouter *const notifier_pool_router,
-                       DataFlow *const data_flow,
-                       DataFlow *const cross_unit_data_flow,
-                       HshaServerStat *const hsha_server_stat,
-                       Dispatch_t dispatch,
-                       void *args)
-        : idx_(idx), scheduler_(scheduler), config_(config), notifier_pool_router_(notifier_pool_router),
-          data_flow_(data_flow), cross_unit_data_flow_(cross_unit_data_flow),
-          hsha_server_stat_(hsha_server_stat), dispatch_(dispatch),
-          args_(args), last_notify_idx_(0) {
-    for (int i{0}; i < thread_count; ++i) {
-        auto worker(new Worker(i, this, uthread_count_per_thread, utherad_stack_size));
-        assert(worker != nullptr);
-        worker_list_.push_back(worker);
-    }
-}
-
-WorkerPool::~WorkerPool() {
-    for (auto &worker : worker_list_) {
-        worker->Shutdown();
-        delete worker;
-    }
-}
-
-void WorkerPool::NotifyEpoll() {
-    lock_guard<mutex> lock(mutex_);
-    if (last_notify_idx_ == worker_list_.size()) {
-        last_notify_idx_ = 0;
-    }
-
-    worker_list_[last_notify_idx_++]->NotifyEpoll();
-}
-
-int WorkerPool::NotifyTarget(const int idx, const NotifierPoolRouter::NotifierId &notifier_id,
-                              BaseResponse *resp) {
-    return worker_list_[idx]->NotifyTarget(notifier_id, resp);
-}
-
-////////////////////////////////////////
-
 HshaServerIO::HshaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
                            const HshaServerConfig *config,
                            DataFlow *data_flow, HshaServerStat *hsha_server_stat,
@@ -963,288 +212,19 @@ void HshaServerIO::RunForever() {
     scheduler_->RunForever();
 }
 
-////////////////////////////////////////
-
-FaServerIO::FaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
-                       const HshaServerConfig *config, DataFlow *data_flow,
-                       HshaServerStat *hsha_server_stat, HshaServerQos *hsha_server_qos,
-                       WorkerPool *worker_pool, SessionManager *session_mgr,
-                       SessionRouter *session_router)
-        : idx_(idx), scheduler_(scheduler), config_(config), data_flow_(data_flow),
-          hsha_server_stat_(hsha_server_stat),
-          hsha_server_qos_(hsha_server_qos), worker_pool_(worker_pool),
-          session_mgr_(session_mgr), session_router_(session_router) {
-}
-
-FaServerIO::~FaServerIO() {
-}
-
-bool FaServerIO::AddAcceptedFd(int accepted_fd) {
-    lock_guard<mutex> lock(queue_mutex_);
-    if (accepted_fd_list_.size() > MAX_ACCEPT_QUEUE_LENGTH) {
-        return false;
-    }
-    accepted_fd_list_.push(accepted_fd);
-    if (static_cast<int>(hsha_server_stat_->io_read_request_qps_) < 5000 &&
-        static_cast<int>(hsha_server_stat_->accept_qps_) < 5000) {
-        scheduler_->NotifyEpoll();
-    }
-    return true;
-}
-
-void FaServerIO::HandlerAcceptedFd() {
-    lock_guard<mutex> lock(queue_mutex_);
-    while (!accepted_fd_list_.empty()) {
-        int accepted_fd = accepted_fd_list_.front();
-        accepted_fd_list_.pop();
-        scheduler_->AddTask(bind(&FaServerIO::UThreadIFunc, this, accepted_fd), nullptr);
-    }
-}
-
-void FaServerIO::UThreadIFunc(int accepted_fd) {
-    MqttSession *session{session_mgr_->Create(accepted_fd, scheduler_, config_->GetSocketTimeoutMS())};
-    if (!session) {
-        phxrpc::log(LOG_ERR, "invalid fd %d", accepted_fd);
-
-        return;
-    }
-
-    unique_ptr<BaseProtocolFactory> factory(
-            BaseProtocolFactory::CreateFactory(*(session->stream)));
-    unique_ptr<BaseProtocol> protocol(factory->GenProtocol());
-
-    while (true) {
-        HshaServerStat::TimeCost time_cost;
-
-        hsha_server_stat_->io_read_requests_++;
-
-        // will be deleted by worker
-        BaseRequest *req{nullptr};
-        ReturnCode ret{protocol->ServerRecv(*(session->stream), req)};
-        phxrpc::log(LOG_ERR, "%s ServerRecv fd %d", __func__, accepted_fd);
-        if (ReturnCode::OK != ret) {
-            delete req;
-            hsha_server_stat_->io_read_fails_++;
-            hsha_server_stat_->rpc_time_costs_count_++;
-            hsha_server_stat_->rpc_time_costs_ += time_cost.Cost();
-            phxrpc::log(LOG_ERR, "%s read request fail, fd %d", __func__, accepted_fd);
-
-            break;
-        }
-
-        hsha_server_stat_->io_read_bytes_ += req->GetContent().size();
-
-        if (!data_flow_->CanPushRequest(config_->GetMaxQueueLength())) {
-            delete req;
-            hsha_server_stat_->queue_full_rejected_after_accepted_fds_++;
-
-            break;
-        }
-
-        if (!hsha_server_qos_->CanEnqueue()) {
-            // fast reject don't cal rpc_time_cost;
-            delete req;
-            hsha_server_stat_->enqueue_fast_rejects_++;
-            phxrpc::log(LOG_ERR, "%s fast reject, can't enqueue, fd %d",
-                        __func__, accepted_fd);
-
-            break;
-        }
-
-        // if have enqueue, request will be deleted after pop.
-        //const bool is_keep_alive{0 != req->IsKeepAlive()};
-        //const string version(req->GetVersion() != nullptr ? req->GetVersion() : "");
-
-        hsha_server_stat_->inqueue_push_requests_++;
-        ServiceContext *context{new ServiceContext};
-        context->session_id = session->session_id;
-        data_flow_->PushRequest((void *)context, req);
-        // if is uthread worker mode, need notify.
-        // req deleted by worker after this line
-        worker_pool_->NotifyEpoll();
-        //UThreadSetArgs(*socket, nullptr);
-
-        //UThreadWait(*socket, config_->GetSocketTimeoutMS());
-        //if (UThreadGetArgs(*socket) == nullptr) {
-        //    // timeout
-        //    hsha_server_stat_->worker_timeouts_++;
-        //    hsha_server_stat_->rpc_time_costs_count_++;
-        //    hsha_server_stat_->rpc_time_costs_ += time_cost.Cost();
-
-        //    // because have enqueue, so socket will be closed after pop.
-        //    socket = stream.DetachSocket();
-        //    UThreadLazyDestory(*socket);
-
-        //    phxrpc::log(LOG_ERR, "%s timeout, fd %d sockettimeoutms %d",
-        //                __func__, accepted_fd, config_->GetSocketTimeoutMS());
-        //    break;
-        //}
-
-        //hsha_server_stat_->io_write_responses_++;
-        //{
-        //    BaseResponse *resp((BaseResponse *)UThreadGetArgs(*socket));
-        //    if (!resp->fake()) {
-        //        ret = resp->ModifyResp(is_keep_alive, version);
-        //        ret = resp->Send(stream);
-        //        hsha_server_stat_->io_write_bytes_ += resp->GetContent().size();
-        //    }
-        //    delete resp;
-        //}
-
-        //hsha_server_stat_->rpc_time_costs_count_++;
-        //hsha_server_stat_->rpc_time_costs_ += time_cost.Cost();
-
-        //if (ReturnCode::OK != ret) {
-        //    hsha_server_stat_->io_write_fails_++;
-        //}
-
-        //if (!is_keep_alive || (ReturnCode::OK != ret)) {
-        //    break;
-        //}
-    }
-
-    hsha_server_stat_->hold_fds_--;
-}
-
-//UThreadSocket_t *FaServerIO::ActiveSocketFunc() {
-//    while (data_flow_->CanPluckResponse()) {
-//        void *args{nullptr};
-//        BaseResponse *resp{nullptr};
-//        int queue_wait_time_ms{data_flow_->PluckResponse(args, resp)};
-//        if (!resp) {
-//            //break out
-//            return nullptr;
-//        }
-//        hsha_server_stat_->outqueue_wait_time_costs_ += queue_wait_time_ms;
-//        hsha_server_stat_->outqueue_wait_time_costs_count_++;
-//
-//        UThreadSocket_t *socket = (UThreadSocket_t *)args;
-//        if (socket != nullptr && IsUThreadDestory(*socket)) {
-//            //socket aready timeout.
-//            //phxrpc::log(LOG_ERR, "%s socket aready timeout", __func__);
-//            UThreadClose(*socket);
-//            free(socket);
-//            delete resp;
-//            continue;
-//        }
-//
-//        UThreadSetArgs(*socket, (void *)resp);
-//        return socket;
-//    }
-//
-//    return nullptr;
-//}
-
-void FaServerIO::HandlerNewResponseFunc() {
-    while (data_flow_->CanPluckResponse()) {
-        void *args{nullptr};
-        BaseResponse *resp{nullptr};
-        int queue_wait_time_ms{data_flow_->PluckResponse(args, resp)};
-        if (!resp) {
-            return;
-        }
-        hsha_server_stat_->outqueue_wait_time_costs_ += queue_wait_time_ms;
-        hsha_server_stat_->outqueue_wait_time_costs_count_++;
-
-        scheduler_->AddTask(bind(&FaServerIO::UThreadOFunc, this, args,
-                                 resp, queue_wait_time_ms), nullptr);
-    }
-}
-
-void FaServerIO::UThreadOFunc(void *args, BaseResponse *resp, int queue_wait_time_ms) {
-    ServiceContext *context{(ServiceContext *)args};
-    if (!context) {
-        phxrpc::log(LOG_ERR, "context nullptr");
-        delete resp;
-
-        return;
-    }
-
-    // 1. update session
-    const auto &session(session_mgr_->GetBySessionId(context->session_id));
-    if (!session) {
-        phxrpc::log(LOG_ERR, "invalid session_id %" PRIx64, context->session_id);
-        delete context;
-        delete resp;
-
-        return;
-    }
-    if (context->destroy_session) {
-        // mqtt disconnect
-        session_router_->Delete(session->session_id);
-        session_mgr_->DeleteBySessionId(session->session_id);
-
-        delete context;
-        delete resp;
-
-        return;
-    }
-
-    if (context->init_session) {
-        // mqtt connect: if client_id exist, close old session
-        const auto &old_session(session_mgr_->GetByClientId(
-                context->session_attribute.client_identifier));
-        if (old_session) {
-            if (old_session->session_id == session->session_id) {
-                // mqtt-3.1.0-2: disconnect current connection
-
-                session_router_->Delete(session->session_id);
-                session_mgr_->DeleteBySessionId(session->session_id);
-
-                delete context;
-                delete resp;
-
-                return;
-            } else {
-                // mqtt-3.1.4-2: disconnect other connection with same client_id
-                session_router_->Delete(old_session->session_id);
-                session_mgr_->DeleteBySessionId(old_session->session_id);
-            }
-        }
-
-        // mqtt connect: set client_id and init
-        session->session_attribute = context->session_attribute;
-        session->Heartbeat();
-        session_router_->Add(session->session_id, idx_);
-    }
-
-    if (context->heartbeat_session) {
-        // mqtt ping
-        session->Heartbeat();
-    }
-
-    // 2. send response
-    if (!resp->fake()) {
-        ReturnCode ret{resp->Send(*(session->stream))};
-        // TODO: remove
-        printf("session_id %" PRIx64 " client_id \"%s\" Send ret %d idx %d\n",
-               context->session_id, session->session_attribute.client_identifier.c_str(), ret, idx_);
-        hsha_server_stat_->io_write_bytes_ += resp->GetContent().size();
-    }
-    delete context;
-    delete resp;
-}
-
-void FaServerIO::RunForever() {
-    scheduler_->SetHandlerAcceptedFdFunc(bind(&FaServerIO::HandlerAcceptedFd, this));
-    // TODO: don't hack HandlerNewRequestFunc
-    scheduler_->SetHandlerNewRequestFunc(bind(&FaServerIO::HandlerNewResponseFunc, this));
-    //scheduler_->SetActiveSocketFunc(bind(&FaServerIO::ActiveSocketFunc, this));
-    scheduler_->RunForever();
-}
-
-/////////////////////////////////////////////////
 
 HshaServerUnit::HshaServerUnit(
-        HshaServer *hsha_server,
         const int idx,
+        Server *const root_server,
+        HshaServer *const hsha_server,
         int worker_thread_count,
         int worker_uthread_count_per_thread,
-        int worker_utherad_stack_size,
+        int worker_uthread_stack_size,
         NotifierPoolRouter *const notifier_pool_router,
         Dispatch_t dispatch,
         void *args)
-        : hsha_server_(hsha_server),
+        : root_server_(root_server),
+          hsha_server_(hsha_server),
 #ifndef __APPLE__
           scheduler_(8 * 1024, 1000000, false),
 #else
@@ -1252,9 +232,8 @@ HshaServerUnit::HshaServerUnit(
 #endif
           worker_pool_(idx, &scheduler_, hsha_server_->config_,
                        worker_thread_count, worker_uthread_count_per_thread,
-                       worker_utherad_stack_size, notifier_pool_router,
-                       &data_flow_, &hsha_server_->cross_unit_data_flow_,
-                       &hsha_server_->hsha_server_stat_, dispatch, args),
+                       worker_uthread_stack_size, root_server, this, notifier_pool_router,
+                       &data_flow_, &hsha_server_->hsha_server_stat_, dispatch, args),
           hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_,
                           &hsha_server_->hsha_server_stat_,
                           &hsha_server_->hsha_server_qos_, &worker_pool_),
@@ -1275,57 +254,10 @@ bool HshaServerUnit::AddAcceptedFd(int accepted_fd) {
 
 int HshaServerUnit::NotifyTargetWorker(const int idx,
                                        const NotifierPoolRouter::NotifierId &notifier_id,
-                                       BaseResponse *resp) {
-    return worker_pool_.NotifyTarget(idx, notifier_id, resp);
+                                       void *const data) {
+    return worker_pool_.NotifyTarget(idx, notifier_id, data);
 }
 
-/////////////////////////////////////////////////
-
-FaServerUnit::FaServerUnit(
-        HshaServer *hsha_server,
-        const int idx,
-        int worker_thread_count,
-        int worker_uthread_count_per_thread,
-        int worker_utherad_stack_size,
-        NotifierPoolRouter *const notifier_pool_router,
-        Dispatch_t dispatch,
-        void *args, SessionRouter *session_router)
-        : hsha_server_(hsha_server),
-#ifndef __APPLE__
-          scheduler_(8 * 1024, 1000000, false),
-#else
-          scheduler_(32 * 1024, 1000000, false),
-#endif
-          worker_pool_(idx, &scheduler_, hsha_server_->config_,
-                       worker_thread_count, worker_uthread_count_per_thread,
-                       worker_utherad_stack_size, notifier_pool_router,
-                       &data_flow_, &hsha_server_->cross_unit_data_flow_,
-                       &hsha_server_->hsha_server_stat_, dispatch, args),
-          fa_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_,
-                        &hsha_server_->hsha_server_stat_, &hsha_server_->hsha_server_qos_,
-                        &worker_pool_, &session_mgr_, session_router),
-          thread_(&FaServerUnit::RunFunc, this) {
-}
-
-FaServerUnit::~FaServerUnit() {
-    thread_.join();
-}
-
-void FaServerUnit::RunFunc() {
-    fa_server_io_.RunForever();
-}
-
-bool FaServerUnit::AddAcceptedFd(int accepted_fd) {
-    return fa_server_io_.AddAcceptedFd(accepted_fd);
-}
-
-void FaServerUnit::PushResponse(void *args, BaseResponse *const resp) {
-    // TODO: mutex
-    data_flow_.PushResponse(args, resp);
-    //fa_server_io_.hsha_server_stat_.outqueue_push_responses_++;
-}
-
-/////////////////////////////////////////////////
 
 HshaServerAcceptor::HshaServerAcceptor(HshaServer *hsha_server)
         : hsha_server_(hsha_server) {
@@ -1384,75 +316,15 @@ void HshaServerAcceptor::LoopAccept(const char *bind_ip, const int port) {
     close(listen_fd);
 }
 
-/////////////////////////////////////////////////
 
-FaServerAcceptor::FaServerAcceptor(HshaServer *hsha_server)
-        : hsha_server_(hsha_server) {
-}
-
-FaServerAcceptor::~FaServerAcceptor() {
-}
-
-void FaServerAcceptor::LoopAccept(const char *bind_ip, const int port) {
-    int listen_fd{-1};
-    if (!BlockTcpUtils::Listen(&listen_fd, bind_ip, port)) {
-        printf("listen fail, ip %s mqtt_port %d\n", bind_ip, port);
-        exit(-1);
-    }
-
-    printf("listen succ, ip %s mqtt_port %d\n", bind_ip, port);
-
-#ifndef __APPLE__
-    cpu_set_t mask;
-    CPU_ZERO(&mask);
-    CPU_SET(0, &mask);
-    pid_t thread_id = 0;
-    int ret{sched_setaffinity(thread_id, sizeof(mask), &mask)};
-    if (ret != 0) {
-        printf("sched_setaffinity fail\n");
-    }
-#endif
-
-    while (true) {
-        struct sockaddr_in addr;
-        socklen_t socklen = sizeof(addr);
-        int accepted_fd{accept(listen_fd, (struct sockaddr *) &addr, &socklen)};
-        if (accepted_fd >= 0) {
-            if (!hsha_server_->hsha_server_qos_.CanAccept()) {
-                hsha_server_->hsha_server_stat_.rejected_fds_++;
-                phxrpc::log(LOG_ERR, "%s too many connection, reject accept, fd %d", __func__, accepted_fd);
-                close(accepted_fd);
-                continue;
-            }
-
-            idx_ %= hsha_server_->fa_server_unit_list_.size();
-            if (!hsha_server_->fa_server_unit_list_[idx_++]->AddAcceptedFd(accepted_fd)) {
-                hsha_server_->hsha_server_stat_.rejected_fds_++;
-                phxrpc::log(LOG_ERR, "%s accept queue full, reject accept, fd %d", __func__, accepted_fd);
-                close(accepted_fd);
-                continue;
-            }
-
-            hsha_server_->hsha_server_stat_.accepted_fds_++;
-            hsha_server_->hsha_server_stat_.hold_fds_++;
-        } else {
-            hsha_server_->hsha_server_stat_.accept_fail_++;
-        }
-    }
-
-    close(listen_fd);
-}
-
-////////////////////////////////////////
-
-HshaServer::HshaServer(const HshaServerConfig &config, Dispatch_t dispatch, void *args)
+HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args,
+                       Server *const root_server)
         : config_(&config),
           hsha_server_monitor_(MonitorFactory::GetFactory()->
                                CreateServerMonitor(config.GetPackageName())),
           hsha_server_stat_(&config, hsha_server_monitor_),
           hsha_server_qos_(&config, &hsha_server_stat_),
-          hsha_server_acceptor_(this),
-          fa_server_acceptor_(this) {
+          hsha_server_acceptor_(this), root_server_(root_server) {
     size_t io_count = (size_t)config.GetIOThreadCount();
     size_t worker_thread_count = (size_t)config.GetMaxThreads();
     assert(worker_thread_count > 0);
@@ -1460,25 +332,18 @@ HshaServer::HshaServer(const HshaServerConfig &config, Dispatch_t dispatch, void
         io_count = worker_thread_count;
     }
 
-    int worker_utherad_stack_size = config.GetWorkerUThreadStackSize();
+    int worker_uthread_stack_size = config.GetWorkerUThreadStackSize();
     size_t worker_thread_count_per_io = worker_thread_count / io_count;
     for (size_t i{0}; i < io_count; ++i) {
         if (i == io_count - 1) {
             worker_thread_count_per_io = worker_thread_count - (worker_thread_count_per_io * (io_count - 1));
         }
         auto hsha_server_unit =
-            new HshaServerUnit(this, i, (int)worker_thread_count_per_io,
-                    config.GetWorkerUThreadCount(), worker_utherad_stack_size,
+            new HshaServerUnit(i, root_server, this, (int)worker_thread_count_per_io,
+                    config.GetWorkerUThreadCount(), worker_uthread_stack_size,
                     &notifier_pool_router_, dispatch, args);
         assert(hsha_server_unit != nullptr);
         server_unit_list_.push_back(hsha_server_unit);
-
-        auto fa_hsha_server_unit =
-            new FaServerUnit(this, i, (int)worker_thread_count_per_io,
-                    config.GetWorkerUThreadCount(), worker_utherad_stack_size,
-                    &notifier_pool_router_, dispatch, args, &session_router_);
-        assert(fa_hsha_server_unit != nullptr);
-        fa_server_unit_list_.push_back(fa_hsha_server_unit);
     }
     printf("server already started, %zu io threads %zu workers\n", io_count, worker_thread_count);
     if (config.GetWorkerUThreadCount() > 0) {
@@ -1487,93 +352,55 @@ HshaServer::HshaServer(const HshaServerConfig &config, Dispatch_t dispatch, void
 }
 
 HshaServer::~HshaServer() {
-    for (auto &fa_server_unit : fa_server_unit_list_) {
-        delete fa_server_unit;
-    }
     for (auto &hsha_server_unit : server_unit_list_) {
         delete hsha_server_unit;
     }
 
-    cross_unit_resp_thread_.join();
-    cross_unit_req_thread_.join();
-    fa_accept_thread_.join();
     hsha_accept_thread_.join();
 }
 
-void HshaServer::RunForever() {
-    //hsha_server_acceptor_.LoopAccept(config_->GetBindIP(), config_->GetPort());
+void HshaServer::DoRunForever() {
     hsha_accept_thread_ = thread(&HshaServerAcceptor::LoopAccept, hsha_server_acceptor_,
                                  config_->GetBindIP(), config_->GetPort());
-    fa_accept_thread_ = thread(&FaServerAcceptor::LoopAccept, fa_server_acceptor_,
-                               config_->GetBindIP(), config_->GetMqttPort());
-    cross_unit_req_thread_ = thread(&HshaServer::LoopReadCrossUnitRequest, this);
-    cross_unit_resp_thread_ = thread(&HshaServer::LoopReadCrossUnitResponse, this);
 }
 
-void HshaServer::LoopReadCrossUnitRequest() {
-    while (true) {
-        while (cross_unit_data_flow_.CanPluckRequest()) {
-            void *args{nullptr};
-            BaseRequest *req{nullptr};
-            cross_unit_data_flow_.PluckRequest(args, req);
-            if (!req) {
-                continue;
-            }
-
-            // get session_id from args
-            uint64_t *session_id{(uint64_t *)args};
-            if (!session_id) {
-                phxrpc::log(LOG_ERR, "session_id nullptr");
-                delete req;
-
-                continue;
-            }
-
-            // push to server unit outqueue
-            int server_unit_idx{session_router_.Get(*session_id)};
-            ServiceContext *context{new ServiceContext};
-            context->session_id = *session_id;
-            // forward req and do not delete here
-            fa_server_unit_list_[server_unit_idx]->PushResponse(context, (BaseResponse *)req);
-
-            delete session_id;
-        }
-        usleep(5);
-    }
+int HshaServer::SendNotify(const NotifierPoolRouter::NotifierId &notifier_id, void *const data) {
+    auto idx{notifier_pool_router_.Get(notifier_id)};
+    return server_unit_list_[idx.first]->
+            NotifyTargetWorker(idx.second, notifier_id, data);
 }
 
-void HshaServer::LoopReadCrossUnitResponse() {
-    while (true) {
-        while (cross_unit_data_flow_.CanPluckResponse()) {
-            void *args{nullptr};
-            BaseResponse *resp{nullptr};
-            cross_unit_data_flow_.PluckResponse(args, resp);
-            if (!resp) {
-                continue;
-            }
+int HshaServer::WaitNotify(UThreadNotifierPool *const notifier_pool, const int pool_idx, const int worker_idx,
+                           const NotifierPoolRouter::NotifierId &notifier_id, void *&data) {
+    notifier_pool_router_.Add(notifier_id, make_pair(pool_idx, worker_idx));
+    // TODO: remove
+    auto temp(notifier_pool_router_.Get(notifier_id));
+    printf("%s notifier_pool_router idx %d:%d\n", __func__, temp.first, temp.second);
+    UThreadNotifier *notifier{nullptr};
+    int ret{notifier_pool->GetNotifier(move(notifier_id.ToUint128()), notifier)};
+    if (0 != ret) {
+        // TODO: remove
+        printf("%s GetNotifier err %d\n", __func__, ret);
+        notifier_pool_router_.Delete(notifier_id);
 
-            // get session_id and packet_id from args
-            const auto &notifier_id{(NotifierPoolRouter::NotifierId *)args};
-            if (!notifier_id) {
-                phxrpc::log(LOG_ERR, "notifier_id nullptr");
-                delete resp;
-
-                continue;
-            }
-
-            // push to server unit outqueue
-            auto idx{notifier_pool_router_.Get(*notifier_id)};
-            // forward resp and do not delete here
-            int ret{server_unit_list_[idx.first]->
-                    NotifyTargetWorker(idx.second, *notifier_id, resp)};
-            if (0 != ret) {
-                phxrpc::log(LOG_ERR, "NotifyTarget ret %d", ret);
-            }
-
-            delete notifier_id;
-        }
-        usleep(5);
+        return ret;
     }
+
+    // yield and wait
+    ret = notifier->WaitNotify(data);
+    if (0 != ret) {
+        // TODO: remove
+        printf("%s WaitNotify err %d\n", __func__, ret);
+        notifier_pool_router_.Delete(notifier_id);
+        notifier_pool->ReleaseNotifier(move(notifier_id.ToUint128()));
+
+        return ret;
+    }
+
+    notifier_pool_router_.Delete(notifier_id);
+    notifier_pool->ReleaseNotifier(move(notifier_id.ToUint128()));
+
+    return 0;
 }
 
 

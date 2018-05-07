@@ -44,6 +44,7 @@ class NameRender {
     //================================================================
 
     virtual const char *GetStubClassName(const char *name, char *dest, int size);
+    virtual const char *GetCallerClassName(const char *name, char *dest, int size);
     virtual const char *GetStubFileName(const char *name, char *dest, int size);
 
     virtual const char *GetClientClassName(const char *name, char *dest, int size);

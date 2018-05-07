@@ -19,16 +19,27 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#pragma once
+#include "server.h"
 
-#include "rpc/client_config.h"
-#include "rpc/client_monitor.h"
-#include "rpc/http_caller.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/mqtt_caller.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/resource_pool.h"
-#include "rpc/server.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
+
+using namespace std;
+
+
+namespace phxrpc {
+
+
+Server::Server(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args)
+        : hsha_server_(config, dispatch, args, this),
+          fa_server_(config, dispatch, args, this) {
+}
+
+Server::~Server() {}
+
+void Server::RunForever() {
+    hsha_server_.DoRunForever();
+    fa_server_.DoRunForever();
+}
+
+
+}  //namespace phxrpc
 

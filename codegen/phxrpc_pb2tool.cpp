@@ -19,14 +19,13 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <errno.h>
-#include <unistd.h>
-
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <errno.h>
 #include <string>
+#include <unistd.h>
 
 #include "syntax_tree.h"
 
@@ -55,85 +54,27 @@ void PrintHelp(const char *program) {
 }
 
 void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
-                const vector<string> &include_list, const bool mqtt) {
+                const vector<string> &include_list, const set<string> &protocols) {
     SyntaxTree syntax_tree;
-
-    int ret = ProtoUtils::Parse(pb_file, &syntax_tree, include_list);
-
+    int ret{ProtoUtils::Parse(pb_file, &syntax_tree, include_list)};
     if (0 != ret) {
         printf("parse proto file fail, please check error log\n");
         return;
     }
 
-    // printf( "parse(%s) = %d\n", pb_file, ret );
-
-    // mqtt
-    SyntaxFuncVector mqtt_funcs;
-
-    if (mqtt) {
-        SyntaxFunc connect_func;
-        connect_func.SetCmdID(-201);
-        connect_func.SetName("PhxMqttConnect");
-        connect_func.SetOptString("l:");
-        connect_func.SetUsage("-l <client_identifier>");
-        connect_func.GetReq()->SetType("phxrpc::MqttConnectPb");
-        connect_func.GetResp()->SetType("phxrpc::MqttConnackPb");
-        mqtt_funcs.push_back(connect_func);
-
-        SyntaxFunc publish_func;
-        publish_func.SetCmdID(-202);
-        publish_func.SetName("PhxMqttPublish");
-        publish_func.SetOptString("l:d:q:r:t:p:s:");
-        publish_func.SetUsage("-l <client_identifier> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>");
-        publish_func.GetReq()->SetType("phxrpc::MqttPublishPb");
-        publish_func.GetResp()->SetType("phxrpc::MqttPubackPb");
-        mqtt_funcs.push_back(publish_func);
-
-        SyntaxFunc puback_func;
-        puback_func.SetCmdID(-203);
-        puback_func.SetName("PhxMqttPuback");
-        puback_func.SetOptString("l:p:");
-        puback_func.SetUsage("-l <client_identifier> -p <packet_identifier>");
-        puback_func.GetReq()->SetType("phxrpc::MqttPubackPb");
-        puback_func.GetResp()->SetType("");
-        mqtt_funcs.push_back(puback_func);
-
-        SyntaxFunc subscribe_func;
-        subscribe_func.SetCmdID(-204);
-        subscribe_func.SetName("PhxMqttSubscribe");
-        subscribe_func.SetOptString("l:p:t:q:");
-        subscribe_func.SetUsage("-l <client_identifier> -p <packet_identifier> -t <topic_filters> -q <qoss>");
-        subscribe_func.GetReq()->SetType("phxrpc::MqttSubscribePb");
-        subscribe_func.GetResp()->SetType("phxrpc::MqttSubackPb");
-        mqtt_funcs.push_back(subscribe_func);
-
-        SyntaxFunc unsubscribe_func;
-        unsubscribe_func.SetCmdID(-205);
-        unsubscribe_func.SetName("PhxMqttUnsubscribe");
-        unsubscribe_func.SetOptString("l:p:t:");
-        unsubscribe_func.SetUsage("-l <client_identifier> -p <packet_identifier> -t <topic_filters>");
-        unsubscribe_func.GetReq()->SetType("phxrpc::MqttUnsubscribePb");
-        unsubscribe_func.GetResp()->SetType("phxrpc::MqttUnsubackPb");
-        mqtt_funcs.push_back(unsubscribe_func);
-
-        SyntaxFunc ping_func;
-        ping_func.SetCmdID(-206);
-        ping_func.SetName("PhxMqttPing");
-        ping_func.SetOptString("l:");
-        ping_func.SetUsage("-l <client_identifier>");
-        ping_func.GetReq()->SetType("phxrpc::MqttPingreqPb");
-        ping_func.GetResp()->SetType("phxrpc::MqttPingrespPb");
-        mqtt_funcs.push_back(ping_func);
-
-        SyntaxFunc disconnect_func;
-        disconnect_func.SetCmdID(-207);
-        disconnect_func.SetName("PhxMqttDisconnect");
-        disconnect_func.SetOptString("l:");
-        disconnect_func.SetUsage("-l <client_identifier>");
-        disconnect_func.GetReq()->SetType("phxrpc::MqttDisconnectPb");
-        disconnect_func.GetResp()->SetType("");
-        mqtt_funcs.push_back(disconnect_func);
-    }
+    map<string, SyntaxTree> protocol2syntax_tree_map;
+    for_each(protocols.begin(), protocols.end(),
+            [&](const string &protocol) {
+                SyntaxTree protocol_syntax_tree;
+                string protocol_path("phxrpc/");
+                protocol_path += protocol + "/" + protocol + ".proto";
+                ret = ProtoUtils::Parse(protocol_path.c_str(), &protocol_syntax_tree, include_list);
+                if (0 != ret) {
+                    printf("add protocol %s fail, please check error log\n", protocol.c_str());
+                    return;
+                }
+                protocol2syntax_tree_map.emplace(protocol, protocol_syntax_tree);
+            });
 
     NameRender name_render(syntax_tree.GetPrefix());
     ToolCodeRender code_render(name_render);
@@ -146,7 +87,7 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
         snprintf(filename, sizeof(filename), "%s/%s.h", dir_path, tmp);
         FILE *fp{fopen(filename, "w")};
         assert(nullptr != fp);
-        code_render.GenerateToolHpp(&syntax_tree, mqtt_funcs, fp);
+        code_render.GenerateToolHpp(&syntax_tree, protocol2syntax_tree_map, fp);
         fclose(fp);
 
         printf("\n%s: Build %s file ... done\n", program, filename);
@@ -159,7 +100,7 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
 
         FILE *fp{fopen(filename, "w")};
         assert(nullptr != fp);
-        code_render.GenerateToolCpp(&syntax_tree, mqtt_funcs, fp);
+        code_render.GenerateToolCpp(&syntax_tree, protocol2syntax_tree_map, fp);
         fclose(fp);
 
         printf("\n%s: Build %s file ... done\n", program, filename);
@@ -173,7 +114,7 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
         if (0 != access(filename, F_OK)) {
             FILE *fp{fopen(filename, "w")};
             assert(nullptr != fp);
-            code_render.GenerateToolImplHpp(&syntax_tree, mqtt_funcs, fp);
+            code_render.GenerateToolImplHpp(&syntax_tree, protocol2syntax_tree_map, fp);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -190,7 +131,7 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
         if (0 != access(filename, F_OK)) {
             FILE *fp{fopen(filename, "w")};
             assert(nullptr != fp);
-            code_render.GenerateToolImplCpp(&syntax_tree, mqtt_funcs, fp);
+            code_render.GenerateToolImplCpp(&syntax_tree, protocol2syntax_tree_map, fp);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -226,7 +167,9 @@ int main(int argc, char **argv) {
     vector<string> include_list;
     char real_path[1024]{0};
     char *rp{nullptr};
-    bool mqtt{false};
+    set<string> protocols;
+    // always add http
+    protocols.emplace("http");
 
     while (EOF != (c = getopt(argc, argv, "f:d:I:p:v"))) {
         switch (c) {
@@ -243,8 +186,8 @@ int main(int argc, char **argv) {
                 }
                 break;
             case 'p':
-                if (0 == strcasecmp(optarg, "mqtt"))
-                mqtt = true;
+                if (0 != strcmp(optarg, "http"))
+                    protocols.emplace(optarg);
                 break;
             default:
                 PrintHelp(argv[0]);
@@ -272,7 +215,7 @@ int main(int argc, char **argv) {
         path[strlen(path) - 1] = '\0';
     }
 
-    Proto2Tool(argv[0], pb_file, path, include_list, mqtt);
+    Proto2Tool(argv[0], pb_file, path, include_list, protocols);
 
     printf("\n");
 

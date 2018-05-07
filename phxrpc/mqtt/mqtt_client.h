@@ -32,6 +32,9 @@ class MqttConnect;
 class MqttConnack;
 class MqttPublish;
 class MqttPuback;
+class MqttPubrec;
+class MqttPubrel;
+class MqttPubcomp;
 class MqttSubscribe;
 class MqttSuback;
 class MqttUnsubscribe;
@@ -61,14 +64,28 @@ class MqttClient {
 
     // @return true: socket ok; false: socket error
     static int Publish(BaseTcpStream &socket, const MqttPublish &req,
-                       MqttPuback &resp, MqttStat &mqtt_stat);
-    static int Publish(BaseTcpStream &socket, const MqttPublish &req,
-                       MqttPuback &resp);
+                       MqttStat &mqtt_stat);
+    static int Publish(BaseTcpStream &socket, const MqttPublish &req);
 
     // @return true: socket ok; false: socket error
     static int Puback(BaseTcpStream &socket, const MqttPuback &req,
                       MqttStat &mqtt_stat);
     static int Puback(BaseTcpStream &socket, const MqttPuback &req);
+
+    // @return true: socket ok; false: socket error
+    static int Pubrec(BaseTcpStream &socket, const MqttPubrec &req,
+                       MqttStat &mqtt_stat);
+    static int Pubrec(BaseTcpStream &socket, const MqttPubrec &req);
+
+    // @return true: socket ok; false: socket error
+    static int Pubrel(BaseTcpStream &socket, const MqttPubrel &req,
+                       MqttStat &mqtt_stat);
+    static int Pubrel(BaseTcpStream &socket, const MqttPubrel &req);
+
+    // @return true: socket ok; false: socket error
+    static int Pubcomp(BaseTcpStream &socket, const MqttPubcomp &req,
+                       MqttStat &mqtt_stat);
+    static int Pubcomp(BaseTcpStream &socket, const MqttPubcomp &req);
 
     // @return true: socket ok; false: socket error
     static int Subscribe(BaseTcpStream &socket, const MqttSubscribe &req,

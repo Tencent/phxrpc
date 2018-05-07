@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package phxrpc.mqtt;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+import "phxrpc/rpc/phxrpc.proto";
+
+
+service Mqtt {
+
+    rpc PhxMqttConnect(MqttConnectPb) returns (MqttConnackPb) {
+        option(phxrpc.CmdID) = 2000011;
+        option(phxrpc.OptString) = "l:";
+        option(phxrpc.Usage) = "-l <client_identifier>";
+    }
+
+    rpc PhxMqttPublish(MqttPublishPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000012;
+        option(phxrpc.OptString) = "l:d:q:r:t:p:s:";
+        option(phxrpc.Usage) = "-l <client_identifier> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
+    }
+
+    rpc PhxMqttPuback(MqttPubackPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000013;
+        option(phxrpc.OptString) = "l:p:";
+        option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier>";
+    }
+
+    rpc PhxMqttPubrec(MqttPubrecPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000014;
+        option(phxrpc.OptString) = "";
+        option(phxrpc.Usage) = "";
+    }
+
+    rpc PhxMqttPubrel(MqttPubrelPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000015;
+        option(phxrpc.OptString) = "";
+        option(phxrpc.Usage) = "";
+    }
+
+    rpc PhxMqttPubcomp(MqttPubcompPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000016;
+        option(phxrpc.OptString) = "";
+        option(phxrpc.Usage) = "";
+    }
+
+    rpc PhxMqttSubscribe(MqttSubscribePb) returns (MqttSubackPb) {
+        option(phxrpc.CmdID) = 2000017;
+        option(phxrpc.OptString) = "l:p:t:q:";
+        option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters> -q <qoss>";
+    }
+
+    rpc PhxMqttUnsubscribe(MqttUnsubscribePb) returns (MqttUnsubackPb) {
+        option(phxrpc.CmdID) = 2000018;
+        option(phxrpc.OptString) = "l:p:t:";
+        option(phxrpc.Usage) = "-l <client_identifier> -p <packet_identifier> -t <topic_filters>";
+    }
+
+    rpc PhxMqttPing(MqttPingreqPb) returns (MqttPingrespPb) {
+        option(phxrpc.CmdID) = 2000019;
+        option(phxrpc.OptString) = "l:";
+        option(phxrpc.Usage) = "-l <client_identifier>";
+    }
+
+    rpc PhxMqttDisconnect(MqttDisconnectPb) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2000020;
+        option(phxrpc.OptString) = "l:";
+        option(phxrpc.Usage) = "-l <client_identifier>";
+    }
+
+}
+

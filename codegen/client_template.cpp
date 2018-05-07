@@ -35,8 +35,7 @@ class $ClientClass$ {
     $ClientClass$();
     virtual ~$ClientClass$();
 
-$ClientClassFuncDeclarations$
-};
+$ClientClassFuncDeclarations$};
 
 )";
 

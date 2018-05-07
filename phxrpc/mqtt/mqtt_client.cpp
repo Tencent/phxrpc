@@ -86,6 +86,8 @@ namespace phxrpc {
 
 int MqttClient::Connect(BaseTcpStream &socket, const MqttConnect &req,
                         MqttConnack &resp, MqttStat &mqtt_stat) {
+    // TODO: remove
+    printf("%s client_identifier %s\n", __func__, req.client_identifier().c_str());
     return static_cast<int>(DoMethod(socket, &req, &resp, mqtt_stat));
 }
 
@@ -95,12 +97,13 @@ int MqttClient::Connect(BaseTcpStream &socket, const MqttConnect &req,
 }
 
 int MqttClient::Publish(BaseTcpStream &socket, const MqttPublish &req,
-                        MqttPuback &resp, MqttStat &mqtt_stat) {
+                        MqttStat &mqtt_stat) {
+    MqttFakeResponse resp;
     return static_cast<int>(DoMethod(socket, &req, &resp, mqtt_stat));
 }
 
-int MqttClient::Publish(BaseTcpStream &socket, const MqttPublish &req,
-                        MqttPuback &resp) {
+int MqttClient::Publish(BaseTcpStream &socket, const MqttPublish &req) {
+    MqttFakeResponse resp;
     return static_cast<int>(DoMethod(socket, &req, &resp));
 }
 
@@ -111,6 +114,39 @@ int MqttClient::Puback(BaseTcpStream &socket, const MqttPuback &req,
 }
 
 int MqttClient::Puback(BaseTcpStream &socket, const MqttPuback &req) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp));
+}
+
+int MqttClient::Pubrec(BaseTcpStream &socket, const MqttPubrec &req,
+                       MqttStat &mqtt_stat) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp, mqtt_stat));
+}
+
+int MqttClient::Pubrec(BaseTcpStream &socket, const MqttPubrec &req) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp));
+}
+
+int MqttClient::Pubrel(BaseTcpStream &socket, const MqttPubrel &req,
+                       MqttStat &mqtt_stat) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp, mqtt_stat));
+}
+
+int MqttClient::Pubrel(BaseTcpStream &socket, const MqttPubrel &req) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp));
+}
+
+int MqttClient::Pubcomp(BaseTcpStream &socket, const MqttPubcomp &req,
+                       MqttStat &mqtt_stat) {
+    MqttFakeResponse resp;
+    return static_cast<int>(DoMethod(socket, &req, &resp, mqtt_stat));
+}
+
+int MqttClient::Pubcomp(BaseTcpStream &socket, const MqttPubcomp &req) {
     MqttFakeResponse resp;
     return static_cast<int>(DoMethod(socket, &req, &resp));
 }
