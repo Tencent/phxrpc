@@ -22,6 +22,7 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include <cstdio>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -39,31 +40,30 @@ class ClientCodeRender {
     ClientCodeRender(NameRender &name_render);
     virtual ~ClientCodeRender();
 
-    void GenerateStubHpp(SyntaxTree *stree, const SyntaxFuncVector &mqtt_funcs,
+    void GenerateStubHpp(SyntaxTree *stree,
+                         const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                          FILE *write);
 
-    void GenerateStubCpp(SyntaxTree *stree, const SyntaxFuncVector &mqtt_funcs,
+    void GenerateStubCpp(SyntaxTree *stree,
+                         const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                          FILE *write);
 
     void GenerateClientHpp(SyntaxTree *stree,
-                           const SyntaxFuncVector &mqtt_funcs,
+                           const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                            FILE *write, const bool is_uthread_mode);
 
     void GenerateClientCpp(SyntaxTree *stree,
-                           const SyntaxFuncVector &mqtt_funcs,
+                           const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                            FILE *write, const bool is_uthread_mode);
 
     void GenerateClientEtc(SyntaxTree *stree, FILE *write);
 
   private:
-    void GetStubFuncDeclaration(SyntaxTree *stree, const SyntaxFunc *const func,
+    void GetStubFuncDeclaration(const SyntaxTree *const stree, const SyntaxFunc *const func,
                                 int is_header, std::string *result);
 
-    void GenerateMqttStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
-                              FILE *write);
-
-    void GenerateStubFunc(SyntaxTree *stree, const SyntaxFunc *const func,
-                          FILE *write);
+    void GenerateStubFunc(const SyntaxTree *const stree, const SyntaxTree *const stree2,
+                          const SyntaxFunc *const func, FILE *write, const bool use_default_caller);
 
     void GetClienfuncDeclaration(SyntaxTree *stree,
                                  const SyntaxFunc *const func,

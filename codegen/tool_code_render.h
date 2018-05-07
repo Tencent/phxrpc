@@ -22,6 +22,7 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include <cstdio>
+#include <map>
 #include <vector>
 
 
@@ -39,19 +40,19 @@ class ToolCodeRender {
     virtual ~ToolCodeRender();
 
     void GenerateToolHpp(SyntaxTree *stree,
-                         const SyntaxFuncVector &mqtt_funcs,
+                         const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                          FILE *write);
 
     void GenerateToolCpp(SyntaxTree *stree,
-                         const SyntaxFuncVector &mqtt_funcs,
+                         const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                          FILE *write);
 
     void GenerateToolImplHpp(SyntaxTree *stree,
-                             const SyntaxFuncVector &mqtt_funcs,
+                             const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                              FILE *write);
 
     void GenerateToolImplCpp(SyntaxTree *stree,
-                             const SyntaxFuncVector &mqtt_funcs,
+                             const std::map<std::string, SyntaxTree> &protocol2syntax_tree_map,
                              FILE *write);
 
     void GenerateToolMainCpp(SyntaxTree *stree, FILE *write);

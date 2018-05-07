@@ -41,7 +41,7 @@ ToolCodeRender::~ToolCodeRender() {
 }
 
 void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
-                                     const SyntaxFuncVector &mqtt_funcs,
+                                     const map<string, SyntaxTree> &protocol2syntax_tree_map,
                                      FILE *write) {
     char filename[128]{0};
     name_render_.GetToolFileName(stree->GetName(), filename, sizeof(filename));
@@ -55,9 +55,6 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     fprintf(write, "#pragma once\n");
-    fprintf(write, "\n");
-
-    fprintf(write, "#include <cstdio>\n");
     fprintf(write, "\n");
     fprintf(write, "\n");
 
@@ -73,7 +70,7 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "class %s {\n", clasname);
     fprintf(write, "  public:\n");
@@ -81,11 +78,16 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
     fprintf(write, "    virtual ~%s();\n", clasname);
     fprintf(write, "\n");
 
-    for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
-         ++mqtt_it) {
-        fprintf(write, "    virtual int %s(phxrpc::OptMap &bigmap);\n", mqtt_it->GetName());
+    for (const auto &kv : protocol2syntax_tree_map) {
+        fprintf(write, "    // %s protocol\n", kv.first.c_str());
+        const auto &funcs{kv.second.GetFuncList()};
+        for (const auto &func : *funcs) {
+            fprintf(write, "    virtual int %s(phxrpc::OptMap &bigmap);\n", func.GetName());
+        }
+        fprintf(write, "\n");
     }
 
+    fprintf(write, "    // user custom\n");
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
@@ -105,11 +107,15 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
     fprintf(write, "    static Name2Func_t *GetName2Func() {\n");
     fprintf(write, "        static Name2Func_t name2func[]{\n");
     {
-        for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
-            ++mqtt_it) {
-            fprintf(write, "            {\"%s\", &%s::%s, \"c:f:v%s\",\n                    \"%s\"},\n",
-                    mqtt_it->GetName(), clasname,
-                    mqtt_it->GetName(), mqtt_it->GetOptString(), mqtt_it->GetUsage());
+        for (const auto &kv : protocol2syntax_tree_map) {
+            const auto &funcs{kv.second.GetFuncList()};
+            for (const auto &func : *funcs) {
+                if (0 < strlen(func.GetOptString())) {
+                    fprintf(write, "            {\"%s\", &%s::%s, \"c:f:v%s\",\n                    \"%s\"},\n",
+                            func.GetName(), clasname,
+                            func.GetName(), func.GetOptString(), func.GetUsage());
+                }
+            }
         }
 
         SyntaxFuncVector *flist{stree->GetFuncList()};
@@ -135,7 +141,7 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree,
 }
 
 void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree,
-                                     const SyntaxFuncVector &mqtt_funcs,
+                                     const map<string, SyntaxTree> &protocol2syntax_tree_map,
                                      FILE *write) {
     char filename[128]{0};
     name_render_.GetToolFileName(stree->GetName(), filename, sizeof(filename));
@@ -161,7 +167,7 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "%s::%s() {\n", clasname, clasname);
     fprintf(write, "}\n");
@@ -172,17 +178,23 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char client_class[128]{0};
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
 
-    for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
-         ++mqtt_it) {
-        fprintf(write, "int %s::%s(phxrpc::OptMap &/* opt_map */) {\n", clasname, mqtt_it->GetName());
-        fprintf(write, "    printf(\"\\n    *** %s unimplement ***\\n\");\n\n", mqtt_it->GetName());
-        fprintf(write, "    return -1;\n");
-        fprintf(write, "}\n");
+    for (const auto &kv : protocol2syntax_tree_map) {
+        fprintf(write, "// %s protocol\n", kv.first.c_str());
         fprintf(write, "\n");
+        const auto &funcs{kv.second.GetFuncList()};
+        for (const auto &func : *funcs) {
+            fprintf(write, "int %s::%s(phxrpc::OptMap &/* opt_map */) {\n", clasname, func.GetName());
+            fprintf(write, "    printf(\"\\n    *** %s unimplement ***\\n\");\n\n", func.GetName());
+            fprintf(write, "    return -1;\n");
+            fprintf(write, "}\n");
+            fprintf(write, "\n");
+        }
     }
 
+    fprintf(write, "// user custom\n");
+    fprintf(write, "\n");
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
@@ -195,7 +207,7 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree,
 }
 
 void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree,
-                                         const SyntaxFuncVector &mqtt_funcs,
+                                         const map<string, SyntaxTree> &protocol2syntax_tree_map,
                                          FILE *write) {
     char filename[128]{0};
     name_render_.GetToolImplFileName(stree->GetName(), filename, sizeof(filename));
@@ -215,11 +227,6 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree,
     name_render_.GetToolFileName(stree->GetName(), toolfile, sizeof(toolfile));
 
     fprintf(write, "#include \"%s.h\"\n", toolfile);
-
-    fprintf(write, "\n");
-
-    fprintf(write, "#include <cstdio>\n");
-
     fprintf(write, "\n");
     fprintf(write, "\n");
 
@@ -235,19 +242,24 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "class %sImpl : public %s {\n", clasname, clasname);
     fprintf(write, "  public:\n");
     fprintf(write, "    %sImpl();\n", clasname);
-    fprintf(write, "    virtual ~%sImpl();\n", clasname);
+    fprintf(write, "    virtual ~%sImpl() override;\n", clasname);
     fprintf(write, "\n");
 
-    for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
-         ++mqtt_it) {
-        fprintf(write, "    virtual int %s(phxrpc::OptMap &opt_map) override;\n", mqtt_it->GetName());
+    for (const auto &kv : protocol2syntax_tree_map) {
+        fprintf(write, "    // %s protocol\n", kv.first.c_str());
+        const auto &funcs{kv.second.GetFuncList()};
+        for (const auto &func : *funcs) {
+          fprintf(write, "    virtual int %s(phxrpc::OptMap &opt_map) override;\n", func.GetName());
+        }
+        fprintf(write, "\n");
     }
 
+    fprintf(write, "    // user custom\n");
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
@@ -260,7 +272,7 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree,
 }
 
 void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree,
-                                         const SyntaxFuncVector &mqtt_funcs,
+                                         const map<string, SyntaxTree> &protocol2syntax_tree_map,
                                          FILE *write) {
     char filename[128]{0};
     name_render_.GetToolImplFileName(stree->GetName(), filename, sizeof(filename));
@@ -290,7 +302,7 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char clasname[128]{0};
-    name_render_.GetToolImplClasname(stree->GetName(), clasname, sizeof(clasname));
+    name_render_.GetToolImplClassName(stree->GetName(), clasname, sizeof(clasname));
 
     fprintf(write, "%s::%s() {\n", clasname, clasname);
     fprintf(write, "}\n");
@@ -301,53 +313,40 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree,
     fprintf(write, "\n");
 
     char client_class[128]{0}, req_class[128]{0}, resp_class[128]{0};
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
 
-    for (auto mqtt_it(mqtt_funcs.cbegin()); mqtt_funcs.cend() != mqtt_it;
-         ++mqtt_it) {
-        name_render_.GetMessageClasname(mqtt_it->GetReq()->GetType(), req_class, sizeof(req_class));
-        const char *const resp_type{mqtt_it->GetResp()->GetType()};
-        if (resp_type && 0 < strlen(resp_type)) {
-            name_render_.GetMessageClasname(mqtt_it->GetResp()->GetType(), resp_class, sizeof(resp_class));
-        }
+    for (const auto &kv : protocol2syntax_tree_map) {
+        fprintf(write, "// %s protocol\n", kv.first.c_str());
+        fprintf(write, "\n");
+        const auto &funcs{kv.second.GetFuncList()};
+        for (const auto &func : *funcs) {
+            name_render_.GetMessageClassName(func.GetReq()->GetType(), req_class, sizeof(req_class));
+            name_render_.GetMessageClassName(func.GetResp()->GetType(), resp_class, sizeof(resp_class));
 
-        fprintf(write, "int %s::%s(phxrpc::OptMap &opt_map) {\n", clasname, mqtt_it->GetName());
-        fprintf(write, "    %s req;\n", req_class);
-        if (resp_type && 0 < strlen(resp_type)) {
+            fprintf(write, "int %s::%s(phxrpc::OptMap &opt_map) {\n", clasname, func.GetName());
+            fprintf(write, "    %s req;\n", req_class);
             fprintf(write, "    %s resp;\n", resp_class);
-        }
-        fprintf(write, "\n");
-
-        if (0 == strcmp("PhxMqttPublish", mqtt_it->GetName())) {
-            fprintf(write, "    if (nullptr == opt_map.Get('t')) return -1;\n");
-            fprintf(write, "    if (nullptr == opt_map.Get('s')) return -1;\n\n");
-            fprintf(write, "    req.set_topic_name(opt_map.Get('t'));\n");
-            fprintf(write, "    req.set_content(opt_map.Get('s'));\n");
-        }
-
-        fprintf(write, "\n");
-        fprintf(write, "    %s client;\n", client_class);
-        if (resp_type && 0 < strlen(resp_type)) {
-            fprintf(write, "    int ret{client.%s(req, &resp)};\n", mqtt_it->GetName());
-        } else {
-            fprintf(write, "    int ret{client.%s(req)};\n", mqtt_it->GetName());
-        }
-        fprintf(write, "    printf(\"%%s return %%d\\n\", __func__, ret);\n");
-        if (resp_type && 0 < strlen(resp_type)) {
+            fprintf(write, "\n");
+            fprintf(write, "    // TODO: fill req from opt_map\n");
+            fprintf(write, "\n");
+            fprintf(write, "    %s client;\n", client_class);
+            fprintf(write, "    int ret{client.%s(req, &resp)};\n", func.GetName());
+            fprintf(write, "    printf(\"%%s return %%d\\n\", __func__, ret);\n");
             fprintf(write, "    printf(\"resp: {\\n%%s}\\n\", resp.DebugString().c_str());\n");
+            fprintf(write, "\n");
+            fprintf(write, "    return ret;\n");
+            fprintf(write, "}\n");
+            fprintf(write, "\n");
         }
-        fprintf(write, "\n");
-        fprintf(write, "    return ret;\n");
-        fprintf(write, "}\n");
-        fprintf(write, "\n");
     }
-    fprintf(write, "\n");
 
+    fprintf(write, "// user custom\n");
+    fprintf(write, "\n");
     SyntaxFuncVector *flist{stree->GetFuncList()};
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
-        name_render_.GetMessageClasname(fit->GetReq()->GetType(), req_class, sizeof(req_class));
-        name_render_.GetMessageClasname(fit->GetResp()->GetType(), resp_class, sizeof(resp_class));
+        name_render_.GetMessageClassName(fit->GetReq()->GetType(), req_class, sizeof(req_class));
+        name_render_.GetMessageClassName(fit->GetResp()->GetType(), resp_class, sizeof(resp_class));
 
         fprintf(write, "int %s::%s(phxrpc::OptMap &opt_map) {\n", clasname, fit->GetName());
         fprintf(write, "    %s req;\n", req_class);
@@ -389,11 +388,11 @@ void ToolCodeRender::GenerateToolMainCpp(SyntaxTree *stree, FILE *write) {
     char tool_impl_class[128]{0}, tool_impl_file[128]{0};
     char client_class[128]{0}, client_file[128]{0};
 
-    name_render_.GetToolClasname(stree->GetName(), tool_class, sizeof(tool_class));
+    name_render_.GetToolClassName(stree->GetName(), tool_class, sizeof(tool_class));
     name_render_.GetToolFileName(stree->GetName(), tool_file, sizeof(tool_file));
-    name_render_.GetToolImplClasname(stree->GetName(), tool_impl_class, sizeof(tool_impl_class));
+    name_render_.GetToolImplClassName(stree->GetName(), tool_impl_class, sizeof(tool_impl_class));
     name_render_.GetToolImplFileName(stree->GetName(), tool_impl_file, sizeof(tool_impl_file));
-    name_render_.GetClientClasname(stree->GetName(), client_class, sizeof(client_class));
+    name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
     name_render_.GetClientFileName(stree->GetName(), client_file, sizeof(client_file));
 
     string content(PHXRPC_TOOL_MAIN_TEMPLATE);

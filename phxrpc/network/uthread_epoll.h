@@ -66,8 +66,8 @@ class UThreadNotifier final {
     ~UThreadNotifier();
 
     int Init(UThreadEpollScheduler *const scheduler, const int timeout_ms);
-    int SendNotify(void *const value);
-    int WaitNotify(void *&value);
+    int SendNotify(void *const data);
+    int WaitNotify(void *&data);
 
   private:
     UThreadEpollScheduler *scheduler_{nullptr};

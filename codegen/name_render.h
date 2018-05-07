@@ -38,17 +38,18 @@ class NameRender {
 
     virtual const char *GetPrefix(char *dest, int size);
 
-    virtual const char *GetMessageClasname(const char *type, char *name, int size);
+    virtual const char *GetMessageClassName(const char *type, char *name, int size);
     virtual const char *GetMessageFileName(const char *name, char *dest, int size);
 
     //================================================================
 
-    virtual const char *GetStubClasname(const char *name, char *dest, int size);
+    virtual const char *GetStubClassName(const char *name, char *dest, int size);
+    virtual const char *GetCallerClassName(const char *name, char *dest, int size);
     virtual const char *GetStubFileName(const char *name, char *dest, int size);
 
-    virtual const char *GetClientClasname(const char *name, char *dest, int size);
+    virtual const char *GetClientClassName(const char *name, char *dest, int size);
 
-    virtual const char *GetClientClasnameLower(const char *name, char *dest, int size);
+    virtual const char *GetClientClassNameLower(const char *name, char *dest, int size);
 
     virtual const char *GetClientFileName(const char *name, char *dest, int size);
 
@@ -56,18 +57,18 @@ class NameRender {
 
     //================================================================
 
-    virtual const char *GetServiceClasname(const char *name, char *dest, int size);
+    virtual const char *GetServiceClassName(const char *name, char *dest, int size);
     virtual const char *GetServiceFileName(const char *name, char *dest, int size);
 
-    virtual const char *GetServiceImplClasname(const char *name, char *dest, int size);
+    virtual const char *GetServiceImplClassName(const char *name, char *dest, int size);
     virtual const char *GetServiceImplFileName(const char *name, char *dest, int size);
 
-    virtual const char *GetDispatcherClasname(const char *name, char *dest, int size);
+    virtual const char *GetDispatcherClassName(const char *name, char *dest, int size);
     virtual const char *GetDispatcherFileName(const char *name, char *dest, int size);
 
     //================================================================
 
-    virtual const char *GetServerConfigClasname(const char *name, char *dest, int size);
+    virtual const char *GetServerConfigClassName(const char *name, char *dest, int size);
     virtual const char *GetServerConfigFileName(const char *name, char *dest, int size);
 
     virtual const char *GetServerEtcFileName(const char *name, char *dest, int size);
@@ -76,10 +77,10 @@ class NameRender {
 
     //================================================================
 
-    virtual const char *GetToolClasname(const char *name, char *dest, int size);
+    virtual const char *GetToolClassName(const char *name, char *dest, int size);
     virtual const char *GetToolFileName(const char *name, char *dest, int size);
 
-    virtual const char *GetToolImplClasname(const char *name, char *dest, int size);
+    virtual const char *GetToolImplClassName(const char *name, char *dest, int size);
     virtual const char *GetToolImplFileName(const char *name, char *dest, int size);
 
     virtual const char *GetToolMainFileName(const char *name, char *dest, int size);

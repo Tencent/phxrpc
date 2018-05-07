@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package phxrpc.http;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/empty.proto";
+
+import "phxrpc/rpc/phxrpc.proto";
+
+
+service Http {
+
+    rpc PhxEcho(google.protobuf.StringValue) returns (google.protobuf.StringValue) {
+        option(phxrpc.CmdID) = 2000001;
+        option(phxrpc.OptString) = "s:";
+        option(phxrpc.Usage) = "-s <string>";
+    }
+
+    rpc PhxHttpPublish(HttpPublishPb) returns (HttpPubackPb) {
+        option(phxrpc.CmdID) = 2000031;
+        option(phxrpc.OptString) = "e:d:q:r:t:p:s:";
+        option(phxrpc.Usage) = "-e <session_id_hex> -d <dup> -q <qos> -r <retain> -t <topic_name> -p <packet_identifier> -s <string>";
+    }
+
+}
+

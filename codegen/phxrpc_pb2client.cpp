@@ -19,13 +19,12 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <errno.h>
-#include <unistd.h>
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <errno.h>
 #include <string>
+#include <unistd.h>
 
 #include "syntax_tree.h"
 #include "name_render.h"
@@ -53,45 +52,29 @@ void PrintHelp(const char *program) {
     return;
 }
 
-void Proto2Client(const char *program, const char *proto_file,
+void Proto2Client(const char *program, const char *pb_file,
                   const char *dir_path, const vector<string> &include_list,
-                  const bool is_uthread_mode, const bool mqtt) {
+                  const bool is_uthread_mode, const set<string> &protocols) {
     SyntaxTree syntax_tree;
-
-    int ret{ProtoUtils::Parse(proto_file, &syntax_tree, include_list)};
-
+    int ret{ProtoUtils::Parse(pb_file, &syntax_tree, include_list)};
     if (0 != ret) {
-        printf("parse Proto file fail, please check error log\n");
+        printf("parse proto file fail, please check error log\n");
         return;
     }
 
-    // mqtt
-    SyntaxFuncVector mqtt_funcs;
-
-    if (mqtt) {
-        SyntaxFunc connect_func;
-        connect_func.SetCmdID(-201);
-        connect_func.SetName("PhxMqttConnect");
-        connect_func.GetReq()->SetType("phxrpc::MqttConnectPb");
-        connect_func.GetResp()->SetType("phxrpc::MqttConnackPb");
-        mqtt_funcs.push_back(connect_func);
-
-        SyntaxFunc publish_func;
-        publish_func.SetCmdID(-202);
-        publish_func.SetName("PhxMqttPublish");
-        publish_func.SetOptString("s:");
-        publish_func.SetUsage("-s <string>");
-        publish_func.GetReq()->SetType("phxrpc::MqttPublishPb");
-        publish_func.GetResp()->SetType("phxrpc::MqttPubackPb");
-        mqtt_funcs.push_back(publish_func);
-
-        SyntaxFunc disconnect_func;
-        disconnect_func.SetCmdID(-207);
-        disconnect_func.SetName("PhxMqttDisconnect");
-        disconnect_func.GetReq()->SetType("phxrpc::MqttDisconnectPb");
-        disconnect_func.GetResp()->SetType("");
-        mqtt_funcs.push_back(disconnect_func);
-    }
+    map<string, SyntaxTree> protocol2syntax_tree_map;
+    for_each(protocols.begin(), protocols.end(),
+            [&](const string &protocol) {
+                SyntaxTree protocol_syntax_tree;
+                string protocol_path("phxrpc/");
+                protocol_path += protocol + "/" + protocol + ".proto";
+                ret = ProtoUtils::Parse(protocol_path.c_str(), &protocol_syntax_tree, include_list);
+                if (0 != ret) {
+                    printf("add protocol %s fail, please check error log\n", protocol.c_str());
+                    return;
+                }
+                protocol2syntax_tree_map.emplace(protocol, protocol_syntax_tree);
+            });
 
     NameRender name_render(syntax_tree.GetPrefix());
     ClientCodeRender code_render(name_render);
@@ -104,7 +87,7 @@ void Proto2Client(const char *program, const char *proto_file,
         snprintf(filename, sizeof(filename), "%s/%s.h", dir_path, tmp);
 
         FILE *fp{fopen(filename, "w")};
-        code_render.GenerateStubHpp(&syntax_tree, mqtt_funcs, fp);
+        code_render.GenerateStubHpp(&syntax_tree, protocol2syntax_tree_map, fp);
         fclose(fp);
 
         printf("\n%s: Build %s file ... done\n", program, filename);
@@ -116,7 +99,7 @@ void Proto2Client(const char *program, const char *proto_file,
         snprintf(filename, sizeof(filename), "%s/%s.cpp", dir_path, tmp);
 
         FILE *fp{fopen(filename, "w")};
-        code_render.GenerateStubCpp(&syntax_tree, mqtt_funcs, fp);
+        code_render.GenerateStubCpp(&syntax_tree, protocol2syntax_tree_map, fp);
         fclose(fp);
 
         printf("\n%s: Build %s file ... done\n", program, filename);
@@ -134,7 +117,7 @@ void Proto2Client(const char *program, const char *proto_file,
         if (0 != access(name4hpp, F_OK)) {
             if (0 != access(filename, F_OK)) {
                 FILE *fp{fopen(filename, "w")};
-                code_render.GenerateClientHpp(&syntax_tree, mqtt_funcs, fp, false);
+                code_render.GenerateClientHpp(&syntax_tree, protocol2syntax_tree_map, fp, false);
                 fclose(fp);
 
                 printf("\n%s: Build %s file ... done\n", program, filename);
@@ -158,7 +141,7 @@ void Proto2Client(const char *program, const char *proto_file,
         if (0 != access(name4hpp, F_OK)) {
             if (0 != access(filename, F_OK)) {
                 FILE *fp{fopen(filename, "w")};
-                code_render.GenerateClientHpp(&syntax_tree, mqtt_funcs, fp, is_uthread_mode);
+                code_render.GenerateClientHpp(&syntax_tree, protocol2syntax_tree_map, fp, is_uthread_mode);
                 fclose(fp);
 
                 printf("\n%s: Build %s file ... done\n", program, filename);
@@ -177,7 +160,7 @@ void Proto2Client(const char *program, const char *proto_file,
 
         if (0 != access(filename, F_OK)) {
             FILE *fp{fopen(filename, "w")};
-            code_render.GenerateClientCpp(&syntax_tree, mqtt_funcs, fp, false);
+            code_render.GenerateClientCpp(&syntax_tree, protocol2syntax_tree_map, fp, false);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -194,7 +177,7 @@ void Proto2Client(const char *program, const char *proto_file,
 
         if (0 != access(filename, F_OK)) {
             FILE *fp{fopen(filename, "w")};
-            code_render.GenerateClientCpp(&syntax_tree, mqtt_funcs, fp, is_uthread_mode);
+            code_render.GenerateClientCpp(&syntax_tree, protocol2syntax_tree_map, fp, is_uthread_mode);
             fclose(fp);
 
             printf("\n%s: Build %s file ... done\n", program, filename);
@@ -221,7 +204,7 @@ void Proto2Client(const char *program, const char *proto_file,
 }
 
 int main(int argc, char **argv) {
-    const char *proto_file{nullptr};
+    const char *pb_file{nullptr};
     const char *dir_path{nullptr};
 
     extern char *optarg;
@@ -230,12 +213,14 @@ int main(int argc, char **argv) {
     char real_path[1024]{0};
     char *rp{nullptr};
     bool is_uthread_mode{false};
-    bool mqtt{false};
+    set<string> protocols;
+    // always add http
+    protocols.emplace("http");
 
     while (EOF != (c = getopt(argc, argv, "f:d:I:p:uv"))) {
         switch (c) {
             case 'f':
-                proto_file = optarg;
+                pb_file = optarg;
                 break;
             case 'd':
                 dir_path = optarg;
@@ -247,8 +232,8 @@ int main(int argc, char **argv) {
                 }
                 break;
             case 'p':
-                if (0 == strcasecmp(optarg, "mqtt"))
-                mqtt = true;
+                if (0 != strcmp(optarg, "http"))
+                    protocols.emplace(optarg);
                 break;
             case 'u':
                 is_uthread_mode = true;
@@ -260,7 +245,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (nullptr == proto_file || nullptr == dir_path) {
+    if (nullptr == pb_file || nullptr == dir_path) {
         printf("Invalid arguments\n");
 
         PrintHelp(argv[0]);
@@ -279,7 +264,7 @@ int main(int argc, char **argv) {
         path[strlen(path) - 1] = '\0';
     }
 
-    Proto2Client(argv[0], proto_file, path, include_list, is_uthread_mode, mqtt);
+    Proto2Client(argv[0], pb_file, path, include_list, is_uthread_mode, protocols);
 
     printf("\n");
 

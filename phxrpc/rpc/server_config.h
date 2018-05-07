@@ -45,6 +45,9 @@ class ServerConfig {
     void SetPort(int port);
     int GetPort() const;
 
+    void SetMqttPort(int mqtt_port);
+    int GetMqttPort() const;
+
     void SetMaxThreads(int max_threads);
     int GetMaxThreads() const;
 
@@ -62,6 +65,7 @@ class ServerConfig {
   private:
     char bind_ip_[32];
     int port_;
+    int mqtt_port_;
     int max_threads_;
     int socket_timeout_ms_;
     char package_name_[64];

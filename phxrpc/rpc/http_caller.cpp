@@ -103,7 +103,7 @@ int HttpCaller::Call(const google::protobuf::MessageLite &req,
     return ret;
 }
 
-void HttpCaller::SetURI(const char *uri, const int cmdid) {
+void HttpCaller::SetURI(const char *const uri, const int cmdid) {
     cmd_id_ = cmdid;
     GetRequest().SetURI(uri);
 }

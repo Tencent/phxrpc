@@ -42,7 +42,7 @@ using namespace std;
 void ShowUsage(const char *program) {
     printf("\n%s [-r CONNECT|PUBLISH|SUBSCRIBE|UNSUBSCRIBE|PING|DISCONNECT] [-f file] [-v]\n", program);
 
-    printf("\t-r mqtt method, only support CONNECT|PUBLISH|SUBSCRIBE|UNSUBSCRIBE|PING|DISCONNECT\n");
+    printf("\t-r mqtt method, CONNECT|PUBLISH|SUBSCRIBE|UNSUBSCRIBE|PING|DISCONNECT\n");
     printf("\t-f the file for content\n");
     printf("\t-v show this usage\n");
     printf("\n");
@@ -88,7 +88,9 @@ int main(int argc, char *argv[]) {
 
     if (0 == strcasecmp(method, "CONNECT")) {
         cout << "Req:" << endl;
-        TraceMsg(MqttConnect());
+        MqttConnect connect;
+        connect.set_client_identifier("test_client_1");
+        TraceMsg(connect);
 
         cout << "Resp:" << endl;
         TraceMsg(MqttConnack());

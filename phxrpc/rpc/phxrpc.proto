@@ -13,11 +13,18 @@ extend google.protobuf.MethodOptions {
 }
 
 message MqttConnectPb {
-    bool clean_session = 11;
-    uint32 keep_alive = 12;
-    string client_identifier = 13;
-    string proto_name = 14;
-    uint32 proto_level = 15;
+    string client_identifier = 11;
+    string proto_name = 12;
+    uint32 proto_level = 13;
+    bool clean_session = 14;
+    uint32 keep_alive = 15;
+    string user_name = 16;
+    string password = 17;
+    bool will_flag = 18;
+    uint32 will_qos = 19;
+    bool will_retain = 20;
+    string will_topic = 21;
+    string will_message = 22;
 }
 
 message MqttConnackPb {
@@ -36,6 +43,41 @@ message MqttPublishPb {
 
 message MqttPubackPb {
     uint32 packet_identifier = 11;
+}
+
+message MqttPubrecPb {
+}
+
+message MqttPubrelPb {
+}
+
+message MqttPubcompPb {
+}
+
+message MqttSubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+    repeated uint32 qoss = 13;
+}
+
+message MqttSubackPb {
+    uint32 packet_identifier = 11;
+    repeated uint32 return_codes = 12;
+}
+
+message MqttUnsubscribePb {
+    uint32 packet_identifier = 11;
+    repeated string topic_filters = 12;
+}
+
+message MqttUnsubackPb {
+    uint32 packet_identifier = 11;
+}
+
+message MqttPingreqPb {
+}
+
+message MqttPingrespPb {
 }
 
 message MqttDisconnectPb {

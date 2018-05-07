@@ -107,11 +107,11 @@ const char *SyntaxFunc::GetUsage() const {
     return usage_;
 }
 
-void SyntaxFunc::SetCmdID(const int32_t cmdid) {
+void SyntaxFunc::SetCmdID(const int cmdid) {
     cmdid_ = cmdid;
 }
 
-int32_t SyntaxFunc::GetCmdID() const  {
+int SyntaxFunc::GetCmdID() const  {
     return cmdid_;
 }
 
@@ -202,6 +202,18 @@ string SyntaxTree::Cpp2PbPackageName(const string &cpp_package_name) {
 string SyntaxTree::Pb2CppPackageName(const string &pb_package_name) {
     string cpp_package_name(pb_package_name);
     StrReplaceAll(&cpp_package_name, ".", "::");
+    return cpp_package_name;
+}
+
+string SyntaxTree::Cpp2UriPackageName(const std::string &cpp_package_name) {
+    string uri_package_name(cpp_package_name);
+    StrReplaceAll(&uri_package_name, "::", "/");
+    return uri_package_name;
+}
+
+string SyntaxTree::Uri2CppPackageName(const std::string &uri_package_name) {
+    string cpp_package_name(uri_package_name);
+    StrReplaceAll(&cpp_package_name, "/", "::");
     return cpp_package_name;
 }
 

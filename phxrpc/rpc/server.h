@@ -21,14 +21,28 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "rpc/client_config.h"
-#include "rpc/client_monitor.h"
-#include "rpc/http_caller.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/mqtt_caller.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/resource_pool.h"
-#include "rpc/server.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
+#include "fa_server.h"
+#include "hsha_server.h"
+
+
+namespace phxrpc {
+
+
+class Server {
+  public:
+    Server(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args);
+    virtual ~Server();
+
+    HshaServer *hsha_server() { return &hsha_server_; }
+    FaServer *fa_server() { return &fa_server_; }
+
+    void RunForever();
+
+  private:
+    HshaServer hsha_server_;
+    FaServer fa_server_;
+};
+
+
+}  //namespace phxrpc
 

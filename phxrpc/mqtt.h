@@ -22,7 +22,6 @@ See the AUTHORS file for names of contributors.
 #pragma once
 
 #include "mqtt/mqtt_client.h"
-//#include "mqtt/mqtt_dispatcher.h"
 #include "mqtt/mqtt_msg.h"
 #include "mqtt/mqtt_protocol.h"
 

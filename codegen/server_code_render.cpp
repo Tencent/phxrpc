@@ -56,7 +56,7 @@ void ServerCodeRender::GenerateServerConfigHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "\n");
 
     char classname[128] = { 0 };
-    name_render_.GetServerConfigClasname(stree->GetName(), classname, sizeof(classname));
+    name_render_.GetServerConfigClassName(stree->GetName(), classname, sizeof(classname));
 
     string content = PHXRPC_EPOLL_SERVER_CONFIG_HPP_TEMPLATE;
 
@@ -83,7 +83,7 @@ void ServerCodeRender::GenerateServerConfigCpp(SyntaxTree *stree, FILE *write) {
 
     char classname[128]{0};
     char message_file[128]{0};
-    name_render_.GetServerConfigClasname(stree->GetName(), classname, sizeof(classname));
+    name_render_.GetServerConfigClassName(stree->GetName(), classname, sizeof(classname));
     name_render_.GetMessageFileName(stree->GetProtoFile(), message_file, sizeof(message_file));
 
     string content = PHXRPC_EPOLL_SERVER_CONFIG_CPP_TEMPLATE;
@@ -138,11 +138,11 @@ void ServerCodeRender::GenerateServerMainCpp(SyntaxTree *stree, FILE *write, con
     char service_impl_class[128]{0}, service_impl_file[128]{0};
     char server_config_class[128]{0}, server_config_file[128]{0};
 
-    name_render_.GetDispatcherClasname(stree->GetName(), dispatcher_class, sizeof(dispatcher_class));
+    name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_class, sizeof(dispatcher_class));
     name_render_.GetDispatcherFileName(stree->GetName(), dispatcher_file, sizeof(dispatcher_file));
-    name_render_.GetServiceImplClasname(stree->GetName(), service_impl_class, sizeof(service_impl_class));
+    name_render_.GetServiceImplClassName(stree->GetName(), service_impl_class, sizeof(service_impl_class));
     name_render_.GetServiceImplFileName(stree->GetName(), service_impl_file, sizeof(service_impl_file));
-    name_render_.GetServerConfigClasname(stree->GetName(), server_config_class, sizeof(server_config_class));
+    name_render_.GetServerConfigClassName(stree->GetName(), server_config_class, sizeof(server_config_class));
     name_render_.GetServerConfigFileName(stree->GetName(), server_config_file, sizeof(server_config_file));
 
     string content;
