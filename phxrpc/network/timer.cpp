@@ -20,20 +20,25 @@ See the AUTHORS file for names of contributors.
 */
 
 #include "timer.h"
-#include <algorithm> 
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/time.h>
-#include <stdlib.h>
-#include <time.h>
-#include "uthread_epoll.h"
-#include <math.h>
+
+#include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <errno.h>
+#include <sys/time.h>
+#include <unistd.h>
+
+#include "uthread_epoll.h"
+
 
 using namespace std;
 
+
 namespace phxrpc {
+
 
 const uint64_t Timer::GetTimestampMS() {
     auto now_time = chrono::system_clock::now();
@@ -42,25 +47,19 @@ const uint64_t Timer::GetTimestampMS() {
 }
 
 const uint64_t Timer::GetSteadyClockMS() {
-    auto now_time = chrono::system_clock::now();
-    uint64_t now = (chrono::duration_cast<chrono::milliseconds>(now_time.time_since_epoch())).count();
-    return now;
-
-    /*
     auto now_time = chrono::steady_clock::now();
     uint64_t now = (chrono::duration_cast<chrono::milliseconds>(now_time.time_since_epoch())).count();
     return now;
-    */
 }
 
-void Timer :: MsSleep(const int time_ms) {
+void Timer::MsSleep(const int time_ms) {
     timespec t;
     t.tv_sec = time_ms / 1000; 
     t.tv_nsec = (time_ms % 1000) * 1000000;
     int ret = 0;
     do {
         ret = ::nanosleep(&t, &t);
-    } while (ret == -1 && errno == EINTR); 
+    } while (ret == -1 && errno == EINTR);
 }
 
 Timer::Timer() {
@@ -69,7 +68,7 @@ Timer::Timer() {
 Timer::~Timer() {
 }
 
-void Timer :: heap_up(const size_t end_idx) {
+void Timer::heap_up(const size_t end_idx) {
     size_t now_idx = end_idx - 1;
     TimerObj obj = timer_heap_[now_idx];
     size_t parent_idx = (now_idx - 1) / 2;
@@ -84,7 +83,7 @@ void Timer :: heap_up(const size_t end_idx) {
     UThreadSocketSetTimerID(*timer_heap_[now_idx].socket_, now_idx + 1);
 } 
 
-void Timer :: heap_down(const size_t begin_idx) {
+void Timer::heap_down(const size_t begin_idx) {
     size_t now_idx = begin_idx;
     TimerObj obj = timer_heap_[now_idx];
     size_t child_idx = (now_idx + 1) * 2;
@@ -109,13 +108,13 @@ void Timer :: heap_down(const size_t begin_idx) {
     UThreadSocketSetTimerID(*timer_heap_[now_idx].socket_, now_idx + 1);
 }
 
-void Timer :: AddTimer(uint64_t abs_time, UThreadSocket_t * socket) {
+void Timer::AddTimer(uint64_t abs_time, UThreadSocket_t *socket) {
     TimerObj obj(abs_time, socket);
     timer_heap_.push_back(obj);
     heap_up(timer_heap_.size());
 }
 
-void Timer :: RemoveTimer(const size_t timer_id) {
+void Timer::RemoveTimer(const size_t timer_id) {
     if (timer_id == 0) {
         return;
     }
@@ -139,7 +138,7 @@ void Timer :: RemoveTimer(const size_t timer_id) {
         UThreadSocketSetTimerID(*timer_heap_[now_idx].socket_, now_idx + 1);
     } else {
         heap_down(now_idx);
-    } 
+    }
 }
 
 const int Timer::GetNextTimeout() const {
@@ -156,12 +155,12 @@ const int Timer::GetNextTimeout() const {
     return next_timeout;
 }
 
-UThreadSocket_t * Timer::PopTimeout() {
+UThreadSocket_t *Timer::PopTimeout() {
     if (timer_heap_.empty()) {
         return nullptr;
     }
 
-    UThreadSocket_t * socket = timer_heap_[0].socket_;
+    UThreadSocket_t *socket{timer_heap_[0].socket_};
     UThreadSocketSetTimerID(*socket, 0);
 
     std::swap(timer_heap_[0], timer_heap_[timer_heap_.size() - 1]);
@@ -174,17 +173,18 @@ UThreadSocket_t * Timer::PopTimeout() {
     return socket;
 }
 
-std::vector<UThreadSocket_t *> Timer :: GetSocketList() {
+std::vector<UThreadSocket_t *> Timer::GetSocketList() {
     std::vector<UThreadSocket_t *> socket_list;
-    for (auto & obj : timer_heap_) {
+    for (auto &obj : timer_heap_) {
         socket_list.push_back(obj.socket_);
     }
     return socket_list;
 }
 
-const bool Timer :: empty() {
+const bool Timer::empty() {
     return timer_heap_.empty();
 }
+
 
 }
 

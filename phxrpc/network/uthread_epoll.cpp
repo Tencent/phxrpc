@@ -128,8 +128,8 @@ int UThreadNotifier::Init(UThreadEpollScheduler *const scheduler,
     return 0;
 }
 
-int UThreadNotifier::SendNotify(void *const value) {
-    ssize_t write_len{write(pipe_fds_[1], (void *)&value, sizeof(void *))};
+int UThreadNotifier::SendNotify(void *const data) {
+    ssize_t write_len{write(pipe_fds_[1], (void *)&data, sizeof(void *))};
     if (write_len != static_cast<ssize_t>(sizeof(void *))) {
         log(LOG_ERR, "%s write errno %d", __func__, errno);
 
@@ -139,8 +139,8 @@ int UThreadNotifier::SendNotify(void *const value) {
     return 0;
 }
 
-int UThreadNotifier::WaitNotify(void *&value) {
-    ssize_t read_len{UThreadRead(*socket_, (void *)&value, sizeof(void *), 0)};
+int UThreadNotifier::WaitNotify(void *&data) {
+    ssize_t read_len{UThreadRead(*socket_, (void *)&data, sizeof(void *), 0)};
     if (read_len != static_cast<ssize_t>(sizeof(void *))) {
         log(LOG_ERR, "%s UThreadRead errno %d", __func__, errno);
 

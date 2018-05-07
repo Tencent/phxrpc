@@ -78,15 +78,15 @@ class SyntaxFunc : public SyntaxNode {
     void SetUsage(const char *usage);
     const char *GetUsage() const;
 
-    void SetCmdID(const int32_t cmdid);
-    int32_t GetCmdID() const;
+    void SetCmdID(const int cmdid);
+    int GetCmdID() const;
 
   private:
     SyntaxParam req_;
     SyntaxParam resp_;
     char opt_string_[_SYNTAX_DESC_LEN];
     char usage_[_SYNTAX_DESC_LEN];
-    int32_t cmdid_;
+    int cmdid_;
 };
 
 //------------------------------------------------------------
@@ -123,6 +123,9 @@ class SyntaxTree : public SyntaxNode {
 
     static std::string Cpp2PbPackageName(const std::string &cpp_package_name);
     static std::string Pb2CppPackageName(const std::string &pb_package_name);
+
+    static std::string Cpp2UriPackageName(const std::string &cpp_package_name);
+    static std::string Uri2CppPackageName(const std::string &url_package_name);
 
   private:
     char proto_file_[128];

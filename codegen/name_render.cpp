@@ -50,7 +50,7 @@ const char *NameRender::GetPrefix(char *dest, int size) {
     return dest;
 }
 
-const char *NameRender::GetMessageClasname(const char *type, char *name, int size) {
+const char *NameRender::GetMessageClassName(const char *type, char *name, int size) {
     string tmp = type;
 
     phxrpc::StrReplaceAll(&tmp, ".", "::");
@@ -92,8 +92,14 @@ char *NameRender::ToUpper(char *s) {
     return ret;
 }
 
-const char *NameRender::GetStubClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetStubClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sStub", prefix_, toupper(*name), name + 1);
+
+    return dest;
+}
+
+const char *NameRender::GetCallerClassName(const char *name, char *dest, int size) {
+    snprintf(dest, size, "%s%c%sCaller", prefix_, toupper(*name), name + 1);
 
     return dest;
 }
@@ -106,13 +112,13 @@ const char *NameRender::GetStubFileName(const char *name, char *dest, int size) 
     return dest;
 }
 
-const char *NameRender::GetClientClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetClientClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sClient", prefix_, toupper(*name), name + 1);
 
     return dest;
 }
 
-const char *NameRender::GetClientClasnameLower(const char *name, char *dest, int size) {
+const char *NameRender::GetClientClassNameLower(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sClient", prefix_, toupper(*name), name + 1);
 
     ToLower(dest);
@@ -136,7 +142,7 @@ const char *NameRender::GetClientEtcFileName(const char *name, char *dest, int s
     return dest;
 }
 
-const char *NameRender::GetServerConfigClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetServerConfigClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sServerConfig", prefix_, toupper(*name), name + 1);
     return dest;
 }
@@ -165,7 +171,7 @@ const char *NameRender::GetServerMainFileName(const char *name, char *dest, int 
     return dest;
 }
 
-const char *NameRender::GetToolClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetToolClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sTool", prefix_, toupper(*name), name + 1);
 
     return dest;
@@ -179,7 +185,7 @@ const char *NameRender::GetToolFileName(const char *name, char *dest, int size) 
     return dest;
 }
 
-const char *NameRender::GetToolImplClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetToolImplClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sToolImpl", prefix_, toupper(*name), name + 1);
 
     return dest;
@@ -218,7 +224,7 @@ void NameRender::GetCopyright(const char *tool_name, const char *proto_file,
     *result = tmp.str();
 }
 
-const char *NameRender::GetServiceClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetServiceClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sService", prefix_, toupper(*name), name + 1);
 
     return dest;
@@ -232,7 +238,7 @@ const char *NameRender::GetServiceFileName(const char *name, char *dest, int siz
     return dest;
 }
 
-const char *NameRender::GetServiceImplClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetServiceImplClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sServiceImpl", prefix_, toupper(*name), name + 1);
 
     return dest;
@@ -246,7 +252,7 @@ const char *NameRender::GetServiceImplFileName(const char *name, char *dest, int
     return dest;
 }
 
-const char *NameRender::GetDispatcherClasname(const char *name, char *dest, int size) {
+const char *NameRender::GetDispatcherClassName(const char *name, char *dest, int size) {
     snprintf(dest, size, "%s%c%sDispatcher", prefix_, toupper(*name), name + 1);
 
     return dest;

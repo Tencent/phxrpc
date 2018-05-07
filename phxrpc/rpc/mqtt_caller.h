@@ -32,6 +32,7 @@ namespace google {
 namespace protobuf {
 
 
+class Empty;
 class MessageLite;
 
 
@@ -51,21 +52,30 @@ class MqttCaller {
 
     virtual ~MqttCaller();
 
-    MqttConnect &GetConnect();
-    MqttPublish &GetPublish();
-    MqttDisconnect &GetDisconnect();
+    int PhxMqttConnectCall(const phxrpc::MqttConnectPb &req,
+                           phxrpc::MqttConnackPb *resp);
+    int PhxMqttPublishCall(const phxrpc::MqttPublishPb &req,
+                           google::protobuf::Empty *resp);
+    int PhxMqttPubackCall(const phxrpc::MqttPubackPb &req,
+                          google::protobuf::Empty *resp);
+    int PhxMqttPubrecCall(const phxrpc::MqttPubrecPb &req,
+                          google::protobuf::Empty *resp);
+    int PhxMqttPubrelCall(const phxrpc::MqttPubrelPb &req,
+                          google::protobuf::Empty *resp);
+    int PhxMqttPubcompCall(const phxrpc::MqttPubcompPb &req,
+                           google::protobuf::Empty *resp);
+    int PhxMqttSubscribeCall(const phxrpc::MqttSubscribePb &req,
+                             phxrpc::MqttSubackPb *resp);
+    int PhxMqttUnsubscribeCall(const phxrpc::MqttUnsubscribePb &req,
+                               phxrpc::MqttUnsubackPb *resp);
+    int PhxMqttPingCall(const phxrpc::MqttPingreqPb &req,
+                        phxrpc::MqttPingrespPb *resp);
+    int PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &req,
+                              google::protobuf::Empty *resp);
 
-    MqttConnack &GetConnack();
-    MqttPuback &GetPuback();
+    void SetURI(const char *const uri, const int cmdid);
 
-    int PhxMqttConnectCall(const phxrpc::MqttConnectPb &connect,
-                           phxrpc::MqttConnackPb *connack);
-    int PhxMqttPublishCall(const phxrpc::MqttPublishPb &publish,
-                           phxrpc::MqttPubackPb *puback);
-    int PhxMqttPubackCall(const phxrpc::MqttPubackPb &puback);
-    int PhxMqttDisconnectCall(const phxrpc::MqttDisconnectPb &disconnect);
-
-    void SetCmdId(const int cmd_id);
+    void SetKeepAlive(const bool keep_alive);
 
   private:
     void MonitorReport(phxrpc::ClientMonitor &client_monitor, bool send_error,
@@ -75,12 +85,6 @@ class MqttCaller {
     BaseTcpStream &socket_;
     ClientMonitor &client_monitor_;
     int cmd_id_;
-
-    MqttConnect connect_;
-    MqttConnack connack_;
-    MqttPublish publish_;
-    MqttPuback puback_;
-    MqttDisconnect disconnect_;
 };
 
 

@@ -79,5 +79,5 @@ void StrAppendFormat(string *result, const char *fmt, ...) {
 }
 
 
-}
+}  // namespace phxrpc
 

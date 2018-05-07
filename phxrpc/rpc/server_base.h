@@ -24,25 +24,77 @@ See the AUTHORS file for names of contributors.
 #include "server_monitor.h"
 #include "phxrpc/network.h"
 
+
 namespace phxrpc {
 
-typedef struct tagDispatcherArgs {
-    phxrpc::ServerMonitorPtr server_monitor;
-    phxrpc::UThreadEpollScheduler * server_worker_uthread_scheduler;
-    void * service_args;
 
-    tagDispatcherArgs() : service_args(NULL) {
+//struct SessionAttribute {
+//    std::string client_identifier;
+//    bool clean_session{false};
+//    uint32_t keep_alive{10};
+//    std::string user_name;
+//    std::string password;
+//    bool will_flag{false};
+//    uint32_t will_qos{0};
+//    bool will_retain{false};
+//    std::string will_topic;
+//    std::string will_message;
+//};
+
+struct ServiceContext {
+    uint64_t session_id{0uL};
+    bool init_session{false};
+    bool heartbeat_session{false};
+    bool destroy_session{false};
+    //SessionAttribute session_attribute;
+};
+
+
+class Server;
+class BaseServerUnit;
+class NotifierPoolRouter;
+class DataFlow;
+
+typedef struct tagDispatcherArgs {
+    int pool_idx{-1};
+    int worker_idx{-1};
+    ServerMonitorPtr server_monitor;
+    UThreadEpollScheduler *server_worker_uthread_scheduler{nullptr};
+    Server *root_server{nullptr};
+    BaseServerUnit *base_server_unit{nullptr};
+    UThreadNotifierPool *notifier_pool{nullptr};
+    NotifierPoolRouter *notifier_pool_router{nullptr};
+    void *service_args{nullptr};
+    void *context{nullptr};
+
+    tagDispatcherArgs() : service_args(nullptr) {
     }
 
-    tagDispatcherArgs(phxrpc::ServerMonitorPtr monitor, 
-            phxrpc::UThreadEpollScheduler * uthread_scheduler, void * args) :
-        server_monitor(monitor), server_worker_uthread_scheduler(uthread_scheduler), service_args(args) {
+    tagDispatcherArgs(const int pool_idx_value, const int worker_idx_value,
+                      ServerMonitorPtr server_monitor_value,
+                      UThreadEpollScheduler *const server_worker_uthread_scheduler_value,
+                      Server *const root_server_value,
+                      BaseServerUnit *const base_server_unit_value,
+                      UThreadNotifierPool *notifier_pool_value,
+                      NotifierPoolRouter *notifier_pool_router_value,
+                      void *const service_args_value, void *const context_value)
+            : pool_idx(pool_idx_value), worker_idx(worker_idx_value),
+              server_monitor(server_monitor_value),
+              server_worker_uthread_scheduler(server_worker_uthread_scheduler_value),
+              root_server(root_server_value),
+              base_server_unit(base_server_unit_value),
+              notifier_pool(notifier_pool_value),
+              notifier_pool_router(notifier_pool_router_value),
+              service_args(service_args_value), context(context_value) {
     }
 } DispatcherArgs_t;
 
+
 class ServerUtils {
-public:
+  public:
     static void Daemonize();
 };
 
+
 }
+

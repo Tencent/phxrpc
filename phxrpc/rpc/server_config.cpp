@@ -31,8 +31,9 @@ namespace phxrpc {
 ServerConfig::ServerConfig() {
     memset(bind_ip_, 0, sizeof(bind_ip_));
     port_ = -1;
+    mqtt_port_ = -1;
     max_threads_ = 120;
-    socket_timeout_ms_ = 5000;
+    socket_timeout_ms_ = 30000;
     memset(package_name_, 0, sizeof(package_name_)) ;
 }
 
@@ -48,12 +49,13 @@ bool ServerConfig::Read(const char *config_file) {
     bool succ = true;
     succ &= config.ReadItem("Server", "BindIP", bind_ip_, sizeof(bind_ip_));
     succ &= config.ReadItem("Server", "Port", &port_);
+    succ &= config.ReadItem("Server", "MqttPort", &mqtt_port_);
     succ &= config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
     config.ReadItem("Server", "MaxThreads", &max_threads_, 20);
     // TODO:
     config.ReadItem("Log", "LogDir", log_dir_, sizeof(log_dir_), "/data1/mm64/walnuthe/log");
     config.ReadItem("Log", "LogLevel", &log_level_, LOG_ERR);
-    config.ReadItem("ServerTimeout", "SocketTimeoutMS", &socket_timeout_ms_, 5000);
+    config.ReadItem("ServerTimeout", "SocketTimeoutMS", &socket_timeout_ms_, 30000);
 
     if (succ) {
         return DoRead(config);
@@ -81,6 +83,14 @@ void ServerConfig::SetPort(int port) {
 
 int ServerConfig::GetPort() const {
     return port_;
+}
+
+void ServerConfig::SetMqttPort(int mqtt_port) {
+    mqtt_port_ = mqtt_port;
+}
+
+int ServerConfig::GetMqttPort() const {
+    return mqtt_port_;
 }
 
 void ServerConfig::SetMaxThreads(int max_threads) {
