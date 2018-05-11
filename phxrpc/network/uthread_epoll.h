@@ -24,8 +24,6 @@ See the AUTHORS file for names of contributors.
 #include <vector>
 #include <map>
 #include <queue>
-
-#include <sys/epoll.h>
 #include <arpa/inet.h>
 
 #include "uthread_runtime.h"
@@ -40,7 +38,8 @@ typedef struct tagUThreadSocket UThreadSocket_t;
 typedef std::pair<UThreadEpollScheduler *, int> UThreadEpollArgs_t;
 
 typedef std::function< UThreadSocket_t *() > UThreadActiveSocket_t;
-typedef std::function< void() > UThreadHanderAcceptedFdFunc_t;
+typedef std::function< void() > UThreadHandlerAcceptedFdFunc_t;
+typedef std::function< void() > UThreadHandlerNewRequest_t;
 
 class EpollNotifier {
 public:
@@ -58,10 +57,12 @@ private:
 
 class UThreadEpollScheduler {
 public:
-    UThreadEpollScheduler(size_t stack_size, int max_task);
+    UThreadEpollScheduler(size_t stack_size, int max_task, const bool need_stack_protect = true);
     ~UThreadEpollScheduler();
 
     static UThreadEpollScheduler * Instance();
+
+    bool IsTaskFull();
 
     void AddTask(UThreadFunc_t func, void * args);
 
@@ -70,7 +71,9 @@ public:
 
     void SetActiveSocketFunc(UThreadActiveSocket_t active_socket_func);
 
-    void SetHandlerAcceptedFdFunc(UThreadHanderAcceptedFdFunc_t handler_accepted_fd_func);
+    void SetHandlerAcceptedFdFunc(UThreadHandlerAcceptedFdFunc_t handler_accepted_fd_func);
+
+    void SetHandlerNewRequestFunc(UThreadHandlerNewRequest_t handler_new_request_func);
 
     bool YieldTask();
 
@@ -95,7 +98,7 @@ private:
     void StatEpollwaitEvents(const int event_count);
 
 private:
-    UThreadRuntime * runtime_;
+    UThreadRuntime runtime_;
     int max_task_;
     TaskQueue todo_list_;
     int epoll_fd_;
@@ -105,7 +108,9 @@ private:
     bool run_forever_;
 
     UThreadActiveSocket_t active_socket_func_;
-    UThreadHanderAcceptedFdFunc_t handler_accepted_fd_func_;
+    UThreadHandlerAcceptedFdFunc_t handler_accepted_fd_func_;
+    UThreadHandlerNewRequest_t handler_new_request_func_;
+
     int epoll_wait_events_;
     int epoll_wait_events_per_second_;
     uint64_t epoll_wait_events_last_cal_time_;
@@ -126,6 +131,7 @@ private:
 };
 
 #define uthread_begin phxrpc::UThreadEpollScheduler _uthread_scheduler(64 * 1024, 300);
+#define uthread_begin_withargs(stack_size, max_task) phxrpc::UThreadEpollScheduler _uthread_scheduler(stack_size, max_task);
 #define uthread_s _uthread_scheduler
 #define uthread_t phxrpc::__uthread(_uthread_scheduler)-
 #define uthread_end _uthread_scheduler.Run();
@@ -162,13 +168,13 @@ UThreadSocket_t * NewUThreadSocket();
 
 void UThreadSetArgs(UThreadSocket_t & socket, void * args);
 
-void * UthreadGetArgs(UThreadSocket_t & socket);
+void * UThreadGetArgs(UThreadSocket_t & socket);
 
-void UthreadWait(UThreadSocket_t & socket, int timeout_ms);
+void UThreadWait(UThreadSocket_t & socket, int timeout_ms);
 
-void UthreadLazyDestory(UThreadSocket_t & socket);
+void UThreadLazyDestory(UThreadSocket_t & socket);
 
-bool IsUthreadDestory(UThreadSocket_t & socket);
+bool IsUThreadDestory(UThreadSocket_t & socket);
 
 };
 

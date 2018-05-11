@@ -30,7 +30,7 @@ namespace phxrpc {
 
 class UThreadRuntime {
 public:
-    UThreadRuntime(size_t stack_size);
+    UThreadRuntime(size_t stack_size, const bool need_stack_protect);
     ~UThreadRuntime();
 
     int Create(UThreadFunc_t func, void * args);
@@ -38,6 +38,7 @@ public:
     bool Yield();
     bool Resume(size_t index);
     bool IsAllDone();
+    int GetUnfinishedItemCount() const;
 
     void UThreadDoneCallback();
 
@@ -57,6 +58,7 @@ private:
     int first_done_item_;
     int current_uthread_;
     int unfinished_item_count_;
+    bool need_stack_protect_;
 };
 
 } //namespace phxrpc

@@ -36,29 +36,25 @@ UThreadContextBoostInit :: UThreadContextBoostInit() {
 }
 
 UThreadContextBoost :: UThreadContextBoost(size_t stack_size, UThreadFunc_t func, 
-        void * args, UThreadDoneCallback_t callback)
-    : func_(func), args_(args), stack_(nullptr), stack_size_(stack_size), 
-    protect_page_(0), callback_(callback) {
-    stack_ = (char *)calloc(1, stack_size_);
-    assert(stack_ != nullptr);
-
+        void * args, UThreadDoneCallback_t callback, const bool need_stack_protect)
+    : func_(func), args_(args), stack_(stack_size, need_stack_protect), callback_(callback) {
     Make(func, args);
 }
 
 UThreadContextBoost :: ~UThreadContextBoost() {
-    free(stack_);
 }
 
 UThreadContext * UThreadContextBoost:: DoCreate(size_t stack_size, 
-        UThreadFunc_t func, void * args, UThreadDoneCallback_t callback) {
-    return new UThreadContextBoost(stack_size, func, args, callback);
+        UThreadFunc_t func, void * args, UThreadDoneCallback_t callback,
+        const bool need_stack_protect) {
+    return new UThreadContextBoost(stack_size, func, args, callback, need_stack_protect);
 }
 
 void UThreadContextBoost :: Make(UThreadFunc_t func, void * args) {
     func_ = func;
     args_ = args;
-    void * stack_p = (void *)(stack_ + stack_size_);
-    context_ = boost::context::make_fcontext(stack_p, stack_size_, &UThreadFuncWrapper);
+    void * stack_p = (void *)((char *)stack_.top() + stack_.size());
+    context_ = boost::context::make_fcontext(stack_p, stack_.size(), &UThreadFuncWrapper);
 }
 
 bool UThreadContextBoost :: Resume() {

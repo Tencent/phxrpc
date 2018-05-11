@@ -62,7 +62,7 @@ size_t OptMap::GetNonOptCount() {
 }
 
 const char * OptMap::GetNonOpt(size_t index) {
-    if (index >= 0 && index < non_opt_.size()) {
+    if (index > 0 && index < non_opt_.size()) {
         return non_opt_[index].c_str();
     }
 

@@ -26,8 +26,8 @@ using namespace phxrpc;
 void f1(void *);
 void f2(void *);
 
-UThreadContextSystem c1(64 * 1024, &f1, nullptr, nullptr);
-UThreadContextSystem c2(64 * 1024, &f2, nullptr, nullptr);
+UThreadContextSystem c1(64 * 1024, &f1, nullptr, nullptr, true);
+UThreadContextSystem c2(64 * 1024, &f2, nullptr, nullptr, true);
 
 int test_count = 0;
 

@@ -22,7 +22,6 @@ See the AUTHORS file for names of contributors.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/epoll.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
@@ -33,6 +32,12 @@ See the AUTHORS file for names of contributors.
 #include <assert.h>
 #include <vector>
 #include <limits>
+
+#ifdef __APPLE__
+	#include "epoll-darwin.h"
+#else
+	#include <sys/epoll.h>
+#endif
 
 #include "uthread_epoll.h"
 #include "socket_stream_base.h"
@@ -90,7 +95,7 @@ void EpollNotifier :: Func() {
 void EpollNotifier :: Notify() {
     ssize_t write_len = write(pipe_fds_[1], (void *)"a", 1);
     if (write_len < 0) {
-        log(LOG_ERR, "%s write err", __func__);
+        //log(LOG_ERR, "%s write err", __func__);
     }
 }
 
@@ -102,10 +107,10 @@ enum UThreadEpollREventStatus {
     UThreadEpollREvent_Close = -2,
 };
 
-UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task) :
-    epoll_wake_up_(this) {
-    runtime_ = new UThreadRuntime(stack_size);
-    max_task_ = max_task;
+UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task, const bool need_stack_protect) :
+    runtime_(stack_size, need_stack_protect), epoll_wake_up_(this) {
+    //epoll notifier use one task.
+    max_task_ = max_task + 1;
 
     epoll_fd_ = epoll_create(max_task_);
 
@@ -118,6 +123,7 @@ UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task) :
     run_forever_ = false;
     active_socket_func_ = nullptr;
     handler_accepted_fd_func_ = nullptr;
+    handler_new_request_func_ = nullptr;
 
     epoll_wait_events_ = 0;
     epoll_wait_events_per_second_ = 0;
@@ -125,14 +131,16 @@ UThreadEpollScheduler::UThreadEpollScheduler(size_t stack_size, int max_task) :
 }
 
 UThreadEpollScheduler::~UThreadEpollScheduler() {
-    delete runtime_;
-
     close(epoll_fd_);
 }
 
 UThreadEpollScheduler * UThreadEpollScheduler :: Instance() {
     static UThreadEpollScheduler obj(64 * 1024, 300);
     return &obj;
+}
+
+bool UThreadEpollScheduler :: IsTaskFull() {
+    return (runtime_.GetUnfinishedItemCount() + (int)todo_list_.size()) >= max_task_;
 }
 
 void UThreadEpollScheduler::AddTask(UThreadFunc_t func, void * args) {
@@ -143,16 +151,20 @@ void UThreadEpollScheduler :: SetActiveSocketFunc(UThreadActiveSocket_t active_s
     active_socket_func_ = active_socket_func;
 }
 
-void UThreadEpollScheduler :: SetHandlerAcceptedFdFunc(UThreadHanderAcceptedFdFunc_t handler_accepted_fd_func) {
+void UThreadEpollScheduler :: SetHandlerNewRequestFunc(UThreadHandlerNewRequest_t handler_new_request_func) {
+    handler_new_request_func_ = handler_new_request_func;
+}
+
+void UThreadEpollScheduler :: SetHandlerAcceptedFdFunc(UThreadHandlerAcceptedFdFunc_t handler_accepted_fd_func) {
     handler_accepted_fd_func_ = handler_accepted_fd_func;
 }
 
 bool UThreadEpollScheduler::YieldTask() {
-    return runtime_->Yield();
+    return runtime_.Yield();
 }
 
 int UThreadEpollScheduler::GetCurrUThread() {
-    return runtime_->GetCurrUThread();
+    return runtime_.GetCurrUThread();
 }
 
 UThreadSocket_t * UThreadEpollScheduler::CreateSocket(int fd, int socket_timeout_ms, 
@@ -181,8 +193,8 @@ UThreadSocket_t * UThreadEpollScheduler::CreateSocket(int fd, int socket_timeout
 void UThreadEpollScheduler::ConsumeTodoList() {
     while (!todo_list_.empty()) {
         auto & it = todo_list_.front();
-        int id = runtime_->Create(it.first, it.second);
-        runtime_->Resume(id);
+        int id = runtime_.Create(it.first, it.second);
+        runtime_.Resume(id);
 
         todo_list_.pop();
     }
@@ -203,7 +215,7 @@ void UThreadEpollScheduler :: ResumeAll(int flag) {
     std::vector<UThreadSocket_t*> exist_socket_list = timer_.GetSocketList();
     for (auto & socket : exist_socket_list) {
         socket->waited_events = flag;
-        runtime_->Resume(socket->uthread_id);
+        runtime_.Resume(socket->uthread_id);
     }
 }
 
@@ -229,24 +241,31 @@ bool UThreadEpollScheduler::Run() {
 
     struct epoll_event * events = (struct epoll_event*) calloc(max_task_, sizeof(struct epoll_event));
 
-    int next_timeout = timer_.GetNextTimeout();
-
-    for (; (run_forever_) || (!runtime_->IsAllDone());) {
-        int nfds = epoll_wait(epoll_fd_, events, max_task_, 4);
+    for (; (run_forever_) || (!runtime_.IsAllDone());) {
+	int next_timeout = timer_.GetNextTimeout();
+	int timeout = 4;
+	if(next_timeout > 0 && next_timeout < timeout)
+	    timeout = next_timeout;
+        int nfds = epoll_wait(epoll_fd_, events, max_task_, timeout);
         if (nfds != -1) {
             for (int i = 0; i < nfds; i++) {
                 UThreadSocket_t * socket = (UThreadSocket_t*) events[i].data.ptr;
                 socket->waited_events = events[i].events;
 
-                runtime_->Resume(socket->uthread_id);
+                runtime_.Resume(socket->uthread_id);
             }
 
             //for server mode
             if (active_socket_func_ != nullptr) {
                 UThreadSocket_t * socket = nullptr;
                 while ((socket = active_socket_func_()) != nullptr) {
-                    runtime_->Resume(socket->uthread_id);
+                    runtime_.Resume(socket->uthread_id);
                 }
+            }
+
+            //for server uthread worker
+            if (handler_new_request_func_ != nullptr) {
+                handler_new_request_func_();
             }
 
             if (handler_accepted_fd_func_ != nullptr) {
@@ -298,7 +317,7 @@ void UThreadEpollScheduler::DealwithTimeout(int & next_timeout) {
 
         UThreadSocket_t * socket = timer_.PopTimeout();
         socket->waited_events = UThreadEpollREvent_Timeout;
-        runtime_->Resume(socket->uthread_id);
+        runtime_.Resume(socket->uthread_id);
     }
 }
 
@@ -423,31 +442,33 @@ int UThreadAccept(UThreadSocket_t & socket, struct sockaddr *addr, socklen_t *ad
 }
 
 ssize_t UThreadRead(UThreadSocket_t & socket, void * buf, size_t len, int flags) {
-    int ret = read(socket.socket, buf, len);
+    //int ret = read(socket.socket, buf, len);
+    int ret = -1;
 
-    if (ret < 0 && EAGAIN == errno) {
+    //if (ret < 0 && EAGAIN == errno) {
         int revents = 0;
         if (UThreadPoll(socket, EPOLLIN, &revents, socket.socket_timeout_ms) > 0) {
             ret = read(socket.socket, buf, len);
         } else {
             ret = -1;
         }
-    }
+    //}
 
     return ret;
 }
 
 ssize_t UThreadRecv(UThreadSocket_t & socket, void * buf, size_t len, int flags) {
-    int ret = recv(socket.socket, buf, len, flags);
+    //int ret = recv(socket.socket, buf, len, flags);
+    int ret = -1;
 
-    if (ret < 0 && EAGAIN == errno) {
+    //if (ret < 0 && EAGAIN == errno) {
         int revents = 0;
         if (UThreadPoll(socket, EPOLLIN, &revents, socket.socket_timeout_ms) > 0) {
             ret = recv(socket.socket, buf, len, flags);
         } else {
             ret = -1;
         }
-    }
+    //}
 
     return ret;
 }
@@ -503,22 +524,22 @@ void UThreadSetArgs(UThreadSocket_t & socket, void * args) {
     socket.args = args;
 }
 
-void * UthreadGetArgs(UThreadSocket_t & socket) {
+void * UThreadGetArgs(UThreadSocket_t & socket) {
     return socket.args;
 }
 
-void UthreadWait(UThreadSocket_t & socket, int timeout_ms) {
+void UThreadWait(UThreadSocket_t & socket, int timeout_ms) {
     socket.uthread_id = socket.scheduler->GetCurrUThread();
     socket.scheduler->AddTimer(&socket, timeout_ms);
     socket.scheduler->YieldTask();
     socket.scheduler->RemoveTimer(socket.timer_id);
 }
 
-void UthreadLazyDestory(UThreadSocket_t & socket) {
+void UThreadLazyDestory(UThreadSocket_t & socket) {
     socket.uthread_id = -1;
 }
 
-bool IsUthreadDestory(UThreadSocket_t & socket) {
+bool IsUThreadDestory(UThreadSocket_t & socket) {
     return socket.uthread_id == -1;
 }
 

@@ -1,4 +1,4 @@
-syntax = "proto2";
+syntax = "proto3";
 
 package search;
 
@@ -14,31 +14,35 @@ enum SiteType {
     VIDEO = 2;
     UNKNOWN = 3;
 }
+
 message Site {
-    required string url = 1;
-    required string title = 2;
-    required SiteType type = 3;
-    optional string summary = 4;
+    string url = 1;
+    string title = 2;
+    SiteType type = 3;
+    string summary = 4;
 }
 
 message SearchRequest {
-    required string query = 1;
+    string query = 1;
 }
+
 message SearchResult {
     repeated Site sites = 1;
 }
 
-service Search{
-    rpc Search( SearchRequest ) returns( SearchResult ) {
-        option( phxrpc.CmdID ) = 1;
-        option( phxrpc.OptString ) = "q:";
-        option( phxrpc.Usage ) = "-q <query>";
+service Search {
+
+    rpc Search(SearchRequest) returns (SearchResult) {
+        option(phxrpc.CmdID) = 1;
+        option(phxrpc.OptString) = "q:";
+        option(phxrpc.Usage) = "-q <query>";
     }
 
-    rpc Notify( google.protobuf.StringValue ) returns( google.protobuf.Empty ) {
-        option( phxrpc.CmdID ) = 2;
-        option( phxrpc.OptString ) = "m:";
-        option( phxrpc.Usage ) = "-m <msg>";
+    rpc Notify(google.protobuf.StringValue) returns (google.protobuf.Empty) {
+        option(phxrpc.CmdID) = 2;
+        option(phxrpc.OptString) = "m:";
+        option(phxrpc.Usage) = "-m <msg>";
     }
+
 }
 

@@ -33,9 +33,10 @@ enum {
 
 namespace phxrpc {
 
-UThreadRuntime :: UThreadRuntime(size_t stack_size)
+UThreadRuntime :: UThreadRuntime(size_t stack_size, const bool need_stack_protect)
     :stack_size_(stack_size), first_done_item_(-1),
-    current_uthread_(-1), unfinished_item_count_(0) {
+    current_uthread_(-1), unfinished_item_count_(0),
+    need_stack_protect_(need_stack_protect) {
     if (UThreadContext::GetContextCreateFunc() == nullptr) {
         UThreadContext::SetContextCreateFunc(UThreadContextSystem::DoCreate);
     }
@@ -59,7 +60,8 @@ int UThreadRuntime :: Create(UThreadFunc_t func, void * args) {
     } else {
         index = context_list_.size();
         auto new_context = UThreadContext::Create(stack_size_, func, args, 
-                std::bind(&UThreadRuntime::UThreadDoneCallback, this));
+                std::bind(&UThreadRuntime::UThreadDoneCallback, this),
+                need_stack_protect_);
         assert(new_context != nullptr);
         ContextSlot context_slot;
         context_slot.context = new_context;
@@ -115,6 +117,10 @@ int UThreadRuntime::GetCurrUThread() {
 
 bool UThreadRuntime::IsAllDone() {
     return unfinished_item_count_ == 0;
+}
+
+int UThreadRuntime :: GetUnfinishedItemCount() const {
+    return unfinished_item_count_;
 }
 
 }
