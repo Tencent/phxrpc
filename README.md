@@ -18,6 +18,7 @@ PhxRPC[![Build Status](https://travis-ci.org/Tencent/phxrpc.png)](https://travis
   - 提供完善的过载保护，无需配置阈值，支持动态自适应拒绝请求。
   - 提供简易的Client/Server配置读入方式。
   - 基于lambda函数实现并发访问Server，可以非常方便地实现Google提出的 [Backup Requests](http://static.googleusercontent.com/media/research.google.com/zh-CN//people/jeff/Berkeley-Latency-Mar2012.pdf) 模式。
+  - Deprecated: MQTT协议支持，版本回滚至v0.8.1
 
 # 局限
   - 不支持多进程模式。
