@@ -43,8 +43,13 @@ UThreadStackMemory :: UThreadStackMemory(const size_t stack_size, const bool nee
         raw_stack_ = mmap(NULL, stack_size_ + page_size * 2, 
                 PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         assert(raw_stack_ != nullptr);
-        assert(mprotect(raw_stack_, page_size, PROT_NONE) == 0);
-        assert(mprotect((void *)((char *)raw_stack_ + stack_size_ + page_size), page_size, PROT_NONE) == 0);
+
+        bool chk;
+        chk = (mprotect(raw_stack_, page_size, PROT_NONE) == 0);
+        if (!chk) assert(chk);
+        chk = (mprotect((void *)((char *)raw_stack_ + stack_size_ + page_size), page_size, PROT_NONE) == 0);
+        if (!chk) assert(chk);
+
         stack_ = (void *)((char *)raw_stack_ + page_size);
     } else {
         raw_stack_ = mmap(NULL, stack_size_, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -54,13 +59,18 @@ UThreadStackMemory :: UThreadStackMemory(const size_t stack_size, const bool nee
 }
 
 UThreadStackMemory :: ~UThreadStackMemory() {
+    bool chk;
     int page_size = getpagesize();
     if (need_protect_) {
-        assert(mprotect(raw_stack_, page_size, PROT_READ | PROT_WRITE) == 0);
-        assert(mprotect((void *)((char *)raw_stack_ + stack_size_ + page_size), page_size, PROT_READ | PROT_WRITE) == 0);
-        assert(munmap(raw_stack_, stack_size_ + page_size * 2) == 0);
+        chk = (mprotect(raw_stack_, page_size, PROT_READ | PROT_WRITE) == 0);
+        if (!chk) assert(chk);
+        chk = (mprotect((void *)((char *)raw_stack_ + stack_size_ + page_size), page_size, PROT_READ | PROT_WRITE) == 0);
+        if (!chk) assert(chk);
+        chk = (munmap(raw_stack_, stack_size_ + page_size * 2) == 0);
+        if (!chk) assert(chk);
     } else {
-        assert(munmap(raw_stack_, stack_size_) == 0);
+        chk = (munmap(raw_stack_, stack_size_) == 0);
+        if (!chk) assert(chk);
     }
 }
 

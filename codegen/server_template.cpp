@@ -78,7 +78,10 @@ int main( int argc, char * argv[] ) {
 
     if( daemonize ) phxrpc::ServerUtils::Daemonize();
 
-    assert(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
+    {
+        bool chk = (signal(SIGPIPE, SIG_IGN) != SIG_ERR);
+        if (!chk) assert(chk);
+    }
 
     //set customize log/monitor
     //phxrpc::setlog(openlog, closelog, vlog);
@@ -168,7 +171,10 @@ int main( int argc, char * argv[] ) {
 
     if( daemonize ) phxrpc::ServerUtils::Daemonize();
 
-    assert(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
+    {
+        bool chk = (signal(SIGPIPE, SIG_IGN) != SIG_ERR);
+        if (!chk) assert(chk);
+    }
 
     //set customize log/monitor
     //phxrpc::setlog(openlog, closelog, vlog);
