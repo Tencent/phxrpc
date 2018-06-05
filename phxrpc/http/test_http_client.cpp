@@ -51,7 +51,10 @@ void showUsage(const char * program) {
 }
 
 int main(int argc, char * argv[]) {
-    assert(sigset(SIGPIPE, SIG_IGN) != SIG_ERR);
+    {
+        bool chk = (sigset(SIGPIPE, SIG_IGN) != SIG_ERR);
+        if (!chk) assert(chk);
+    }
 
     OptMap optMap("h:p:r:u:f:ov");
 

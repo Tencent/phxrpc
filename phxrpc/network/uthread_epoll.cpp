@@ -76,7 +76,8 @@ EpollNotifier :: ~EpollNotifier() {
 }
 
 void EpollNotifier :: Run() {
-    assert(pipe(pipe_fds_) == 0);
+    bool chk = (pipe(pipe_fds_) == 0);
+    if (!chk) assert(chk);
     fcntl(pipe_fds_[1], F_SETFL, O_NONBLOCK);
     scheduler_->AddTask(std::bind(&EpollNotifier::Func, this), nullptr);
 }
