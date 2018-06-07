@@ -24,21 +24,25 @@ See the AUTHORS file for names of contributors.
 #include <memory>
 #include <sys/mman.h>
 
+
 namespace phxrpc {
 
+
 class UThreadStackMemory {
-public:
+  public:
     UThreadStackMemory(const size_t stack_size, const bool need_protect = true);
     ~UThreadStackMemory();
 
     void * top();
     size_t size();
 
-private:
+  private:
     void * raw_stack_;
     void * stack_;
     size_t stack_size_;
     int need_protect_;
 };
 
-} //namespace phxrpc
+
+}  // namespace phxrpc
+

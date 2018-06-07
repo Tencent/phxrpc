@@ -21,15 +21,18 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include <vector>
-#include <map>
-#include <queue>
 #include <arpa/inet.h>
 
-#include "uthread_runtime.h"
-#include "timer.h"
+#include <map>
+#include <queue>
+#include <vector>
+
+#include "phxrpc/network/timer.h"
+#include "phxrpc/network/uthread_runtime.h"
+
 
 namespace phxrpc {
+
 
 class UThreadEpollScheduler;
 
@@ -37,37 +40,39 @@ typedef struct tagUThreadSocket UThreadSocket_t;
 
 typedef std::pair<UThreadEpollScheduler *, int> UThreadEpollArgs_t;
 
-typedef std::function< UThreadSocket_t *() > UThreadActiveSocket_t;
-typedef std::function< void() > UThreadHandlerAcceptedFdFunc_t;
-typedef std::function< void() > UThreadHandlerNewRequest_t;
+typedef std::function<UThreadSocket_t *()> UThreadActiveSocket_t;
+typedef std::function<void()> UThreadHandlerAcceptedFdFunc_t;
+typedef std::function<void()> UThreadHandlerNewRequest_t;
 
-class EpollNotifier {
-public:
-    EpollNotifier(UThreadEpollScheduler * scheduler);
+
+class EpollNotifier final {
+  public:
+    EpollNotifier(UThreadEpollScheduler *scheduler);
     ~EpollNotifier();
 
     void Run();
     void Func();
     void Notify();
 
-private:
-    UThreadEpollScheduler * scheduler_;
+  private:
+    UThreadEpollScheduler *scheduler_{nullptr};
     int pipe_fds_[2];
 };
 
-class UThreadEpollScheduler {
-public:
+
+class UThreadEpollScheduler final {
+  public:
     UThreadEpollScheduler(size_t stack_size, int max_task, const bool need_stack_protect = true);
     ~UThreadEpollScheduler();
 
-    static UThreadEpollScheduler * Instance();
+    static UThreadEpollScheduler *Instance();
 
     bool IsTaskFull();
 
-    void AddTask(UThreadFunc_t func, void * args);
+    void AddTask(UThreadFunc_t func, void *args);
 
-    UThreadSocket_t * CreateSocket(int fd, int socket_timeout_ms = 5000, 
-            int connect_timeout_ms = 200, bool no_delay = true);
+    UThreadSocket_t *CreateSocket(const int fd, const int socket_timeout_ms = 5000,
+            const int connect_timeout_ms = 200, const bool no_delay = true);
 
     void SetActiveSocketFunc(UThreadActiveSocket_t active_socket_func);
 
@@ -82,30 +87,29 @@ public:
     void RunForever();
 
     void Close();
-    
+
     void NotifyEpoll();
 
     int GetCurrUThread();
 
-    void AddTimer(UThreadSocket_t * socket, int timeout_ms);
+    void AddTimer(UThreadSocket_t *socket, const int timeout_ms);
     void RemoveTimer(const size_t timer_id);
-    void DealwithTimeout(int & next_timeout);
+    void DealwithTimeout(int &next_timeout);
 
-private:
-    typedef std::queue<std::pair<UThreadFunc_t, void *> > TaskQueue;
+  private:
+    typedef std::queue<std::pair<UThreadFunc_t, void *>> TaskQueue;
     void ConsumeTodoList();
     void ResumeAll(int flag);
     void StatEpollwaitEvents(const int event_count);
 
-private:
     UThreadRuntime runtime_;
     int max_task_;
     TaskQueue todo_list_;
     int epoll_fd_;
 
     Timer timer_;
-    bool closed_;
-    bool run_forever_;
+    bool closed_{false};
+    bool run_forever_{false};
 
     UThreadActiveSocket_t active_socket_func_;
     UThreadHandlerAcceptedFdFunc_t handler_accepted_fd_func_;
@@ -118,17 +122,19 @@ private:
     EpollNotifier epoll_wake_up_;
 };
 
+
 class __uthread {
-public:
-    __uthread(UThreadEpollScheduler & scheduler) : scheduler_(scheduler) { }
+  public:
+    __uthread(UThreadEpollScheduler &scheduler) : scheduler_(scheduler) { }
     template <typename Func>
     void operator-(Func const & func) {
         scheduler_.AddTask(func, nullptr);
     }
 
-private:
-    UThreadEpollScheduler & scheduler_;
+  private:
+    UThreadEpollScheduler &scheduler_;
 };
+
 
 #define uthread_begin phxrpc::UThreadEpollScheduler _uthread_scheduler(64 * 1024, 300);
 #define uthread_begin_withargs(stack_size, max_task) phxrpc::UThreadEpollScheduler _uthread_scheduler(stack_size, max_task);
@@ -138,43 +144,44 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 
-int UThreadPoll(UThreadSocket_t & socket, int events, int * revents, int timeout_ms);
+int UThreadPoll(UThreadSocket_t &socket, int events, int *revents, const int timeout_ms);
 
-int UThreadPoll(UThreadSocket_t * list[], int count, int timeout_ms);
+int UThreadPoll(UThreadSocket_t *list[], int count, const int timeout_ms);
 
-int UThreadConnect(UThreadSocket_t & socket, const struct sockaddr *addr, socklen_t addrlen);
+int UThreadConnect(UThreadSocket_t &socket, const struct sockaddr *addr, socklen_t addrlen);
 
-int UThreadAccept(UThreadSocket_t & socket, struct sockaddr *addr, socklen_t *addrlen);
+int UThreadAccept(UThreadSocket_t &socket, struct sockaddr *addr, socklen_t *addrlen);
 
-ssize_t UThreadRecv(UThreadSocket_t & socket, void * buf, size_t len, int flags);
+ssize_t UThreadRecv(UThreadSocket_t &socket, void *buf, size_t len, const int flags);
 
-ssize_t UThreadRead(UThreadSocket_t & socket, void * buf, size_t len, int flags);
+ssize_t UThreadRead(UThreadSocket_t &socket, void *buf, size_t len, const int flags);
 
-ssize_t UThreadSend(UThreadSocket_t & socket, const void *buf, size_t len, int flags);
+ssize_t UThreadSend(UThreadSocket_t &socket, const void *buf, size_t len, const int flags);
 
-int UThreadClose(UThreadSocket_t & socket);
+int UThreadClose(UThreadSocket_t &socket);
 
-void UThreadSetConnectTimeout(UThreadSocket_t & socket, int connect_timeout_ms);
+void UThreadSetConnectTimeout(UThreadSocket_t &socket, const int connect_timeout_ms);
 
-void UThreadSetSocketTimeout(UThreadSocket_t & socket, int socket_timeout_ms);
+void UThreadSetSocketTimeout(UThreadSocket_t &socket, const int socket_timeout_ms);
 
-int UThreadSocketFd(UThreadSocket_t & socket);
+int UThreadSocketFd(UThreadSocket_t &socket);
 
-size_t UThreadSocketTimerID(UThreadSocket_t & socket);
+size_t UThreadSocketTimerID(UThreadSocket_t &socket);
 
-void UThreadSocketSetTimerID(UThreadSocket_t & socket, size_t timer_id);
+void UThreadSocketSetTimerID(UThreadSocket_t &socket, size_t timer_id);
 
-UThreadSocket_t * NewUThreadSocket();
+UThreadSocket_t *NewUThreadSocket();
 
-void UThreadSetArgs(UThreadSocket_t & socket, void * args);
+void UThreadSetArgs(UThreadSocket_t &socket, void *args);
 
-void * UThreadGetArgs(UThreadSocket_t & socket);
+void *UThreadGetArgs(UThreadSocket_t &socket);
 
-void UThreadWait(UThreadSocket_t & socket, int timeout_ms);
+void UThreadWait(UThreadSocket_t &socket, const int timeout_ms);
 
-void UThreadLazyDestory(UThreadSocket_t & socket);
+void UThreadLazyDestory(UThreadSocket_t &socket);
 
-bool IsUThreadDestory(UThreadSocket_t & socket);
+bool IsUThreadDestory(UThreadSocket_t &socket);
 
-};
+
+}  // namespace phxrpc
 

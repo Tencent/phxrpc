@@ -1,31 +1,32 @@
 /*
-Tencent is pleased to support the open source community by making 
+Tencent is pleased to support the open source community by making
 PhxRPC available.
-Copyright (C) 2016 THL A29 Limited, a Tencent company. 
+Copyright (C) 2016 THL A29 Limited, a Tencent company.
 All rights reserved.
 
-Licensed under the BSD 3-Clause License (the "License"); you may 
-not use this file except in compliance with the License. You may 
+Licensed under the BSD 3-Clause License (the "License"); you may
+not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
 https://opensource.org/licenses/BSD-3-Clause
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" basis, 
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
-implied. See the License for the specific language governing 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
 permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors.
 */
 
-#include <stdio.h>
+#include <cstdio>
 #include <errno.h>
-#include <unistd.h>
-
-#include <vector>
 #include <string>
+#include <unistd.h>
+#include <vector>
+
 #include "proto_utils.h"
+
 
 using namespace google::protobuf::compiler;
 using namespace google::protobuf;
@@ -33,16 +34,17 @@ using namespace google::protobuf;
 using namespace phxrpc;
 using namespace std;
 
+
 class MyErrorPrinter : public MultiFileErrorCollector {
- public:
+  public:
     MyErrorPrinter() {
     }
-    ~MyErrorPrinter() {
+    virtual ~MyErrorPrinter() override {
     }
 
-    void AddError(const std::string& filename, int line, int column, const std::string& message) {
+    void AddError(const std::string& file_name, int line, int column, const std::string& message) {
 
-        fprintf(stderr, "%s", filename.c_str());
+        fprintf(stderr, "%s", file_name.c_str());
 
         if (line != -1)
             fprintf(stderr, ":%d:%d", line + 1, column + 1);
@@ -51,12 +53,12 @@ class MyErrorPrinter : public MultiFileErrorCollector {
     }
 };
 
-int ProtoUtils::Parse(const char * file, SyntaxTree * stree, const std::vector<std::string> & include_list) {
-    return Parse(file, stree, NULL, include_list);
+int ProtoUtils::Parse(const char *file, SyntaxTree *stree, const vector<string> &include_list) {
+    return Parse(file, stree, nullptr, include_list);
 }
 
-int ProtoUtils::Parse(const char * file, SyntaxTree * stree, std::map<std::string, bool> * parsed_file_map,
-        const std::vector<std::string> & include_list) {
+int ProtoUtils::Parse(const char *file, SyntaxTree *stree, map<string, bool> *parsed_file_map,
+                      const vector<string> &include_list) {
 
     DiskSourceTree tree;
     tree.MapPath("", "./");
@@ -64,7 +66,7 @@ int ProtoUtils::Parse(const char * file, SyntaxTree * stree, std::map<std::strin
         tree.MapPath("", include_path);
     }
 
-    int ret = LoadNormal(file, stree, parsed_file_map, tree);
+    int ret{LoadNormal(file, stree, parsed_file_map, tree)};
 
     if (0 == ret)
         ret = LoadExtension(file, stree, tree);
@@ -75,24 +77,24 @@ int ProtoUtils::Parse(const char * file, SyntaxTree * stree, std::map<std::strin
     return ret;
 }
 
-int ProtoUtils::LoadNormal(const char * filename, SyntaxTree * stree, std::map<std::string, bool> * parsed_file_map,
-        DiskSourceTree & tree) {
+int ProtoUtils::LoadNormal(const char *file_name, SyntaxTree *stree, map<string, bool> *parsed_file_map,
+                           DiskSourceTree &tree) {
     MyErrorPrinter error;
 
     Importer importer(&tree, &error);
 
-    const FileDescriptor * fd = importer.Import(filename);
+    const FileDescriptor *fd{importer.Import(file_name)};
 
     stree->SetPackageName(fd->package().c_str());
 
-    stree->SetProtoFile(filename);
+    stree->SetProtoFile(file_name);
 
-    for (int i = 0; i < 1 && i < fd->service_count(); i++) {
+    for (int i{0}; 1 > i && fd->service_count() > i; ++i) {
         const ServiceDescriptor * iter = fd->service(i);
         stree->SetName(iter->name().c_str());
 
-        for (int j = 0; j < iter->method_count(); j++) {
-            const MethodDescriptor * method = iter->method(j);
+        for (int j{0}; iter->method_count() > j; ++j) {
+            const MethodDescriptor *method{iter->method(j)};
 
             SyntaxFunc func;
             func.SetName(method->name().c_str());
@@ -113,7 +115,7 @@ int ProtoUtils::LoadNormal(const char * filename, SyntaxTree * stree, std::map<s
     return 0;
 }
 
-int ProtoUtils::LoadExtension(const char * filename, SyntaxTree * stree, DiskSourceTree & tree) {
+int ProtoUtils::LoadExtension(const char *file_name, SyntaxTree *stree, DiskSourceTree &tree) {
     MyErrorPrinter error;
 
     SourceTreeDescriptorDatabase db(&tree);
@@ -121,33 +123,33 @@ int ProtoUtils::LoadExtension(const char * filename, SyntaxTree * stree, DiskSou
 
     FileDescriptorProto fd_proto;
 
-    db.FindFileByName(filename, &fd_proto);
+    db.FindFileByName(file_name, &fd_proto);
 
-    for (int i = 0; i < 1 && i < fd_proto.service_size(); i++) {
-        const ServiceDescriptorProto & svc = fd_proto.service(i);
+    for (int i{0}; 1 > i && fd_proto.service_size() > i; ++i) {
+        const ServiceDescriptorProto &svc(fd_proto.service(i));
 
-        for (int j = 0; j < svc.method_size(); j++) {
-            const MethodDescriptorProto & method = svc.method(j);
+        for (int j{0}; svc.method_size() > j; ++j) {
+            const MethodDescriptorProto &method(svc.method(j));
 
-            SyntaxFunc * func = stree->FindFunc(method.name().c_str());
+            SyntaxFunc *func{stree->FindFunc(method.name().c_str())};
 
-            assert(NULL != func);
+            assert(nullptr != func);
 
-            const MethodOptions & options = method.options();
+            const MethodOptions &options(method.options());
 
-            for (int k = 0; k < options.uninterpreted_option_size(); k++) {
-                const UninterpretedOption & opt = options.uninterpreted_option(k);
+            for (int k{0}; options.uninterpreted_option_size() > k; ++k) {
+                const UninterpretedOption &opt(options.uninterpreted_option(k));
 
                 if (opt.name_size() > 0) {
-                    if (NULL != strstr(opt.name(0).name_part().c_str(), "OptString")) {
+                    if (nullptr != strstr(opt.name(0).name_part().c_str(), "OptString")) {
                         func->SetOptString(opt.string_value().c_str());
                     }
 
-                    if (NULL != strstr(opt.name(0).name_part().c_str(), "Usage")) {
+                    if (nullptr != strstr(opt.name(0).name_part().c_str(), "Usage")) {
                         func->SetUsage(opt.string_value().c_str());
                     }
 
-                    if (NULL != strstr(opt.name(0).name_part().c_str(), "CmdID")) {
+                    if (nullptr != strstr(opt.name(0).name_part().c_str(), "CmdID")) {
                         func->SetCmdID(opt.positive_int_value());
                     }
                 }
@@ -158,8 +160,8 @@ int ProtoUtils::LoadExtension(const char * filename, SyntaxTree * stree, DiskSou
     return 0;
 }
 
-int ProtoUtils::AddEcho(SyntaxTree * stree) {
-    char name[256] = { 0 };
+int ProtoUtils::AddEcho(SyntaxTree *stree) {
+    char name[256]{0};
 
     snprintf(name, sizeof(name), "google.protobuf.StringValue");
 

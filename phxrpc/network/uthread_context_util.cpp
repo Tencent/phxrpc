@@ -20,15 +20,19 @@ See the AUTHORS file for names of contributors.
 */
 
 #include "uthread_context_util.h"
+
 #include <assert.h>
 #include <unistd.h>
 #include <sys/mman.h>
 
+
 namespace phxrpc {
 
+
 #ifdef __APPLE__
-	#define MAP_ANONYMOUS MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
 #endif
+
 
 UThreadStackMemory :: UThreadStackMemory(const size_t stack_size, const bool need_protect) :
     raw_stack_(nullptr), stack_(nullptr), need_protect_(need_protect) {
@@ -82,4 +86,6 @@ size_t UThreadStackMemory :: size() {
     return stack_size_;
 }
 
-} //namespace phxrpc
+
+}  // namespace phxrpc
+

@@ -21,15 +21,14 @@ See the AUTHORS file for names of contributors.
 
 #include "epoll-darwin.h"
 
+#include <cstdlib>
+#include <errno.h>
+#include <poll.h>
+#include <signal.h>
 #include <sys/event.h>
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/types.h>
-
-#include <errno.h>
-#include <poll.h>
-#include <signal.h>
-#include <stdlib.h>
 
 int epoll_create(int size)
 {
@@ -56,7 +55,7 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)
 		return -1;
 	}
 
-	return kevent(epfd, &kev, 1, NULL, 0, NULL);
+	return kevent(epfd, &kev, 1, nullptr, 0, nullptr);
 }
 
 int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
@@ -69,7 +68,7 @@ int epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
 		to.tv_nsec = (timeout % 1000) * 1000 * 1000;
 	}
 
-	int ret = kevent(epfd, NULL, 0, evlist, maxevents, timeout == -1 ? NULL : &to);
+	int ret = kevent(epfd, nullptr, 0, evlist, maxevents, timeout == -1 ? nullptr : &to);
 	if (ret > 0) {
 		for (int i = 0; i < ret; ++i) {
 			events[i].events = ( evlist[i].filter == EVFILT_READ ) ? EPOLLIN : EPOLLOUT;

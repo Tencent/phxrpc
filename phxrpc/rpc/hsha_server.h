@@ -1,19 +1,19 @@
 /*
-Tencent is pleased to support the open source community by making 
+Tencent is pleased to support the open source community by making
 PhxRPC available.
-Copyright (C) 2016 THL A29 Limited, a Tencent company. 
+Copyright (C) 2016 THL A29 Limited, a Tencent company.
 All rights reserved.
 
-Licensed under the BSD 3-Clause License (the "License"); you may 
-not use this file except in compliance with the License. You may 
+Licensed under the BSD 3-Clause License (the "License"); you may
+not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
 https://opensource.org/licenses/BSD-3-Clause
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" basis, 
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
-implied. See the License for the specific language governing 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
 permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors.
@@ -21,81 +21,84 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include <map>
-#include <thread>
-#include <functional>
 #include <atomic>
 #include <condition_variable>
+#include <functional>
+#include <map>
 #include <mutex>
+#include <thread>
 #include <vector>
-#include "server_config.h"
-#include "thread_queue.h"
 
 #include "phxrpc/network.h"
 #include "phxrpc/http.h"
+
 #include "server_base.h"
+#include "server_config.h"
 #include "server_monitor.h"
+#include "thread_queue.h"
+
 
 namespace phxrpc {
+
 
 class WorkerPool;
 
 class DataFlow {
-public:
+  public:
     DataFlow();
     ~DataFlow();
 
-    void PushRequest(void * args, HttpRequest * request);
-    int PluckRequest(void *& args, HttpRequest *& request);
-    int PickRequest(void *& args, HttpRequest *& request);
-    void PushResponse(void * args, HttpResponse * response);
-    int PluckResponse(void *& args, HttpResponse *& response);
+    void PushRequest(void *args, HttpRequest *request);
+    int PluckRequest(void *&args, HttpRequest *&request);
+    int PickRequest(void *&args, HttpRequest *&request);
+    void PushResponse(void *args, HttpResponse *response);
+    int PluckResponse(void *&args, HttpResponse *&response);
     bool CanPushRequest(const int max_queue_length);
     bool CanPluckResponse();
 
     void BreakOut();
 
-private:
+  private:
     struct QueueExtData {
         QueueExtData() {
             enqueue_time_ms = 0;
             args = nullptr;
         }
-        QueueExtData(void * t_args) {
+        QueueExtData(void *t_args) {
             enqueue_time_ms = Timer::GetSteadyClockMS();
             args = t_args;
         }
         uint64_t enqueue_time_ms;
-        void * args;
+        void *args;
     };
-    ThdQueue<std::pair<QueueExtData, HttpRequest *> > in_queue_;
-    ThdQueue<std::pair<QueueExtData, HttpResponse *> > out_queue_;
+    ThdQueue<std::pair<QueueExtData, HttpRequest *>> in_queue_;
+    ThdQueue<std::pair<QueueExtData, HttpResponse *>> out_queue_;
 };
 
 /////////////////////////////////
 
-#define RPC_TIME_COST_CAL_RATE 1000 
-#define QUEUE_WAIT_TIME_COST_CAL_RATE 1000 
+#define RPC_TIME_COST_CAL_RATE 1000
+#define QUEUE_WAIT_TIME_COST_CAL_RATE 1000
 #define MAX_QUEUE_WAIT_TIME_COST 500
-#define MAX_ACCEPT_QUEUE_LENGTH 102400 
+#define MAX_ACCEPT_QUEUE_LENGTH 102400
 
 class HshaServerStat {
-public:
-    HshaServerStat(const HshaServerConfig * config, ServerMonitorPtr hsha_server_monitor);
+  public:
+    HshaServerStat(const HshaServerConfig *config, ServerMonitorPtr hsha_server_monitor);
     ~HshaServerStat();
 
     void CalFunc();
 
     class TimeCost {
-    public:
+      public:
         TimeCost();
         ~TimeCost();
         int Cost();
-    private:
+      private:
         uint64_t now_time_ms_;
     };
 
-private:
+  private:
     void MonitorReport();
 
     friend class HshaServerIO;
@@ -103,7 +106,7 @@ private:
     friend class Worker;
     friend class HshaServerQos;
     friend class HshaServerAcceptor;
-    const HshaServerConfig * config_;
+    const HshaServerConfig *config_;
     std::mutex mutex_;
     std::condition_variable cv_;
     std::thread thread_;
@@ -179,17 +182,17 @@ private:
 //////////////////////////////////
 
 class HshaServerQos {
-public:
-    HshaServerQos(const HshaServerConfig * config, HshaServerStat * hsha_server_stat);
+  public:
+    HshaServerQos(const HshaServerConfig *config, HshaServerStat *hsha_server_stat);
     ~HshaServerQos();
 
     void CalFunc();
     bool CanAccept();
     bool CanEnqueue();
 
-private:
-    const HshaServerConfig * config_;
-    HshaServerStat * hsha_server_stat_;
+  private:
+    const HshaServerConfig *config_;
+    HshaServerStat *hsha_server_stat_;
     std::mutex mutex_;
     std::condition_variable cv_;
     std::thread thread_;
@@ -201,54 +204,54 @@ private:
 //////////////////////////////////
 
 class Worker {
-public:
-    Worker(WorkerPool * pool, int uthread_count, int utherad_stack_size);
+  public:
+    Worker(WorkerPool *pool, int uthread_count, int utherad_stack_size);
     ~Worker();
 
-    void Func(); 
+    void Func();
     void Shutdown();
 
     void ThreadMode();
     void UThreadMode();
     void HandlerNewRequestFunc();
-    void UThreadFunc(void * args, HttpRequest * request, int queue_wait_time_ms);
-    void WorkerLogic(void * args, HttpRequest * request, int queue_wait_time_ms);
+    void UThreadFunc(void *args, HttpRequest *request, int queue_wait_time_ms);
+    void WorkerLogic(void *args, HttpRequest *request, int queue_wait_time_ms);
     void Notify();
 
-private:
-    WorkerPool * pool_;
+  private:
+    WorkerPool *pool_;
     int uthread_count_;
     int utherad_stack_size_;
     bool shut_down_;
-    UThreadEpollScheduler * worker_scheduler_;
+    UThreadEpollScheduler *worker_scheduler_;
     std::thread thread_;
 };
 
 /////////////////////////////////
 
-typedef std::function< void(const HttpRequest &, HttpResponse *, DispatcherArgs_t *) > Dispatch_t;
+typedef std::function<void(const HttpRequest &, HttpResponse *, DispatcherArgs_t *)> Dispatch_t;
 
 class WorkerPool {
-public:
-    WorkerPool(UThreadEpollScheduler * scheduler, 
-            int thread_count, 
-            int uthread_count_per_thread,
-            int utherad_stack_size,
-            DataFlow * data_flow, 
-            HshaServerStat * hsha_server_stat, 
-            Dispatch_t dispatch, 
-            void * args);
+  public:
+    WorkerPool(UThreadEpollScheduler *scheduler,
+               int thread_count,
+               int uthread_count_per_thread,
+               int utherad_stack_size,
+               DataFlow *data_flow,
+               HshaServerStat *hsha_server_stat,
+               Dispatch_t dispatch,
+               void *args);
     ~WorkerPool();
 
     void Notify();
 
-private:
+  private:
     friend class Worker;
-    UThreadEpollScheduler * scheduler_;
-    DataFlow * data_flow_;
-    HshaServerStat * hsha_server_stat_;
+    UThreadEpollScheduler *scheduler_;
+    DataFlow *data_flow_;
+    HshaServerStat *hsha_server_stat_;
     Dispatch_t dispatch_;
-    void * args_;
+    void *args_;
     std::vector<Worker *> worker_list_;
     size_t last_notify_idx_;
     std::mutex mutex_;
@@ -257,10 +260,10 @@ private:
 /////////////////////////////////
 
 class HshaServerIO {
-public:
-    HshaServerIO(int idx, UThreadEpollScheduler * scheduler, const HshaServerConfig * config, 
-            DataFlow * data_flow, HshaServerStat * hsha_server_stat, HshaServerQos * hsha_server_qos,
-            WorkerPool * worker_pool);
+  public:
+    HshaServerIO(int idx, UThreadEpollScheduler *scheduler, const HshaServerConfig *config,
+                 DataFlow *data_flow, HshaServerStat *hsha_server_stat, HshaServerQos *hsha_server_qos,
+                 WorkerPool *worker_pool);
     ~HshaServerIO();
 
     void RunForever();
@@ -271,17 +274,17 @@ public:
 
     void IOFunc(int accept_fd);
 
-    UThreadSocket_t * ActiveSocketFunc();
+    UThreadSocket_t *ActiveSocketFunc();
 
-private:
+  private:
     int idx_;
-    UThreadEpollScheduler * scheduler_;
-    const HshaServerConfig * config_;
-    DataFlow * data_flow_;
+    UThreadEpollScheduler *scheduler_;
+    const HshaServerConfig *config_;
+    DataFlow *data_flow_;
     int listen_fd_;
-    HshaServerStat * hsha_server_stat_;
-    HshaServerQos * hsha_server_qos_;
-    WorkerPool * worker_pool_;
+    HshaServerStat *hsha_server_stat_;
+    HshaServerQos *hsha_server_qos_;
+    WorkerPool *worker_pool_;
 
     std::queue<int> accepted_fd_list_;
     std::mutex queue_mutex_;
@@ -290,22 +293,23 @@ private:
 /////////////////////////////////
 
 class HshaServer;
+
 class HshaServerUnit {
-public:
-    HshaServerUnit(HshaServer * hsha_server, 
-            int idx, 
-            int worker_thread_count, 
-            int worker_uthread_count_per_thread,
-            int worker_utherad_stack_size,
-            Dispatch_t dispatch, 
-            void * args);
+  public:
+    HshaServerUnit(HshaServer *hsha_server,
+                   int idx,
+                   int worker_thread_count,
+                   int worker_uthread_count_per_thread,
+                   int worker_utherad_stack_size,
+                   Dispatch_t dispatch,
+                   void *args);
     ~HshaServerUnit();
 
     void RunFunc();
     bool AddAcceptedFd(int accepted_fd);
 
-private:
-    HshaServer * hsha_server_;
+  private:
+    HshaServer *hsha_server_;
     UThreadEpollScheduler scheduler_;
     DataFlow data_flow_;
     WorkerPool worker_pool_;
@@ -316,27 +320,27 @@ private:
 /////////////////////////////////
 
 class HshaServerAcceptor {
-public:
-    HshaServerAcceptor(HshaServer * hsha_server);
+  public:
+    HshaServerAcceptor(HshaServer *hsha_server);
     ~HshaServerAcceptor();
 
-    void LoopAccept(const char * bind_ip, const int port);
+    void LoopAccept(const char *bind_ip, const int port);
 
-private:
-    HshaServer * hsha_server_;
+  private:
+    HshaServer *hsha_server_;
     size_t idx_;
 };
 
 /////////////////////////////////
 
 class HshaServer {
-public:
-    HshaServer(const HshaServerConfig & config, Dispatch_t dispatch, void * args);
+  public:
+    HshaServer(const HshaServerConfig &config, Dispatch_t dispatch, void *args);
     ~HshaServer();
 
     void RunForever();
 
-    const HshaServerConfig * config_;
+    const HshaServerConfig *config_;
     ServerMonitorPtr hsha_server_monitor_;
     HshaServerStat hsha_server_stat_;
     HshaServerQos hsha_server_qos_;
@@ -345,4 +349,6 @@ public:
     std::vector<HshaServerUnit *> server_unit_list_;
 };
 
+
 } //namespace phxrpc
+

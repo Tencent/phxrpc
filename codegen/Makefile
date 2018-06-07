@@ -21,7 +21,7 @@ phxrpc_pb2tool: $(COMM_OBJS) tool_code_render.o tool_template.o phxrpc_pb2tool.o
 phxrpc_pb2server: $(COMM_OBJS) server_code_render.o server_template.o phxrpc_pb2server.o
 	$(LINKER) $^ $(LDFLAGS) -o $@
 
-test_proto_utils: test_proto_utils.o syntax_tree.o proto_utils.o
+test_proto_utils: test_proto_utils.o syntax_tree.o proto_utils.o code_utils.o
 	$(LINKER) $^ $(LDFLAGS) -o $@
 
 
