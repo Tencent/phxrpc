@@ -1,34 +1,37 @@
 /*
-Tencent is pleased to support the open source community by making 
+Tencent is pleased to support the open source community by making
 PhxRPC available.
-Copyright (C) 2016 THL A29 Limited, a Tencent company. 
+Copyright (C) 2016 THL A29 Limited, a Tencent company.
 All rights reserved.
 
-Licensed under the BSD 3-Clause License (the "License"); you may 
-not use this file except in compliance with the License. You may 
+Licensed under the BSD 3-Clause License (the "License"); you may
+not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
 https://opensource.org/licenses/BSD-3-Clause
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" basis, 
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
-implied. See the License for the specific language governing 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
 permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors.
 */
 
-#include <stdarg.h>
-#include <stdio.h>
+#include <cstdarg>
+#include <cstdio>
 
 #include "code_utils.h"
 
+
 using namespace std;
+
 
 namespace phxrpc {
 
-void StrTrim(string * str, const char * to_trim) {
+
+void StrTrim(string *str, const char *to_trim) {
     string::size_type start_pos = 0;
     string::size_type end_pos = 0;
 
@@ -43,7 +46,7 @@ void StrTrim(string * str, const char * to_trim) {
     }
 }
 
-void StrReplaceAll(string * haystack, string needle, string s) {
+void StrReplaceAll(string *haystack, string needle, string s) {
     string::size_type pos = 0;
     while ((pos = haystack->find(needle, pos)) != string::npos) {
         haystack->erase(pos, needle.length());
@@ -52,8 +55,8 @@ void StrReplaceAll(string * haystack, string needle, string s) {
     }
 }
 
-void StrAppendFormat(string * result, const char * fmt, ...) {
-    if (NULL == fmt)
+void StrAppendFormat(string *result, const char *fmt, ...) {
+    if (nullptr == fmt)
         return;
 
     size_t len = 0;
@@ -75,5 +78,6 @@ void StrAppendFormat(string * result, const char * fmt, ...) {
     }
 }
 
-}
+
+}  // namespace phxrpc
 

@@ -1,19 +1,19 @@
 /*
-Tencent is pleased to support the open source community by making 
+Tencent is pleased to support the open source community by making
 PhxRPC available.
-Copyright (C) 2016 THL A29 Limited, a Tencent company. 
+Copyright (C) 2016 THL A29 Limited, a Tencent company.
 All rights reserved.
 
-Licensed under the BSD 3-Clause License (the "License"); you may 
-not use this file except in compliance with the License. You may 
+Licensed under the BSD 3-Clause License (the "License"); you may
+not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
 https://opensource.org/licenses/BSD-3-Clause
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" basis, 
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
-implied. See the License for the specific language governing 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
 permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors.
@@ -24,7 +24,9 @@ See the AUTHORS file for names of contributors.
 #include <vector>
 #include <string>
 
+
 namespace phxrpc {
+
 
 enum {
     _SYNTAX_NAME_LEN = 512,
@@ -32,58 +34,59 @@ enum {
     _SYNTAX_TYPE_LEN = 512
 };
 
+
 class SyntaxNode {
- public:
+  public:
     SyntaxNode();
     virtual ~SyntaxNode();
 
-    void SetName(const char * name);
-    const char * GetName() const;
+    void SetName(const char *name);
+    const char *GetName() const;
 
- private:
+  private:
     char name_[_SYNTAX_NAME_LEN];
 };
 
 class SyntaxParam : public SyntaxNode {
- public:
+  public:
     SyntaxParam();
-    ~SyntaxParam();
+    virtual ~SyntaxParam() override;
 
-    void SetType(const char * type);
-    const char * GetType() const;
+    void SetType(const char *type);
+    const char *GetType() const;
 
- private:
+  private:
     char type_[_SYNTAX_TYPE_LEN];
 };
 
 class SyntaxFunc : public SyntaxNode {
- public:
+  public:
     SyntaxFunc();
-    ~SyntaxFunc();
+    virtual ~SyntaxFunc() override;
 
-    const SyntaxParam * GetReq() const;
+    const SyntaxParam *GetReq() const;
 
-    const SyntaxParam * GetResp() const;
+    const SyntaxParam *GetResp() const;
 
-    SyntaxParam * GetReq();
+    SyntaxParam *GetReq();
 
-    SyntaxParam * GetResp();
+    SyntaxParam *GetResp();
 
-    void SetOptString(const char * opt_string);
-    const char * GetOptString() const;
+    void SetOptString(const char *opt_string);
+    const char *GetOptString() const;
 
-    void SetUsage(const char * usage);
-    const char * GetUsage() const;
+    void SetUsage(const char *usage);
+    const char *GetUsage() const;
 
-    void SetCmdID(int32_t cmdid );
-    int32_t GetCmdID();
+    void SetCmdID(const int cmdid);
+    int GetCmdID() const;
 
- private:
+  private:
     SyntaxParam req_;
     SyntaxParam resp_;
     char opt_string_[_SYNTAX_DESC_LEN];
     char usage_[_SYNTAX_DESC_LEN];
-    int32_t cmdid_;
+    int cmdid_;
 };
 
 //------------------------------------------------------------
@@ -95,37 +98,37 @@ class SyntaxTree;
 typedef std::vector<SyntaxTree *> SyntaxTreeVector;
 
 class SyntaxTree : public SyntaxNode {
- public:
+  public:
     SyntaxTree();
-    ~SyntaxTree();
+    virtual ~SyntaxTree() override;
 
-    void SetProtoFile(const char * proto_file);
-    const char * GetProtoFile() const;
+    void SetProtoFile(const char *proto_file);
+    const char *GetProtoFile() const;
 
-    void SetPrefix(const char * prefix);
-    const char * GetPrefix() const;
+    void SetPrefix(const char *prefix);
+    const char *GetPrefix() const;
 
-    void SetPackageName(const char * sPBPackageName);
-    const char * GetPackageName() const;
+    void SetPackageName(const char *package_name);
+    const char *GetPackageName() const;
 
-    const SyntaxFuncVector * GetFuncList() const;
-    SyntaxFuncVector * GetFuncList();
+    const SyntaxFuncVector *GetFuncList() const;
+    SyntaxFuncVector *GetFuncList();
 
-    SyntaxFunc * FindFunc(const char * name);
+    SyntaxFunc *FindFunc(const char *name);
 
     void Print();
 
- public:
-    static char * ToLower(register char *s);
-    static char * ToUpper(register char *s);
+    static char *ToLower(register char *s);
+    static char *ToUpper(register char *s);
 
- private:
+  private:
     char proto_file_[128];
     char prefix_[32];
     char package_name_[128];
 
     SyntaxFuncVector func_list_;
 };
+
 
 }
 

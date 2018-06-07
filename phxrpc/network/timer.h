@@ -21,22 +21,24 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
+#include <cinttypes>
+#include <cstdlib>
 #include <vector>
-#include <inttypes.h>
-#include <stdlib.h>
+
 
 namespace phxrpc {
 
+
 typedef struct tagUThreadSocket UThreadSocket_t;
 
-class Timer {
+class Timer final {
  public:
     Timer();
     ~Timer();
 
-    void AddTimer(uint64_t abs_time, UThreadSocket_t * socket);
+    void AddTimer(uint64_t abs_time, UThreadSocket_t *socket);
     void RemoveTimer(const size_t timer_id);
-    UThreadSocket_t * PopTimeout();
+    UThreadSocket_t *PopTimeout();
     const int GetNextTimeout() const;
     const bool empty();
     static const uint64_t GetTimestampMS();
@@ -49,18 +51,18 @@ class Timer {
     void heap_down(const size_t begin_idx);
 
     struct TimerObj {
-        TimerObj(uint64_t abs_time, UThreadSocket_t * socket)
+        TimerObj(uint64_t abs_time, UThreadSocket_t *socket)
                 : abs_time_(abs_time), socket_(socket){
         }
 
         uint64_t abs_time_;
-        UThreadSocket_t * socket_;
+        UThreadSocket_t *socket_;
 
-        bool operator <(const TimerObj & obj) const {
+        bool operator <(const TimerObj &obj) const {
             return abs_time_ < obj.abs_time_;
         }
 
-        bool operator ==(const TimerObj & obj) const {
+        bool operator ==(const TimerObj &obj) const {
             return abs_time_ == obj.abs_time_;
         }
     };
@@ -68,4 +70,6 @@ class Timer {
     std::vector<TimerObj> timer_heap_;
 };
 
+
 }
+
