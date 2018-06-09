@@ -29,6 +29,7 @@ See the AUTHORS file for names of contributors.
 #include "http_msg.h"
 #include "http_client.h"
 
+#include "phxrpc/comm.h"
 #include "phxrpc/file/file_utils.h"
 #include "phxrpc/file/opt_map.h"
 #include "phxrpc/network/socket_stream_block.h"
@@ -50,10 +51,8 @@ void ShowUsage(const char *program) {
 }
 
 int main(int argc, char **argv) {
-    {
-        bool chk = (sigset(SIGPIPE, SIG_IGN) != SIG_ERR);
-        if (!chk) assert(chk);
-    }
+
+    PHXRPC_ASSERT(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
 
     OptMap optMap("h:p:r:u:f:ov");
 

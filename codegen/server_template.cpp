@@ -33,6 +33,7 @@ const char * PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
 #include "phxrpc/rpc.h"
 #include "phxrpc/http.h"
 #include "phxrpc/file.h"
+#include "phxrpc/comm.h"
 
 using namespace std;
 
@@ -78,10 +79,7 @@ int main( int argc, char * argv[] ) {
 
     if( daemonize ) phxrpc::ServerUtils::Daemonize();
 
-    {
-        bool chk = (signal(SIGPIPE, SIG_IGN) != SIG_ERR);
-        if (!chk) assert(chk);
-    }
+    PHXRPC_ASSERT(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
 
     //set customize log/monitor
     //phxrpc::setlog(openlog, closelog, vlog);
@@ -171,10 +169,7 @@ int main( int argc, char * argv[] ) {
 
     if( daemonize ) phxrpc::ServerUtils::Daemonize();
 
-    {
-        bool chk = (signal(SIGPIPE, SIG_IGN) != SIG_ERR);
-        if (!chk) assert(chk);
-    }
+    PHXRPC_ASSERT(signal(SIGPIPE, SIG_IGN) != SIG_ERR);
 
     //set customize log/monitor
     //phxrpc::setlog(openlog, closelog, vlog);
