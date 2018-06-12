@@ -38,12 +38,13 @@ class ProtoUtils {
   public:
     static int Parse(const char *file, phxrpc::SyntaxTree *stree,
                      const std::vector<std::string> &include_list);
-    static int Parse(const char *file, phxrpc::SyntaxTree *stree, std::map<std::string, bool> *parsed_file_map,
+    static int Parse(const char *file, phxrpc::SyntaxTree *stree,
+                     std::map<std::string, bool> *parsed_file_map,
                      const std::vector<std::string> & include_list);
 
   private:
-
-    static int LoadNormal(const char *file_name, phxrpc::SyntaxTree *stree, std::map<std::string, bool> *parsed_file_map,
+    static int LoadNormal(const char *file_name, phxrpc::SyntaxTree *stree,
+                          std::map<std::string, bool> *parsed_file_map,
                           google::protobuf::compiler::DiskSourceTree & tree);
 
     static int LoadExtension(const char *file_name, phxrpc::SyntaxTree *stree,

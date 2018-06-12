@@ -278,8 +278,8 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree, FILE *write, const b
     name_render_.GetStubClassName(stree->GetName(), stub_class, sizeof(stub_class));
     name_render_.GetStubFileName(stree->GetName(), stub_file, sizeof(stub_file));
 
-    string client_class_str = string(client_class);
-    string client_class_lower_str = string(client_class_lower);
+    string client_class_str(client_class);
+    string client_class_lower_str(client_class_lower);
     if (is_uthread_mode) {
         client_class_str += "UThread";
         client_class_lower_str += "uthread";
