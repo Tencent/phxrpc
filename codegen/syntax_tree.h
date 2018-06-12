@@ -72,21 +72,25 @@ class SyntaxFunc : public SyntaxNode {
 
     SyntaxParam *GetResp();
 
+    void SetCmdID(const int cmdid);
+    int GetCmdID() const;
+
     void SetOptString(const char *opt_string);
     const char *GetOptString() const;
 
     void SetUsage(const char *usage);
     const char *GetUsage() const;
 
-    void SetCmdID(const int cmdid);
-    int GetCmdID() const;
+    void SetProtocol(const char *protocol);
+    const char *GetProtocol() const;
 
   private:
     SyntaxParam req_;
     SyntaxParam resp_;
+    int cmdid_;
     char opt_string_[_SYNTAX_DESC_LEN];
     char usage_[_SYNTAX_DESC_LEN];
-    int cmdid_;
+    char protocol_[_SYNTAX_DESC_LEN];
 };
 
 //------------------------------------------------------------
@@ -108,8 +112,8 @@ class SyntaxTree : public SyntaxNode {
     void SetPrefix(const char *prefix);
     const char *GetPrefix() const;
 
-    void SetPackageName(const char *package_name);
-    const char *GetPackageName() const;
+    void SetCppPackageName(const char *cpp_package_name);
+    const char *GetCppPackageName() const;
 
     const SyntaxFuncVector *GetFuncList() const;
     SyntaxFuncVector *GetFuncList();
@@ -121,10 +125,16 @@ class SyntaxTree : public SyntaxNode {
     static char *ToLower(register char *s);
     static char *ToUpper(register char *s);
 
+    static std::string Cpp2PbPackageName(const std::string &cpp_package_name);
+    static std::string Pb2CppPackageName(const std::string &pb_package_name);
+
+    static std::string Cpp2UriPackageName(const std::string &cpp_package_name);
+    static std::string Uri2CppPackageName(const std::string &url_package_name);
+
   private:
     char proto_file_[128];
     char prefix_[32];
-    char package_name_[128];
+    char cpp_package_name_[128];
 
     SyntaxFuncVector func_list_;
 };

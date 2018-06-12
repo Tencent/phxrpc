@@ -26,15 +26,16 @@ See the AUTHORS file for names of contributors.
 #include <cstring>
 #include <memory>
 
-#include "http_msg.h"
-#include "http_client.h"
-
 #include "phxrpc/comm.h"
 #include "phxrpc/file/file_utils.h"
 #include "phxrpc/file/opt_map.h"
+#include "phxrpc/http/http_client.h"
+#include "phxrpc/http/http_msg.h"
 #include "phxrpc/network/socket_stream_block.h"
 
+
 using namespace phxrpc;
+
 
 void ShowUsage(const char *program) {
     printf("\n%s [-h host] [-p port] [-r POST|GET] [-u URI] [-f file] [-v]\n", program);

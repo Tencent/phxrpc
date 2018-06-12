@@ -19,36 +19,23 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <cstdio>
+#include "phxrpc/http/http_msg_handler_factory.h"
 
-#include "phxrpc/rpc.h"
+#include <memory>
+
+#include "phxrpc/http/http_msg_handler.h"
 
 
-using namespace phxrpc;
+namespace phxrpc {
 
 
-void Dispatch(const BaseRequest *req, BaseResponse *resp, void *args) {
-    printf("dispatch args %p\n", args);
-    resp->SetPhxRpcResult(0);
+using namespace std;
+
+
+HttpMessageHandlerFactory::HttpMessageHandlerFactory() {
+    AddProtocol(unique_ptr<phxrpc::BaseMessageHandler>(new phxrpc::HttpMessageHandler));
 }
 
-int main(int argc, char **argv) {
-    HshaServerConfig config;
-    config.SetBindIP("127.0.0.1");
-    config.SetPort(26161);
-    config.SetMaxThreads(2);
-    //config.SetLogDir("~/log");
-    //config.SetLogLevel(3);
 
-    printf("args %p\n", &config);
-
-    phxrpc::openlog(argv[0], config.GetLogDir(), config.GetLogLevel());
-
-    HshaServer server(config, Dispatch, &config);
-    server.RunForever();
-
-    phxrpc::closelog();
-
-    return 0;
-}
+}  // namespace phxrpc
 

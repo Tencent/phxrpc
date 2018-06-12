@@ -85,7 +85,7 @@ int ProtoUtils::LoadNormal(const char *file_name, SyntaxTree *stree, map<string,
 
     const FileDescriptor *fd{importer.Import(file_name)};
 
-    stree->SetPackageName(fd->package().c_str());
+    stree->SetCppPackageName(SyntaxTree::Pb2CppPackageName(fd->package()).c_str());
 
     stree->SetProtoFile(file_name);
 
@@ -141,6 +141,10 @@ int ProtoUtils::LoadExtension(const char *file_name, SyntaxTree *stree, DiskSour
                 const UninterpretedOption &opt(options.uninterpreted_option(k));
 
                 if (opt.name_size() > 0) {
+                    if (nullptr != strstr(opt.name(0).name_part().c_str(), "CmdID")) {
+                        func->SetCmdID(opt.positive_int_value());
+                    }
+
                     if (nullptr != strstr(opt.name(0).name_part().c_str(), "OptString")) {
                         func->SetOptString(opt.string_value().c_str());
                     }
@@ -149,8 +153,8 @@ int ProtoUtils::LoadExtension(const char *file_name, SyntaxTree *stree, DiskSour
                         func->SetUsage(opt.string_value().c_str());
                     }
 
-                    if (nullptr != strstr(opt.name(0).name_part().c_str(), "CmdID")) {
-                        func->SetCmdID(opt.positive_int_value());
+                    if (nullptr != strstr(opt.name(0).name_part().c_str(), "Protocol")) {
+                        func->SetProtocol(opt.string_value().c_str());
                     }
                 }
             }
@@ -169,9 +173,9 @@ int ProtoUtils::AddEcho(SyntaxTree *stree) {
     {
         SyntaxFunc echo_func;
         echo_func.SetName("PHXEcho");
-        echo_func.GetReq()->SetName("request");
+        echo_func.GetReq()->SetName("req");
         echo_func.GetReq()->SetType(name);
-        echo_func.GetResp()->SetName("response");
+        echo_func.GetResp()->SetName("resp");
         echo_func.GetResp()->SetType(name);
         echo_func.SetOptString("s:");
         echo_func.SetUsage("-s <string>");

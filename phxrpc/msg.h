@@ -19,36 +19,11 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <cstdio>
+#pragma once
 
-#include "phxrpc/rpc.h"
-
-
-using namespace phxrpc;
-
-
-void Dispatch(const BaseRequest *req, BaseResponse *resp, void *args) {
-    printf("dispatch args %p\n", args);
-    resp->SetPhxRpcResult(0);
-}
-
-int main(int argc, char **argv) {
-    HshaServerConfig config;
-    config.SetBindIP("127.0.0.1");
-    config.SetPort(26161);
-    config.SetMaxThreads(2);
-    //config.SetLogDir("~/log");
-    //config.SetLogLevel(3);
-
-    printf("args %p\n", &config);
-
-    phxrpc::openlog(argv[0], config.GetLogDir(), config.GetLogLevel());
-
-    HshaServer server(config, Dispatch, &config);
-    server.RunForever();
-
-    phxrpc::closelog();
-
-    return 0;
-}
+#include "msg/base_dispatcher.h"
+#include "msg/base_msg.h"
+#include "msg/base_msg_handler.h"
+#include "msg/base_msg_handler_factory.h"
+#include "msg/common.h"
 

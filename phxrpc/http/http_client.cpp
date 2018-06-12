@@ -19,15 +19,16 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
+#include "phxrpc/http/http_client.h"
+
 #include <cassert>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-#include "http_client.h"
-#include "http_msg.h"
-#include "http_proto.h"
+#include "phxrpc/http/http_msg.h"
+#include "phxrpc/http/http_msg_handler.h"
 #include "phxrpc/file/log_utils.h"
 #include "phxrpc/network/socket_stream_base.h"
 
@@ -36,18 +37,18 @@ namespace phxrpc {
 
 
 int HttpClient::Get(BaseTcpStream &socket, const HttpRequest &req, HttpResponse *resp) {
-    int socket_ret{HttpProto::SendReqHeader(socket, "GET", req)};
+    ReturnCode ret{HttpMessageHandler::SendReqHeader(socket, "GET", req)};
 
-    if (socket_ret == 0) {
-        socket_ret = HttpProto::RecvRespStartLine(socket, resp);
-        if (socket_ret == 0)
-            socket_ret = HttpProto::RecvHeaders(socket, resp);
-        if (socket_ret == 0 && SC_NOT_MODIFIED != resp->GetStatusCode()) {
-            socket_ret = HttpProto::RecvBody(socket, resp);
+    if (ReturnCode::OK == ret) {
+        ret = HttpMessageHandler::RecvRespStartLine(socket, resp);
+        if (ReturnCode::OK == ret)
+            ret = HttpMessageHandler::RecvHeaders(socket, resp);
+        if (ReturnCode::OK == ret && SC_NOT_MODIFIED != resp->GetStatusCode()) {
+            ret = HttpMessageHandler::RecvBody(socket, resp);
         }
     }
 
-    return socket_ret;
+    return static_cast<int>(ret);
 }
 
 int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse *resp) {
@@ -58,51 +59,52 @@ int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse
 
 int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse *resp,
                      PostStat *post_stat) {
-    int socket_ret{HttpProto::SendReqHeader(socket, "POST", req)};
+    ReturnCode ret{HttpMessageHandler::SendReqHeader(socket, "POST", req)};
 
-    if (socket_ret == 0) {
+    if (ReturnCode::OK == ret) {
         socket << req.GetContent();
-        socket_ret = socket.flush().good() ? 0 : socket.LastError();
+        if(!socket.flush().good())
+            ret = static_cast<ReturnCode>(socket.LastError());
     } else {
-        if (socket_ret != SocketStreamError_Normal_Closed) {
+        if (ReturnCode::ERROR_SOCKET_STREAM_NORMAL_CLOSED != ret) {
             post_stat->send_error_ = true;
             phxrpc::log(LOG_ERR, "ERR: sendReqHeader fail");
         }
-        return socket_ret;
+        return static_cast<int>(ret);
     }
 
-    if (socket_ret == 0) {
-        socket_ret = HttpProto::RecvRespStartLine(socket, resp);
-        if (socket_ret == 0)
-            socket_ret = HttpProto::RecvHeaders(socket, resp);
+    if (ReturnCode::OK == ret) {
+        ret = HttpMessageHandler::RecvRespStartLine(socket, resp);
+        if (ReturnCode::OK == ret)
+            ret = HttpMessageHandler::RecvHeaders(socket, resp);
 
-        if (socket_ret == 0 && SC_NOT_MODIFIED != resp->GetStatusCode()) {
-            socket_ret = HttpProto::RecvBody(socket, resp);
+        if (ReturnCode::OK == ret && SC_NOT_MODIFIED != resp->GetStatusCode()) {
+            ret = HttpMessageHandler::RecvBody(socket, resp);
         }
 
-        if (socket_ret != 0 && socket_ret != SocketStreamError_Normal_Closed) {
+        if (ReturnCode::OK != ret && ReturnCode::ERROR_SOCKET_STREAM_NORMAL_CLOSED != ret) {
             post_stat->recv_error_ = true;
         }
     } else {
-        if (socket_ret != SocketStreamError_Normal_Closed) {
+        if (ReturnCode::ERROR_SOCKET_STREAM_NORMAL_CLOSED != ret) {
             post_stat->send_error_ = true;
             phxrpc::log(LOG_ERR, "ERR: sendReqBody fail");
         }
     }
 
-    return socket_ret;
+    return static_cast<int>(ret);
 }
 
-int HttpClient::Head(BaseTcpStream &socket, const HttpRequest &req, HttpResponse *resp) {
-    int socket_ret{HttpProto::SendReqHeader(socket, "HEAD", req)};
+int HttpClient::Head(BaseTcpStream & socket, const HttpRequest &req, HttpResponse *resp) {
+    ReturnCode ret{HttpMessageHandler::SendReqHeader(socket, "HEAD", req)};
 
-    if (socket_ret == 0)
-        socket_ret = HttpProto::RecvRespStartLine(socket, resp);
+    if (ReturnCode::OK == ret)
+        ret = HttpMessageHandler::RecvRespStartLine(socket, resp);
 
-    if (socket_ret == 0)
-        socket_ret = HttpProto::RecvHeaders(socket, resp);
+    if (ReturnCode::OK == ret)
+        ret = HttpMessageHandler::RecvHeaders(socket, resp);
 
-    return socket_ret;
+    return static_cast<int>(ret);
 }
 
 

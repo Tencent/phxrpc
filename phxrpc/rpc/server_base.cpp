@@ -28,7 +28,6 @@ See the AUTHORS file for names of contributors.
 
 namespace phxrpc {
 
-
 void ServerUtils::Daemonize() {
     int fd;
 

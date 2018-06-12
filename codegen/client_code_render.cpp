@@ -122,10 +122,10 @@ void ClientCodeRender::GetStubFuncDeclaration(const SyntaxTree *const stree, con
     }
 
     name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
-    phxrpc::StrAppendFormat(result, "const %s &req,\n", type_name);
+    phxrpc::StrAppendFormat(result, "const %s &req, ", type_name);
 
     name_render_.GetMessageClassName(func->GetResp()->GetType(), type_name, sizeof(type_name));
-    phxrpc::StrAppendFormat(result, "        %s *resp", type_name);
+    phxrpc::StrAppendFormat(result, "%s *resp", type_name);
 
     phxrpc::StrAppendFormat(result, ")");
 }
@@ -147,10 +147,6 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
 
     fprintf(write, "#include \"phxrpc/rpc.h\"\n");
     fprintf(write, "#include \"phxrpc/network.h\"\n");
-    fprintf(write, "\n");
-
-    name_render_.GetMessageFileName(stree->GetProtoFile(), file_name, sizeof(file_name));
-    fprintf(write, "#include \"%s.h\"\n", file_name);
     fprintf(write, "\n");
     fprintf(write, "\n");
 
@@ -177,31 +173,46 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
         SyntaxFuncVector *flist{stree->GetFuncList()};
         auto fit(flist->cbegin());
         for (; flist->cend() != fit; ++fit) {
-            GenerateStubFunc(stree, &(*fit), write);
+            GenerateStubFunc(stree, &(*fit), write, true);
         }
 
     }
 }
 
-void ClientCodeRender::GenerateStubFunc(const SyntaxTree *const stree, const SyntaxFunc *const func,
-                                        FILE *write) {
+void ClientCodeRender::GenerateStubFunc(const SyntaxTree *const stree,
+                                        const SyntaxFunc *const func,
+                                        FILE *write, const bool use_default_caller) {
     string buffer;
 
     GetStubFuncDeclaration(stree, func, 0, &buffer);
 
+    char caller_name[128]{"HttpCaller"};
+    if (!use_default_caller) {
+        // protocol
+        name_render_.GetCallerClassName(stree->GetName(), caller_name, sizeof(caller_name));
+    }
+
     fprintf(write, "%s {\n", buffer.c_str());
 
-    fprintf(write, "    phxrpc::HttpCaller caller(socket_, client_monitor_);\n");
-    fprintf(write, "    caller.SetURI(\"/%s/%s\", %d);\n", stree->GetPackageName(),
+    fprintf(write, "    phxrpc::%s caller(socket_, client_monitor_);\n", caller_name);
+    fprintf(write, "    caller.SetURI(\"/%s/%s\", %d);\n",
+            SyntaxTree::Cpp2UriPackageName(stree->GetCppPackageName()).c_str(),
             func->GetName(), func->GetCmdID());
     fprintf(write, "    caller.SetKeepAlive(keep_alive_);\n");
-    fprintf(write, "    return caller.Call(req, resp);\n");
+    if (!use_default_caller) {
+        // protocol
+        fprintf(write, "    return caller.%sCall(req, resp);\n", func->GetName());
+    } else {
+        // user custom
+        fprintf(write, "    return caller.Call(req, resp);\n");
+    }
 
     fprintf(write, "}\n");
     fprintf(write, "\n");
 }
 
-void ClientCodeRender::GenerateClientHpp(SyntaxTree *stree, FILE *write, const bool is_uthread_mode) {
+void ClientCodeRender::GenerateClientHpp(SyntaxTree *stree,
+                                         FILE *write, const bool is_uthread_mode) {
     char file_name[128]{'\0'};
     name_render_.GetClientFileName(stree->GetName(), file_name, sizeof(file_name));
 
@@ -268,7 +279,8 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree *stree, FILE *write, const b
     fprintf(write, "\n");
 }
 
-void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree, FILE *write, const bool is_uthread_mode) {
+void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree,
+                                         FILE *write, const bool is_uthread_mode) {
     char client_class[128]{'\0'}, client_file[128]{'\0'};
     char client_class_lower[128]{'\0'};
     char stub_class[128]{'\0'}, stub_file[128]{'\0'};
@@ -297,7 +309,7 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree, FILE *write, const b
     string functions;
 
     {
-        SyntaxFuncVector *flist = stree->GetFuncList();
+        SyntaxFuncVector *flist{stree->GetFuncList()};
         auto fit(flist->cbegin());
         for (; flist->cend() != fit; ++fit) {
             string buffer;
@@ -316,7 +328,9 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree, FILE *write, const b
             StrReplaceAll(&content, "$ClientClass$", client_class_str.c_str());
             StrReplaceAll(&content, "$ClientClassLower$", client_class_lower_str.c_str());
             StrReplaceAll(&content, "$StubClass$", stub_class);
-            StrReplaceAll(&content, "$Func$", fit->GetName());
+            string func_string(fit->GetName());
+            func_string += "(req, resp)";
+            StrReplaceAll(&content, "$Func$", func_string);
 
             functions.append(content).append("\n\n");
 
@@ -335,7 +349,9 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree, FILE *write, const b
                 StrReplaceAll(&content, "$ClientClass$", client_class_str.c_str());
                 StrReplaceAll(&content, "$ClientClassLower$", client_class_lower_str.c_str());
                 StrReplaceAll(&content, "$StubClass$", stub_class);
-                StrReplaceAll(&content, "$Func$", echo_func.GetName());
+                string echo_func_string(echo_func.GetName());
+                echo_func_string += "(req, resp)";
+                StrReplaceAll(&content, "$Func$", echo_func_string);
 
                 functions.append(content).append("\n\n");
             }
@@ -350,7 +366,7 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree, FILE *write, const b
     }
 
     StrTrim(&content);
-    StrReplaceAll(&content, "$PackageName$", stree->GetPackageName() );
+    StrReplaceAll(&content, "$PbPackageName$", SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()));
     StrReplaceAll(&content, "$ClientFile$", client_file);
     StrReplaceAll(&content, "$StubFile$", stub_file);
     StrReplaceAll(&content, "$ClientClass$", client_class_str);
@@ -373,16 +389,16 @@ void ClientCodeRender::GetClienfuncDeclaration(const SyntaxTree *const stree,
     }
 
     if (is_header) {
-        phxrpc::StrAppendFormat(result, "int %s( ", func->GetName());
+        phxrpc::StrAppendFormat(result, "int %s(", func->GetName());
     } else {
         phxrpc::StrAppendFormat(result, "int %s::%s(", class_name_str.c_str(), func->GetName());
     }
 
     name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
-    phxrpc::StrAppendFormat(result, "const %s &req,\n", type_name);
+    phxrpc::StrAppendFormat(result, "const %s &req", type_name);
 
     name_render_.GetMessageClassName(func->GetResp()->GetType(), type_name, sizeof(type_name));
-    phxrpc::StrAppendFormat(result, "        %s *resp", type_name);
+    phxrpc::StrAppendFormat(result, ", %s *resp", type_name);
 
     phxrpc::StrAppendFormat(result, ")");
 }
@@ -401,7 +417,7 @@ void ClientCodeRender::GenerateClientEtc(SyntaxTree *stree, FILE *write) {
 
     string content(PHXRPC_CLIENT_ETC_TEMPLATE);
     StrTrim(&content);
-    StrReplaceAll(&content, "$PackageName$", stree->GetPackageName() );
+    StrReplaceAll(&content, "$PbPackageName$", SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()));
     fprintf(write, "%s", content.c_str());
 
     fprintf(write, "\n");

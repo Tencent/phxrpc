@@ -4,6 +4,7 @@ package phxrpc;
 
 import "google/protobuf/descriptor.proto";
 
+
 extend google.protobuf.MethodOptions {
     int32 CmdID = 2000000;
     string OptString = 2000001;

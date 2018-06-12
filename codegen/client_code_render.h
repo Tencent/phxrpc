@@ -51,7 +51,8 @@ class ClientCodeRender {
     void GetStubFuncDeclaration(const SyntaxTree *const stree, const SyntaxFunc *const func,
                                 int is_header, std::string *result);
 
-    void GenerateStubFunc(const SyntaxTree *const stree, const SyntaxFunc *const func, FILE *write);
+    void GenerateStubFunc(const SyntaxTree *const stree, const SyntaxFunc *const func,
+                          FILE *write, const bool use_default_caller);
 
     void GetClienfuncDeclaration(const SyntaxTree *const stree, const SyntaxFunc *const func,
                                  const int is_header, std::string *result, const bool is_uthread_mode);

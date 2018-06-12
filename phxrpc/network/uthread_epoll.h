@@ -1,19 +1,19 @@
 /*
-Tencent is pleased to support the open source community by making 
+Tencent is pleased to support the open source community by making
 PhxRPC available.
-Copyright (C) 2016 THL A29 Limited, a Tencent company. 
+Copyright (C) 2016 THL A29 Limited, a Tencent company.
 All rights reserved.
 
-Licensed under the BSD 3-Clause License (the "License"); you may 
-not use this file except in compliance with the License. You may 
+Licensed under the BSD 3-Clause License (the "License"); you may
+not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
 https://opensource.org/licenses/BSD-3-Clause
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" basis, 
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
-implied. See the License for the specific language governing 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
 permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors.
@@ -57,6 +57,38 @@ class EpollNotifier final {
   private:
     UThreadEpollScheduler *scheduler_{nullptr};
     int pipe_fds_[2];
+};
+
+
+class UThreadNotifier final {
+  public:
+    UThreadNotifier();
+    ~UThreadNotifier();
+
+    int Init(UThreadEpollScheduler *const scheduler, const int timeout_ms);
+    int SendNotify(void *const data);
+    int WaitNotify(void *&data);
+
+  private:
+    UThreadEpollScheduler *scheduler_{nullptr};
+    UThreadSocket_t *socket_{nullptr};
+    int pipe_fds_[2];
+    void *data_{nullptr};
+};
+
+class UThreadNotifierPool final {
+  public:
+    UThreadNotifierPool(UThreadEpollScheduler *const scheduler,
+                        const int timeout_ms);
+    ~UThreadNotifierPool();
+
+    int GetNotifier(const std::string &id, UThreadNotifier *&notifier);
+    void ReleaseNotifier(const std::string &id);
+
+  private:
+    std::map<std::string, UThreadNotifier *> pool_map_;
+    UThreadEpollScheduler *scheduler_{nullptr};
+    int timeout_ms_{5000};
 };
 
 

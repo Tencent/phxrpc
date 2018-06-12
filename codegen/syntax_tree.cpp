@@ -19,11 +19,12 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <string.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
+#include "code_utils.h"
 #include "syntax_tree.h"
 
 
@@ -66,9 +67,10 @@ const char *SyntaxParam::GetType() const {
 //====================================================================
 
 SyntaxFunc::SyntaxFunc() {
+    cmdid_ = -1;
     memset(opt_string_, 0, sizeof(opt_string_));
     memset(usage_, 0, sizeof(usage_));
-    cmdid_ = -1;
+    memset(protocol_, 0, sizeof(protocol_));
 }
 
 SyntaxFunc::~SyntaxFunc() {
@@ -90,6 +92,14 @@ SyntaxParam *SyntaxFunc::GetResp() {
     return &resp_;
 }
 
+void SyntaxFunc::SetCmdID(const int cmdid) {
+    cmdid_ = cmdid;
+}
+
+int SyntaxFunc::GetCmdID() const {
+    return cmdid_;
+}
+
 void SyntaxFunc::SetOptString(const char *opt_string) {
     strncpy(opt_string_, opt_string, sizeof(opt_string_));
 }
@@ -106,12 +116,12 @@ const char *SyntaxFunc::GetUsage() const {
     return usage_;
 }
 
-void SyntaxFunc::SetCmdID(const int cmdid) {
-    cmdid_ = cmdid;
+void SyntaxFunc::SetProtocol(const char *protocol) {
+    strncpy(protocol_, protocol, sizeof(protocol_));
 }
 
-int SyntaxFunc::GetCmdID() const {
-    return cmdid_;
+const char *SyntaxFunc::GetProtocol() const {
+    return protocol_;
 }
 
 //====================================================================
@@ -119,13 +129,13 @@ int SyntaxFunc::GetCmdID() const {
 SyntaxTree::SyntaxTree() {
     memset(prefix_, 0, sizeof(prefix_));
     memset(proto_file_, 0, sizeof(proto_file_));
-    memset(package_name_, 0, sizeof(package_name_));
+    memset(cpp_package_name_, 0, sizeof(cpp_package_name_));
 }
 
 SyntaxTree::~SyntaxTree() {
 }
 
-void SyntaxTree::SetProtoFile(const char * proto_file) {
+void SyntaxTree::SetProtoFile(const char *proto_file) {
     strncpy(proto_file_, proto_file, sizeof(proto_file_) - 1);
 }
 
@@ -133,12 +143,12 @@ const char *SyntaxTree::GetProtoFile() const {
     return proto_file_;
 }
 
-const char *SyntaxTree::GetPackageName() const {
-    return package_name_;
+const char *SyntaxTree::GetCppPackageName() const {
+    return cpp_package_name_;
 }
 
-void SyntaxTree::SetPackageName(const char *package_name) {
-    strncpy(package_name_, package_name, sizeof(package_name_) - 1);
+void SyntaxTree::SetCppPackageName(const char *cpp_package_name) {
+    strncpy(cpp_package_name_, cpp_package_name, sizeof(cpp_package_name_) - 1);
 }
 
 void SyntaxTree::SetPrefix(const char *prefix) {
@@ -190,5 +200,29 @@ char *SyntaxTree::ToUpper(char *s) {
         *s = toupper(*s);
 
     return ret;
+}
+
+string SyntaxTree::Cpp2PbPackageName(const string &cpp_package_name) {
+    string pb_package_name(cpp_package_name);
+    StrReplaceAll(&pb_package_name, "::", ".");
+    return pb_package_name;
+}
+
+string SyntaxTree::Pb2CppPackageName(const string &pb_package_name) {
+    string cpp_package_name(pb_package_name);
+    StrReplaceAll(&cpp_package_name, ".", "::");
+    return cpp_package_name;
+}
+
+string SyntaxTree::Cpp2UriPackageName(const std::string &cpp_package_name) {
+    string uri_package_name(cpp_package_name);
+    StrReplaceAll(&uri_package_name, "::", "/");
+    return uri_package_name;
+}
+
+string SyntaxTree::Uri2CppPackageName(const std::string &uri_package_name) {
+    string cpp_package_name(uri_package_name);
+    StrReplaceAll(&cpp_package_name, "/", "::");
+    return cpp_package_name;
 }
 

@@ -19,36 +19,34 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <cstdio>
-
-#include "phxrpc/rpc.h"
+#pragma once
 
 
-using namespace phxrpc;
+namespace phxrpc {
 
 
-void Dispatch(const BaseRequest *req, BaseResponse *resp, void *args) {
-    printf("dispatch args %p\n", args);
-    resp->SetPhxRpcResult(0);
-}
+enum class ReturnCode {
+    OK = 0,
+    ERROR = -1,
+    ERROR_UNIMPLEMENT = -101,
+    ERROR_SOCKET = -102,
+    ERROR_STREAM_NOT_GOOD = -103,
+    ERROR_LENGTH_UNDERFLOW = -104,
+    ERROR_LENGTH_OVERFLOW = -105,
+    ERROR_SOCKET_STREAM_TIMEOUT = -202,
+    ERROR_SOCKET_STREAM_NORMAL_CLOSED = -303,
+    ERROR_VIOLATE_PROTOCOL = -401,
+    MAX,
+};
 
-int main(int argc, char **argv) {
-    HshaServerConfig config;
-    config.SetBindIP("127.0.0.1");
-    config.SetPort(26161);
-    config.SetMaxThreads(2);
-    //config.SetLogDir("~/log");
-    //config.SetLogLevel(3);
 
-    printf("args %p\n", &config);
+enum class Direction {
+    NONE = 0,
+    REQUEST,
+    RESPONSE,
+    MAX,
+};
 
-    phxrpc::openlog(argv[0], config.GetLogDir(), config.GetLogLevel());
 
-    HshaServer server(config, Dispatch, &config);
-    server.RunForever();
-
-    phxrpc::closelog();
-
-    return 0;
 }
 

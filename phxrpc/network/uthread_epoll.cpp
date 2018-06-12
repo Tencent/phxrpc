@@ -1,19 +1,19 @@
 /*
-Tencent is pleased to support the open source community by making 
+Tencent is pleased to support the open source community by making
 PhxRPC available.
-Copyright (C) 2016 THL A29 Limited, a Tencent company. 
+Copyright (C) 2016 THL A29 Limited, a Tencent company.
 All rights reserved.
 
-Licensed under the BSD 3-Clause License (the "License"); you may 
-not use this file except in compliance with the License. You may 
+Licensed under the BSD 3-Clause License (the "License"); you may
+not use this file except in compliance with the License. You may
 obtain a copy of the License at
 
 https://opensource.org/licenses/BSD-3-Clause
 
-Unless required by applicable law or agreed to in writing, software 
-distributed under the License is distributed on an "AS IS" basis, 
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or 
-implied. See the License for the specific language governing 
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" basis,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
 permissions and limitations under the License.
 
 See the AUTHORS file for names of contributors.
@@ -34,6 +34,7 @@ See the AUTHORS file for names of contributors.
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <string>
 #include <vector>
 
 #ifdef __APPLE__
@@ -48,6 +49,9 @@ See the AUTHORS file for names of contributors.
 
 
 namespace phxrpc {
+
+
+using namespace std;
 
 
 typedef struct tagUThreadSocket {
@@ -99,9 +103,101 @@ void EpollNotifier::Func() {
 
 void EpollNotifier::Notify() {
     ssize_t write_len = write(pipe_fds_[1], (void *)"a", 1);
-    if (write_len < 0) {
+    if (0 > write_len) {
         //log(LOG_ERR, "%s write err", __func__);
     }
+}
+
+
+UThreadNotifier::UThreadNotifier() {
+    pipe_fds_[0] = pipe_fds_[1] = -1;
+}
+
+UThreadNotifier::~UThreadNotifier() {
+    free(socket_);
+    if (pipe_fds_[0] != -1) {
+        close(pipe_fds_[0]);
+    }
+    if (pipe_fds_[1] != -1) {
+        close(pipe_fds_[1]);
+    }
+}
+
+int UThreadNotifier::Init(UThreadEpollScheduler *const scheduler,
+                          const int timeout_ms) {
+    int ret{pipe(pipe_fds_)};
+    if (0 != ret) return ret;
+    fcntl(pipe_fds_[1], F_SETFL, O_NONBLOCK);
+    socket_ = scheduler->CreateSocket(pipe_fds_[0], timeout_ms, -1, false);
+
+    return 0;
+}
+
+int UThreadNotifier::SendNotify(void *const data) {
+    data_ = data;
+    ssize_t write_len{write(pipe_fds_[1], (void *)"a", 1)};
+    if (0 > write_len) {
+        log(LOG_ERR, "%s write errno %d", __func__, errno);
+
+        return -1;
+    }
+
+    return 0;
+}
+
+int UThreadNotifier::WaitNotify(void *&data) {
+    char buf;
+    ssize_t read_len{UThreadRead(*socket_, (void *)&buf, 1, 0)};
+    if (0 > read_len) {
+        log(LOG_ERR, "%s UThreadRead errno %d", __func__, errno);
+
+        return -1;
+    }
+    data = data_;
+    data_ = nullptr;
+
+    return 0;
+}
+
+
+UThreadNotifierPool::UThreadNotifierPool(UThreadEpollScheduler *const scheduler,
+                                         const int timeout_ms)
+        : scheduler_(scheduler), timeout_ms_(timeout_ms) {
+}
+
+UThreadNotifierPool::~UThreadNotifierPool() {
+    for (auto &it : pool_map_) {
+        delete it.second;
+    }
+}
+
+int UThreadNotifierPool::GetNotifier(const string &id, UThreadNotifier *&notifier) {
+    notifier = nullptr;
+
+    auto it(pool_map_.find(id));
+    if (pool_map_.end() != it && it->second) {
+        notifier = it->second;
+
+        return 0;
+    }
+
+    notifier = new UThreadNotifier();
+    int ret{notifier->Init(scheduler_, timeout_ms_)};
+    if (0 != ret) {
+        return ret;
+    }
+
+    pool_map_[id] = notifier;
+
+    return 0;
+}
+
+void UThreadNotifierPool::ReleaseNotifier(const string &id) {
+    if (pool_map_[id]) {
+        delete pool_map_[id];
+        pool_map_[id] = nullptr;
+    }
+    pool_map_.erase(id);
 }
 
 ////////////////////////////////////////////////
@@ -259,7 +355,7 @@ bool UThreadEpollScheduler::Run() {
                 runtime_.Resume(socket->uthread_id);
             }
 
-            //for server mode
+            // for server mode
             if (active_socket_func_ != nullptr) {
                 UThreadSocket_t * socket = nullptr;
                 while ((socket = active_socket_func_()) != nullptr) {
@@ -267,7 +363,7 @@ bool UThreadEpollScheduler::Run() {
                 }
             }
 
-            //for server uthread worker
+            // for server uthread worker
             if (handler_new_request_func_ != nullptr) {
                 handler_new_request_func_();
             }
@@ -352,15 +448,15 @@ int UThreadPoll(UThreadSocket_t &socket, int events, int *revents, const int tim
             ret = 0;
         }
     } else if ((*revents) == UThreadEpollREvent_Timeout) {
-        //timeout
+        // timeout
         errno = ETIMEDOUT;
         ret = 0;
     } else if ((*revents) == UThreadEpollREvent_Error){
-        //error
+        // error
         errno = ECONNREFUSED;
         ret = -1;
     } else {
-        //active close
+        // active close
         errno = 0;
         ret = -1;
     }

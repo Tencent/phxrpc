@@ -29,10 +29,11 @@ namespace phxrpc {
 
 
 ServerConfig::ServerConfig() {
+    memset(section_name_prefix_, 0, sizeof(section_name_prefix_));
     memset(bind_ip_, 0, sizeof(bind_ip_));
     port_ = -1;
     max_threads_ = 120;
-    socket_timeout_ms_ = 5000;
+    socket_timeout_ms_ = 30000;
     memset(package_name_, 0, sizeof(package_name_));
 }
 
@@ -46,13 +47,25 @@ bool ServerConfig::Read(const char *config_file) {
     }
 
     bool succ{true};
-    succ &= config.ReadItem("Server", "BindIP", bind_ip_, sizeof(bind_ip_));
-    succ &= config.ReadItem("Server", "Port", &port_);
-    succ &= config.ReadItem("Server", "PackageName", package_name_, sizeof(package_name_));
-    config.ReadItem("Server", "MaxThreads", &max_threads_, 20);
-    config.ReadItem("Log", "LogDir", log_dir_, sizeof(log_dir_), "~/log");
-    config.ReadItem("Log", "LogLevel", &log_level_, LOG_ERR);
-    config.ReadItem("ServerTimeout", "SocketTimeoutMS", &socket_timeout_ms_, 5000);
+
+    char server_section_name[128]{'\0'};
+    strncpy(server_section_name, section_name_prefix(), sizeof(server_section_name) - 1);
+    strncat(server_section_name, "Server", sizeof(server_section_name) - sizeof(section_name_prefix()) - 1);
+    succ &= config.ReadItem(server_section_name, "BindIP", bind_ip_, sizeof(bind_ip_));
+    succ &= config.ReadItem(server_section_name, "Port", &port_);
+    succ &= config.ReadItem(server_section_name, "PackageName", package_name_, sizeof(package_name_));
+    config.ReadItem(server_section_name, "MaxThreads", &max_threads_, 20);
+
+    char log_section_name[128]{'\0'};
+    strncpy(log_section_name, section_name_prefix(), sizeof(log_section_name) - 1);
+    strncat(log_section_name, "Log", sizeof(log_section_name) - sizeof(section_name_prefix()) - 1);
+    config.ReadItem(log_section_name, "LogDir", log_dir_, sizeof(log_dir_), "~/log");
+    config.ReadItem(log_section_name, "LogLevel", &log_level_, LOG_ERR);
+
+    char server_timeout_section_name[128]{'\0'};
+    strncpy(server_timeout_section_name, section_name_prefix(), sizeof(server_timeout_section_name) - 1);
+    strncat(server_timeout_section_name, "ServerTimeout", sizeof(server_timeout_section_name) - sizeof(section_name_prefix()) - 1);
+    config.ReadItem(server_timeout_section_name, "SocketTimeoutMS", &socket_timeout_ms_, 30000);
 
     if (succ) {
         return DoRead(config);
@@ -64,6 +77,14 @@ bool ServerConfig::Read(const char *config_file) {
 
 bool ServerConfig::DoRead(Config &config) {
     return true;
+}
+
+void ServerConfig::set_section_name_prefix(const char *section_name_prefix) {
+    strncpy(section_name_prefix_, section_name_prefix, sizeof(section_name_prefix_) - 1);
+}
+
+const char *ServerConfig::section_name_prefix() const {
+    return section_name_prefix_;
 }
 
 void ServerConfig::SetBindIP(const char *ip) {
@@ -134,13 +155,16 @@ HshaServerConfig::~HshaServerConfig() {
 }
 
 bool HshaServerConfig::DoRead(Config &config) {
-    config.ReadItem("Server", "MaxConnections", &max_connections_, 800000);
-    config.ReadItem("Server", "IOThreadCount", &io_thread_count_, 3);
-    config.ReadItem("Server", "WorkerUThreadCount", &worker_uthread_count_, 0);
-    config.ReadItem("Server", "WorkerUThreadStackSize", &worker_uthread_stack_size_, 64 * 1024);
-    config.ReadItem("Server", "MaxQueueLength", &max_queue_length_, 20480);
-    config.ReadItem("Server", "FastRejectThresholdMS", &fast_reject_threshold_ms_, 20);
-    config.ReadItem("Server", "FastRejectAdjustRate", &fast_reject_adjust_rate_, 5);
+    char server_section_name[128]{'\0'};
+    strncpy(server_section_name, section_name_prefix(), sizeof(server_section_name) - 1);
+    strncat(server_section_name, "Server", sizeof(server_section_name) - sizeof(section_name_prefix()) - 1);
+    config.ReadItem(server_section_name, "MaxConnections", &max_connections_, 800000);
+    config.ReadItem(server_section_name, "IOThreadCount", &io_thread_count_, 3);
+    config.ReadItem(server_section_name, "WorkerUThreadCount", &worker_uthread_count_, 0);
+    config.ReadItem(server_section_name, "WorkerUThreadStackSize", &worker_uthread_stack_size_, 64 * 1024);
+    config.ReadItem(server_section_name, "MaxQueueLength", &max_queue_length_, 20480);
+    config.ReadItem(server_section_name, "FastRejectThresholdMS", &fast_reject_threshold_ms_, 20);
+    config.ReadItem(server_section_name, "FastRejectAdjustRate", &fast_reject_adjust_rate_, 5);
     return true;
 }
 

@@ -24,11 +24,13 @@ See the AUTHORS file for names of contributors.
 #include <vector>
 #include <string>
 
+#include "phxrpc/msg.h"
+
 
 namespace phxrpc {
 
 
-class HttpMessage {
+class HttpMessage : virtual public BaseMessage {
   public:
     static const char *HEADER_CONTENT_LENGTH;
     static const char *HEADER_CONTENT_TYPE;
@@ -40,22 +42,11 @@ class HttpMessage {
 
     static const char *HEADER_X_PHXRPC_RESULT;
 
-    HttpMessage(int type);
-    virtual ~HttpMessage();
+    HttpMessage() = default;
+    virtual ~HttpMessage() override = default;
 
-    enum {
-        eRequest,
-        eResponse
-    };
-    int GetType() const;
-
-    void SetVersion(const char *version);
-    const char *GetVersion() const;
-
-    void AppendContent(const void *content, int length = 0, int max_length = 0);
-    void SetContent(const void *content, int length = 0);
-    const std::string &GetContent() const;
-    std::string &GetContent();
+    virtual ReturnCode ToPb(google::protobuf::Message *const message) const override;
+    virtual ReturnCode FromPb(const google::protobuf::Message &message) override;
 
     void AddHeader(const char *name, const char *value);
     void AddHeader(const char *name, int value);
@@ -65,32 +56,26 @@ class HttpMessage {
     const char *GetHeaderValue(size_t index) const;
     const char *GetHeaderValue(const char *name) const;
 
-    int IsKeepAlive() const;
-
   protected:
-    const int type_;
-
-    char version_[16];
-    std::string content_;
-
     std::vector<std::string> header_name_list_, header_value_list_;
 };
 
-class HttpRequest : public HttpMessage {
+class HttpRequest : public HttpMessage, public BaseRequest {
   public:
     HttpRequest();
     virtual ~HttpRequest() override;
+
+    virtual ReturnCode Send(BaseTcpStream &socket) const override {
+        return ReturnCode::ERROR_UNIMPLEMENT;
+    }
+
+    virtual BaseResponse *GenResponse() const override;
+    virtual int IsKeepAlive() const override;
 
     void SetMethod(const char *method);
     const char *GetMethod() const;
 
     int IsMethod(const char *method) const;
-
-    void SetURI(const char *uri);
-    const char *GetURI() const;
-
-    void SetClientIP(const char *client_ip);
-    const char *GetClientIP() const;
 
     void AddParam(const char *name, const char *value);
     bool RemoveParam(const char *name);
@@ -100,16 +85,22 @@ class HttpRequest : public HttpMessage {
     const char *GetParamValue(const char *name) const;
 
   private:
-    char method_[16], client_ip_[16];
-    std::string uri_;
+    char method_[16];
 
     std::vector<std::string> param_name_list_, param_value_list_;
 };
 
-class HttpResponse : public HttpMessage {
+class HttpResponse : public HttpMessage, public BaseResponse {
   public:
     HttpResponse();
     virtual ~HttpResponse() override;
+
+    virtual ReturnCode Send(BaseTcpStream &socket) const override;
+
+    virtual void SetPhxRpcResult(const int result) override;
+    virtual void DispatchErr() override;
+
+    virtual ReturnCode ModifyResp(const bool keep_alive, const std::string &version) override;
 
     void SetStatusCode(int status_code);
     int GetStatusCode() const;

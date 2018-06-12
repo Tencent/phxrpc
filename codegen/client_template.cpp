@@ -95,7 +95,7 @@ bool $ClientClass$::Init(const char *config_file) {
 const char *$ClientClass$::GetPackageName() {
     const char *ret = global_$ClientClassLower$_config_.GetPackageName();
     if (strlen(ret) == 0) {
-        ret = "$PackageName$";
+        ret = "$PbPackageName$";
     }
     return ret;
 }
@@ -149,7 +149,7 @@ bool $ClientClass$::Init(const char *config_file) {
 const char *$ClientClass$::GetPackageName() {
     const char *ret{global_$ClientClassLower$_config_.GetPackageName()};
     if (strlen(ret) == 0) {
-        ret = "$PackageName$";
+        ret = "$PbPackageName$";
     }
     return ret;
 }
@@ -189,7 +189,7 @@ const char *PHXRPC_CLIENT_FUNC_TEMPLATE =
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
             $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
-            return stub.$Func$(req, resp);
+            return stub.$Func$;
         }
 
     }
@@ -213,7 +213,7 @@ const char *PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
             $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
-            return stub.$Func$(req, resp);
+            return stub.$Func$;
         }
     }
 
@@ -259,11 +259,11 @@ const char *PHXRPC_CLIENT_ETC_TEMPLATE =
 
 [ClientTimeout]
 ConnectTimeoutMS = 100
-SocketTimeoutMS = 5000
+SocketTimeoutMS = 30000
 
 [Server]
 ServerCount = 2
-PackageName = $PackageName$
+PackageName = $PbPackageName$
 
 [Server0]
 IP = 127.0.0.1

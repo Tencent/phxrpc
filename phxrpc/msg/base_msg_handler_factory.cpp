@@ -19,36 +19,32 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <cstdio>
+#include "phxrpc/msg/base_msg_handler_factory.h"
 
-#include "phxrpc/rpc.h"
-
-
-using namespace phxrpc;
+#include "phxrpc/msg/base_msg_handler.h"
+#include "phxrpc/network/socket_stream_base.h"
 
 
-void Dispatch(const BaseRequest *req, BaseResponse *resp, void *args) {
-    printf("dispatch args %p\n", args);
-    resp->SetPhxRpcResult(0);
+namespace phxrpc {
+
+
+using namespace std;
+
+
+BaseMessageHandler *BaseMessageHandlerFactory::Create(BaseTcpStream &in_stream) {
+    for (const auto &handler : handlers_) {
+        if (handler->Accept(in_stream)) {
+            return handler.get();
+        }
+    }
+
+    return nullptr;
 }
 
-int main(int argc, char **argv) {
-    HshaServerConfig config;
-    config.SetBindIP("127.0.0.1");
-    config.SetPort(26161);
-    config.SetMaxThreads(2);
-    //config.SetLogDir("~/log");
-    //config.SetLogLevel(3);
+void BaseMessageHandlerFactory::AddProtocol(unique_ptr<BaseMessageHandler> &&handler) {
+    handlers_.emplace_back(move(handler));
+}
 
-    printf("args %p\n", &config);
 
-    phxrpc::openlog(argv[0], config.GetLogDir(), config.GetLogLevel());
-
-    HshaServer server(config, Dispatch, &config);
-    server.RunForever();
-
-    phxrpc::closelog();
-
-    return 0;
 }
 

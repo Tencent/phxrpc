@@ -21,8 +21,8 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "client_monitor.h"
 #include "phxrpc/http.h"
+#include "phxrpc/rpc/client_monitor.h"
 
 
 namespace google {
