@@ -62,7 +62,7 @@ int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse
     ReturnCode ret{HttpMessageHandler::SendReqHeader(socket, "POST", req)};
 
     if (ReturnCode::OK == ret) {
-        socket << req.GetContent();
+        socket << req.content();
         if(!socket.flush().good())
             ret = static_cast<ReturnCode>(socket.LastError());
     } else {

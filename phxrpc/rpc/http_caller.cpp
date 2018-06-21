@@ -65,23 +65,23 @@ void HttpCaller::MonitorReport(ClientMonitor &client_monitor, bool send_error,
     client_monitor.RecvBytes(recv_size);
     client_monitor.RequestCost(call_begin, call_end);
     if (0 < cmd_id_) {
-        client_monitor.ClientCall(cmd_id_, GetRequest().GetURI());
+        client_monitor.ClientCall(cmd_id_, GetRequest().uri());
     }
 }
 
 int HttpCaller::Call(const google::protobuf::MessageLite &req,
                      google::protobuf::MessageLite *resp) {
-    if (!req.SerializeToString(&req_.GetContent())) {
+    if (!req.SerializeToString(req_.mutable_content())) {
         return -1;
     }
 
     uint64_t call_begin{Timer::GetSteadyClockMS()};
-    req_.AddHeader(HttpMessage::HEADER_CONTENT_LENGTH, req_.GetContent().size());
+    req_.AddHeader(HttpMessage::HEADER_CONTENT_LENGTH, req_.content().size());
     HttpClient::PostStat post_stat;
     int ret{HttpClient::Post(socket_, req_, &resp_, &post_stat)};
     MonitorReport(client_monitor_, post_stat.send_error_,
-                  post_stat.recv_error_, req_.GetContent().size(),
-                  resp_.GetContent().size(), call_begin,
+                  post_stat.recv_error_, req_.size(),
+                  resp_.size(), call_begin,
                   Timer::GetSteadyClockMS());
 
     if (0 != ret) {
@@ -89,7 +89,7 @@ int HttpCaller::Call(const google::protobuf::MessageLite &req,
         return ret;
     }
 
-    if (!resp->ParseFromString(resp_.GetContent())) {
+    if (!resp->ParseFromString(resp_.content())) {
         return -1;
     }
 
@@ -97,15 +97,15 @@ int HttpCaller::Call(const google::protobuf::MessageLite &req,
     ret = atoi(nullptr == result ? "-1" : result);
 
     if (ret < 0) {
-        phxrpc::log(LOG_ERR, "http call %s err %d", req_.GetURI(), ret);
+        phxrpc::log(LOG_ERR, "http call %s err %d", req_.uri(), ret);
     }
 
     return ret;
 }
 
-void HttpCaller::SetURI(const char *const uri, const int cmdid) {
-    cmd_id_ = cmdid;
-    GetRequest().SetURI(uri);
+void HttpCaller::set_uri(const char *const uri, const int cmd_id) {
+    cmd_id_ = cmd_id;
+    GetRequest().set_uri(uri);
 }
 
 void HttpCaller::SetKeepAlive(const bool keep_alive) {

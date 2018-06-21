@@ -195,7 +195,7 @@ void ClientCodeRender::GenerateStubFunc(const SyntaxTree *const stree,
     fprintf(write, "%s {\n", buffer.c_str());
 
     fprintf(write, "    phxrpc::%s caller(socket_, client_monitor_);\n", caller_name);
-    fprintf(write, "    caller.SetURI(\"/%s/%s\", %d);\n",
+    fprintf(write, "    caller.set_uri(\"/%s/%s\", %d);\n",
             SyntaxTree::Cpp2UriPackageName(stree->GetCppPackageName()).c_str(),
             func->GetName(), func->GetCmdID());
     fprintf(write, "    caller.SetKeepAlive(keep_alive_);\n");

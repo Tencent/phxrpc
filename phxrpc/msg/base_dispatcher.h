@@ -48,15 +48,15 @@ class BaseDispatcher {
 
     bool Dispatch(const BaseRequest *const req, BaseResponse *const resp) {
         int ret{-1};
-        typename URIFuncMap::const_iterator iter(uri_func_map_.find(req->GetURI()));
+        typename URIFuncMap::const_iterator iter(uri_func_map_.find(req->uri()));
 
         if (uri_func_map_.end() != iter) {
             // TODO: remove
-            log(LOG_DEBUG, "%s uri %s found %s", __func__, req->GetURI(), iter->first.c_str());
+            log(LOG_DEBUG, "%s uri %s found %s", __func__, req->uri(), iter->first.c_str());
             ret = (dispatcher_.*iter->second)(req, resp);
         } else {
             // TODO: remove
-            log(LOG_DEBUG, "%s uri %s not found", __func__, req->GetURI());
+            log(LOG_DEBUG, "%s uri %s not found", __func__, req->uri());
         }
 
         resp->SetPhxRpcResult(ret);

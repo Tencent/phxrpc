@@ -66,7 +66,7 @@ class UThreadCaller {
 
     virtual google::protobuf::MessageLite &GetRequest();
     virtual google::protobuf::MessageLite *GetResponse();
-    const std::string &GetURI();
+    const std::string &uri();
     int GetCmdID();
     UThreadEpollScheduler *Getuthread_scheduler();
     Endpoint_t *GetEP();

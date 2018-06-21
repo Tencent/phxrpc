@@ -475,7 +475,7 @@ void Worker::WorkerLogic(void *args, BaseRequest *req, int queue_wait_time_ms) {
     pool_->hsha_server_stat_->inqueue_wait_time_costs_ += queue_wait_time_ms;
     pool_->hsha_server_stat_->inqueue_wait_time_costs_count_++;
 
-    BaseResponse *resp{req->GenResponse()};
+    BaseResponse *resp{((DataFlowArgs *)args)->resp};
     if (queue_wait_time_ms < MAX_QUEUE_WAIT_TIME_COST) {
         HshaServerStat::TimeCost time_cost;
 
@@ -488,7 +488,7 @@ void Worker::WorkerLogic(void *args, BaseRequest *req, int queue_wait_time_ms) {
     } else {
         pool_->hsha_server_stat_->worker_drop_requests_++;
     }
-    // fa should also PushResponse, otherwise session_id (which args points to) will memory leak
+    // event loop server should also PushResponse, otherwise session_id (which args points to) will memory leak
     pool_->data_flow_->PushResponse(args, resp);
     pool_->hsha_server_stat_->outqueue_push_responses_++;
 

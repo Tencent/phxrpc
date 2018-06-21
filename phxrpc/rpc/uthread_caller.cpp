@@ -66,7 +66,7 @@ google::protobuf::MessageLite *UThreadCaller::GetResponse() {
     return response_;
 }
 
-const string &UThreadCaller::GetURI() {
+const string &UThreadCaller::uri() {
     return uri_;
 }
 
@@ -107,7 +107,7 @@ void UThreadCaller::Call(void *args) {
     if (open_ret) {
         socket.SetTimeout(uthread_caller->msocket_timeout_ms);
         phxrpc::HttpCaller caller(socket, uthread_caller->client_monitor_);
-        caller.GetRequest().SetURI(uthread_caller->GetURI().c_str());
+        caller.GetRequest().set_uri(uthread_caller->uri().c_str());
         uthread_caller->SetRet(caller.Call(uthread_caller->GetRequest(),
                                            uthread_caller->GetResponse()));
     } else {

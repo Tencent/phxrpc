@@ -37,13 +37,9 @@ class HshaServerIO final {
     ~HshaServerIO();
 
     void RunForever();
-
     bool AddAcceptedFd(const int accepted_fd);
-
     void HandlerAcceptedFd();
-
     void IOFunc(int accept_fd);
-
     UThreadSocket_t *ActiveSocketFunc();
 
   private:
@@ -116,8 +112,6 @@ class HshaServer : public BaseServer {
 
   private:
     void LoopReadCrossUnitResponse();
-
-    std::thread accept_thread_;
 };
 
 

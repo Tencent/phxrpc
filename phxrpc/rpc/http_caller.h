@@ -56,7 +56,7 @@ class HttpCaller {
     int Call(const google::protobuf::MessageLite &req,
              google::protobuf::MessageLite *resp);
 
-    void SetURI(const char *const uri, const int cmdid);
+    void set_uri(const char *const uri, const int cmd_id);
 
     void SetKeepAlive(const bool keep_alive);
 

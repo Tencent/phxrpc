@@ -467,8 +467,8 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
 
     fprintf(write, "        phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};\n");
     fprintf(write, "        if (phxrpc::ReturnCode::OK != ret_code) {\n");
-    fprintf(write, "            phxrpc::log(LOG_ERR, \"ToPb ip %%s err %%d\", "
-            "req->GetClientIP(), static_cast<int>(ret_code));\n");
+    fprintf(write, "            phxrpc::log(LOG_ERR, \"ToPb err %%d\", "
+            "static_cast<int>(ret_code));\n");
 
     fprintf(write, "\n");
     fprintf(write, "            return -EINVAL;\n");
@@ -492,8 +492,8 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
         fprintf(write, "    {\n");
         fprintf(write, "        phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};\n");
         fprintf(write, "        if (phxrpc::ReturnCode::OK != ret_code) {\n");
-        fprintf(write, "            phxrpc::log(LOG_ERR, \"FromPb err %%d ip %%s\", "
-                "static_cast<int>(ret_code), req->GetClientIP());\n");
+        fprintf(write, "            phxrpc::log(LOG_ERR, \"FromPb err %%d\", "
+                "static_cast<int>(ret_code));\n");
         fprintf(write, "\n");
         fprintf(write, "            return -ENOMEM;\n");
         fprintf(write, "        }\n");

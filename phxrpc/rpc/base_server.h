@@ -84,6 +84,14 @@ class DataFlow final {
 #define MAX_ACCEPT_QUEUE_LENGTH 102400
 
 
+struct DataFlowArgs {
+    uint64_t session_id{0uLL};
+    UThreadSocket_t *socket{nullptr};
+    BaseResponse *resp{nullptr};
+    void *session_mgr{nullptr};
+};
+
+
 class WorkerPool;
 
 class HshaServerStat final {

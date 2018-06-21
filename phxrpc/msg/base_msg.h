@@ -44,44 +44,20 @@ namespace phxrpc {
 
 class BaseMessage {
   public:
-    enum class Direction {
-        NONE = 0,
-        REQUEST,
-        RESPONSE,
-        MAX,
-    };
-
     BaseMessage();
     virtual ~BaseMessage();
 
     virtual ReturnCode Send(BaseTcpStream &socket) const = 0;
     virtual ReturnCode ToPb(google::protobuf::Message *const message) const = 0;
     virtual ReturnCode FromPb(const google::protobuf::Message &message) = 0;
+    virtual size_t size() const = 0;
 
-    void SetVersion(const char *version);
-    const char *GetVersion() const;
-
-    void SetClientIP(const char *client_ip);
-    const char *GetClientIP() const;
-
-    void AppendContent(const void *content, const int length = 0, const int max_length = 0);
-    void SetContent(const void *content, const int length = 0);
-    const std::string &GetContent() const;
-    std::string &GetContent();
-
-    Direction direction() const { return direction_; }
     bool fake() const { return fake_; };
 
   protected:
-    void set_direction(const Direction direction) { direction_ = direction; }
     void set_fake(const bool fake) { fake_ = fake; }
 
-    char client_ip_[16];
-
   private:
-    Direction direction_{Direction::NONE};
-    char version_[16];
-    std::string content_;
     bool fake_{false};
 };
 
@@ -93,11 +69,11 @@ class BaseRequest : virtual public BaseMessage {
     BaseRequest();
     virtual ~BaseRequest() override;
 
-    void SetURI(const char *uri);
-    const char *GetURI() const;
-
     virtual BaseResponse *GenResponse() const = 0;
     virtual int IsKeepAlive() const = 0;
+
+    void set_uri(const char *uri);
+    const char *uri() const;
 
   private:
     std::string uri_;

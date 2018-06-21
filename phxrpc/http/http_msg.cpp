@@ -45,24 +45,23 @@ const char *HttpMessage::HEADER_SERVER = "Server";
 
 const char *HttpMessage::HEADER_X_PHXRPC_RESULT = "X-PHXRPC-Result";
 
-/*
-HttpMessage::HttpMessage() : BaseMessage() {
-    SetVersion("HTTP/1.0");
-}
-*/
 
 ReturnCode HttpMessage::ToPb(google::protobuf::Message *const message) const {
-    if (!message->ParseFromString(GetContent()))
+    if (!message->ParseFromString(content()))
         return ReturnCode::ERROR;
 
     return ReturnCode::OK;
 }
 
 ReturnCode HttpMessage::FromPb(const google::protobuf::Message &message) {
-    if (!message.SerializeToString(&GetContent()))
+    if (!message.SerializeToString(mutable_content()))
         return ReturnCode::ERROR;
 
     return ReturnCode::OK;
+}
+
+size_t HttpMessage::size() const {
+    return content().size();
 }
 
 void HttpMessage::AddHeader(const char *name, const char *value) {
@@ -115,31 +114,51 @@ const char *HttpMessage::GetHeaderValue(const char *name) const {
     return value;
 }
 
+void HttpMessage::AppendContent(const void *content, const int length, const int max_length) {
+    int valid_length{length};
+    if (valid_length <= 0)
+        valid_length = strlen((char *)content);
+
+    int total = content_.size() + valid_length;
+    total = total > max_length ? total : max_length;
+
+    //content_.reserve(total);
+
+    content_.append((char *) content, valid_length);
+}
+
+const string &HttpMessage::content() const {
+    return content_;
+}
+
+void HttpMessage::set_content(const char *const content, const int length) {
+    content_.clear();
+    content_.append(content, length);
+}
+
+string *HttpMessage::mutable_content() {
+    return &content_;
+}
+
+const char *HttpMessage::version() const {
+    return version_;
+}
+
+void HttpMessage::set_version(const char *version) {
+    snprintf(version_, sizeof(version_), "%s", version);
+}
+
 
 
 //---------------------------------------------------------
 
 HttpRequest::HttpRequest() {
-    SetVersion("HTTP/1.0");
+    set_version("HTTP/1.0");
+    set_direction(Direction::REQUEST);
     memset(method_, 0, sizeof(method_));
-    memset(client_ip_, 0, sizeof(client_ip_));
 }
 
 HttpRequest::~HttpRequest() {
-}
-
-void HttpRequest::SetMethod(const char *method) {
-    if (nullptr != method) {
-        snprintf(method_, sizeof(method_), "%s", method);
-    }
-}
-
-const char *HttpRequest::GetMethod() const {
-    return method_;
-}
-
-int HttpRequest::IsMethod(const char *method) const {
-    return 0 == strcasecmp(method, method_);
 }
 
 void HttpRequest::AddParam(const char *name, const char *value) {
@@ -201,12 +220,27 @@ int HttpRequest::IsKeepAlive() const {
     return 0;
 }
 
+int HttpRequest::IsMethod(const char *method) const {
+    return 0 == strcasecmp(method, method_);
+}
+
+const char *HttpRequest::method() const {
+    return method_;
+}
+
+void HttpRequest::set_method(const char *method) {
+    if (nullptr != method) {
+        snprintf(method_, sizeof(method_), "%s", method);
+    }
+}
+
 
 
 //---------------------------------------------------------
 
 HttpResponse::HttpResponse() {
-    SetVersion("HTTP/1.0");
+    set_version("HTTP/1.0");
+    set_direction(Direction::RESPONSE);
     status_code_ = 200;
     snprintf(reason_phrase_, sizeof(reason_phrase_), "%s", "OK");
 }
@@ -224,22 +258,22 @@ void HttpResponse::DispatchErr() {
 }
 
 ReturnCode HttpResponse::Send(BaseTcpStream &socket) const {
-    socket << GetVersion() << " " << GetStatusCode() << " " << GetReasonPhrase() << "\r\n";
+    socket << version() << " " << GetStatusCode() << " " << GetReasonPhrase() << "\r\n";
 
     for (size_t i{0}; GetHeaderCount() > i; ++i) {
         socket << GetHeaderName(i) << ": " << GetHeaderValue(i) << "\r\n";
     }
 
-    if (GetContent().size() > 0) {
+    if (content().size() > 0) {
         if (nullptr == GetHeaderValue(HttpMessage::HEADER_CONTENT_LENGTH)) {
-            socket << HttpMessage::HEADER_CONTENT_LENGTH << ": " << GetContent().size() << "\r\n";
+            socket << HttpMessage::HEADER_CONTENT_LENGTH << ": " << content().size() << "\r\n";
         }
     }
 
     socket << "\r\n";
 
-    if (GetContent().size() > 0)
-        socket << GetContent();
+    if (content().size() > 0)
+        socket << content();
 
     if (socket.flush().good()) {
         return ReturnCode::OK;

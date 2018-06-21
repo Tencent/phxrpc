@@ -38,71 +38,25 @@ BaseMessage::BaseMessage() {
 BaseMessage::~BaseMessage() {
 }
 
-void BaseMessage::SetVersion(const char *version) {
-    snprintf(version_, sizeof(version_), "%s", version);
-}
-
-const char *BaseMessage::GetVersion() const {
-    return version_;
-}
-
-void BaseMessage::SetClientIP(const char *client_ip) {
-    if (client_ip != nullptr) {
-        snprintf(client_ip_, sizeof(client_ip_), "%s", client_ip);
-    }
-}
-
-const char *BaseMessage::GetClientIP() const {
-    return client_ip_;
-}
-
-void BaseMessage::AppendContent(const void *content, const int length, const int max_length) {
-    int valid_length{length};
-    if (valid_length <= 0)
-        valid_length = strlen((char *)content);
-
-    int total = content_.size() + valid_length;
-    total = total > max_length ? total : max_length;
-
-    //content_.reserve(total);
-
-    content_.append((char *) content, valid_length);
-}
-
-void BaseMessage::SetContent(const void *content, const int length) {
-    content_.clear();
-    content_.append((char *)content, length);
-}
-
-const string &BaseMessage::GetContent() const {
-    return content_;
-}
-
-string &BaseMessage::GetContent() {
-    return content_;
-}
-
 
 BaseRequest::BaseRequest() {
-    set_direction(BaseMessage::Direction::REQUEST);
 }
 
 BaseRequest::~BaseRequest() {
 }
 
-void BaseRequest::SetURI(const char *uri) {
+void BaseRequest::set_uri(const char *uri) {
     if (nullptr != uri) {
         uri_ = string(uri);
     }
 }
 
-const char *BaseRequest::GetURI() const {
+const char *BaseRequest::uri() const {
     return uri_.c_str();
 }
 
 
 BaseResponse::BaseResponse() {
-    set_direction(BaseMessage::Direction::RESPONSE);
 }
 
 BaseResponse::~BaseResponse() {}

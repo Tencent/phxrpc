@@ -62,7 +62,8 @@ class HttpMessageHandler : public BaseMessageHandler {
 
     virtual ReturnCode ServerRecv(BaseTcpStream &socket,
                                   BaseRequest *&req) override;
-    virtual ReturnCode ServerRecv(const int fd, BaseRequest *&req) override;
+
+    virtual ReturnCode GenResponse(BaseResponse *&resp) override;
 };
 
 

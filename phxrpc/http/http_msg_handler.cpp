@@ -120,18 +120,18 @@ void HttpMessageHandler::FixRespHeaders(bool is_keep_alive, const char *version,
     resp->AddHeader(HttpMessage::HEADER_SERVER, "http/phxrpc");
 
     // use the same version
-    resp->SetVersion(version);
+    resp->set_version(version);
 }
 
 void HttpMessageHandler::FixRespHeaders(const HttpRequest &req, HttpResponse *resp) {
-    FixRespHeaders(req.IsKeepAlive(), req.GetVersion(), resp);
+    FixRespHeaders(req.IsKeepAlive(), req.version(), resp);
 }
 
 ReturnCode HttpMessageHandler::SendReqHeader(BaseTcpStream &socket, const char *method, const HttpRequest &req) {
     string url;
 
     if (req.GetParamCount() > 0) {
-        url.append(req.GetURI());
+        url.append(req.uri());
         url.append("?");
 
         char tmp[1024]{0};
@@ -146,8 +146,8 @@ ReturnCode HttpMessageHandler::SendReqHeader(BaseTcpStream &socket, const char *
         }
     }
 
-    socket << method << " " << (url.size() > 0 ? url.c_str() : req.GetURI())
-            << " " << req.GetVersion() << "\r\n";
+    socket << method << " " << (url.size() > 0 ? url.c_str() : req.uri())
+            << " " << req.version() << "\r\n";
 
     for (size_t i{0}; req.GetHeaderCount() > i; ++i) {
         const char *name{req.GetHeaderName(i)};
@@ -156,16 +156,16 @@ ReturnCode HttpMessageHandler::SendReqHeader(BaseTcpStream &socket, const char *
         socket << name << ": " << val << "\r\n";
     }
 
-    if (req.GetContent().size() > 0) {
+    if (0 < req.content().size()) {
         if (nullptr == req.GetHeaderValue(HttpMessage::HEADER_CONTENT_LENGTH)) {
             socket << HttpMessage::HEADER_CONTENT_LENGTH << ": "
-                    << req.GetContent().size() << "\r\n";
+                    << req.content().size() << "\r\n";
         }
     }
 
     socket << "\r\n";
 
-    if (req.GetContent().size() == 0) {
+    if (0 == req.content().size()) {
         if (socket.flush().good()) {
             return ReturnCode::OK;
         } else {
@@ -187,7 +187,7 @@ ReturnCode HttpMessageHandler::RecvRespStartLine(BaseTcpStream &socket, HttpResp
             char *second = SeparateStr(&pos, " ");
 
             if (nullptr != first)
-                resp->SetVersion(first);
+                resp->set_version(first);
             if (nullptr != second)
                 resp->SetStatusCode(atoi(second));
             if (nullptr != pos)
@@ -216,15 +216,11 @@ ReturnCode HttpMessageHandler::RecvReqStartLine(BaseTcpStream &socket, HttpReque
         char *second = SeparateStr(&pos, " ");
 
         if (nullptr != first)
-            req->SetMethod(first);
+            req->set_method(first);
         if (nullptr != second)
-            req->SetURI(second);
+            req->set_uri(second);
         if (nullptr != pos)
-            req->SetVersion(pos);
-
-        char peer[128] = { 0 };
-        socket.GetRemoteHost(peer, sizeof(peer));
-        req->SetClientIP(peer);
+            req->set_version(pos);
     } else {
         //phxrpc::log(LOG_WARNING, "WARN: Invalid request <%s>, ignored", line);
     }
@@ -327,7 +323,7 @@ ReturnCode HttpMessageHandler::RecvBody(BaseTcpStream &socket, HttpMessage *msg)
                     break;
                 }
             }
-        } else if (BaseMessage::Direction::RESPONSE == msg->direction()) {
+        } else if (HttpMessage::Direction::RESPONSE == msg->direction()) {
             // hasn't Content-Length header, read until socket close
             for (; is_good;) {
                 is_good = socket.read(buff, MAX_RECV_LEN).good();
@@ -378,11 +374,21 @@ ReturnCode HttpMessageHandler::ServerRecv(BaseTcpStream &socket, BaseRequest *&r
     HttpRequest *http_req{new HttpRequest};
     req = http_req;
 
-    return RecvReq(socket, http_req);
+    ReturnCode ret{RecvReq(socket, http_req)};
+    if (ReturnCode::OK == ret) {
+        req_ = req;
+        version_ = (http_req->version() != nullptr ? http_req->version() : "");
+        is_keep_alive_ = (0 != http_req->IsKeepAlive());
+    }
+
+    return ret;
 }
 
-ReturnCode HttpMessageHandler::ServerRecv(const int fd, BaseRequest *&req) {
-    return ReturnCode::ERROR_UNIMPLEMENT;
+ReturnCode HttpMessageHandler::GenResponse(BaseResponse *&resp) {
+    resp = req_->GenResponse();
+    resp->ModifyResp(is_keep_alive_, version_);
+
+    return ReturnCode::OK;
 }
 
 

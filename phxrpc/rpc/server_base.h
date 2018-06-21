@@ -36,19 +36,16 @@ typedef struct tagDispatcherArgs {
     UThreadEpollScheduler *server_worker_uthread_scheduler{nullptr};
     BaseServerUnit *base_server_unit{nullptr};
     void *service_args{nullptr};
-    void *context{nullptr};
-
-    tagDispatcherArgs() : service_args(nullptr) {
-    }
+    void *data_flow_args{nullptr};
 
     tagDispatcherArgs(ServerMonitorPtr server_monitor_value,
                       UThreadEpollScheduler *const server_worker_uthread_scheduler_value,
                       BaseServerUnit *const base_server_unit_value,
-                      void *const service_args_value, void *const context_value)
+                      void *const service_args_value, void *const data_flow_args_value)
             : server_monitor(server_monitor_value),
               server_worker_uthread_scheduler(server_worker_uthread_scheduler_value),
               base_server_unit(base_server_unit_value),
-              service_args(service_args_value), context(context_value) {
+              service_args(service_args_value), data_flow_args(data_flow_args_value) {
     }
 } DispatcherArgs_t;
 

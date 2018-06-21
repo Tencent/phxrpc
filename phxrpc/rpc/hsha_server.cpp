@@ -22,11 +22,6 @@ See the AUTHORS file for names of contributors.
 #include "hsha_server.h"
 
 #include <cassert>
-#include <chrono>
-#include <random>
-#include <utility>
-#include <sched.h>
-#include <unistd.h>
 
 #include "phxrpc/file.h"
 #include "phxrpc/http.h"
@@ -89,9 +84,9 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         hsha_server_stat_->io_read_requests_++;
 
-        BaseMessageHandler *msg_handler(factory_->Create(stream));
+        BaseMessageHandler *msg_handler{factory_->Create(stream)};
         if (!msg_handler) {
-            phxrpc::log(LOG_ERR, "Create err, client closed or no msg handler accept");
+            log(LOG_ERR, "%s Create err, client closed or no msg handler accept", __func__);
 
             break;
         }
@@ -104,18 +99,21 @@ void HshaServerIO::IOFunc(int accepted_fd) {
             hsha_server_stat_->io_read_fails_++;
             hsha_server_stat_->rpc_time_costs_count_++;
             hsha_server_stat_->rpc_time_costs_ += time_cost.Cost();
-            phxrpc::log(LOG_ERR, "%s read request fail fd %d", __func__, accepted_fd);
+            log(LOG_ERR, "%s read request fail fd %d", __func__, accepted_fd);
 
             break;
         }
-        // TODO: remove
-        printf("ServerRecv ret %d idx %d\n", static_cast<int>(ret), idx_);
+        char client_ip[128]{'\0'};
+        stream.GetRemoteHost(client_ip, sizeof(client_ip));
+        phxrpc::log(LOG_DEBUG, "%s ServerRecv ret %d client_ip %s", __func__,
+                    static_cast<int>(ret), client_ip);
 
-        hsha_server_stat_->io_read_bytes_ += req->GetContent().size();
+        hsha_server_stat_->io_read_bytes_ += req->size();
 
         if (!data_flow_->CanPushRequest(config_->GetMaxQueueLength())) {
             delete req;
             hsha_server_stat_->queue_full_rejected_after_accepted_fds_++;
+            phxrpc::log(LOG_ERR, "%s overflow can't enqueue fd %d", __func__, accepted_fd);
 
             break;
         }
@@ -124,17 +122,32 @@ void HshaServerIO::IOFunc(int accepted_fd) {
             // fast reject don't cal rpc_time_cost;
             delete req;
             hsha_server_stat_->enqueue_fast_rejects_++;
-            phxrpc::log(LOG_ERR, "%s fast reject, can't enqueue fd %d", __func__, accepted_fd);
+            log(LOG_ERR, "%s fast reject can't enqueue fd %d", __func__, accepted_fd);
 
             break;
         }
 
         // if have enqueue, request will be deleted after pop.
-        const bool is_keep_alive{0 != req->IsKeepAlive()};
-        const string version(req->GetVersion() != nullptr ? req->GetVersion() : "");
-
         hsha_server_stat_->inqueue_push_requests_++;
-        data_flow_->PushRequest((void *)socket, req);
+        DataFlowArgs *data_flow_args{new DataFlowArgs};
+        if (!data_flow_args) {
+            delete req;
+            log(LOG_ERR, "%s data_flow_args nullptr fd %d", __func__, accepted_fd);
+
+            break;
+        }
+
+        ret = msg_handler->GenResponse(data_flow_args->resp);
+        if (ReturnCode::OK != ret) {
+            delete req;
+            log(LOG_ERR, "%s GenResponse err %d fd %d", __func__,
+                static_cast<int>(ret), accepted_fd);
+
+            break;
+        }
+
+        data_flow_args->socket = socket;
+        data_flow_->PushRequest(data_flow_args, req);
         // if is uthread worker mode, need notify.
         // req deleted by worker after this line
         worker_pool_->NotifyEpoll();
@@ -151,18 +164,24 @@ void HshaServerIO::IOFunc(int accepted_fd) {
             socket = stream.DetachSocket();
             UThreadLazyDestory(*socket);
 
-            phxrpc::log(LOG_ERR, "%s timeout, fd %d socket_timeout_ms %d",
+            log(LOG_ERR, "%s timeout, fd %d socket_timeout_ms %d",
                         __func__, accepted_fd, config_->GetSocketTimeoutMS());
             break;
         }
 
         hsha_server_stat_->io_write_responses_++;
         {
-            BaseResponse *resp((BaseResponse *)UThreadGetArgs(*socket));
+            BaseResponse *resp{(BaseResponse *)UThreadGetArgs(*socket)};
             if (!resp->fake()) {
-                ret = resp->ModifyResp(is_keep_alive, version);
                 ret = resp->Send(stream);
-                hsha_server_stat_->io_write_bytes_ += resp->GetContent().size();
+                if (ReturnCode::OK != ret) {
+                    log(LOG_ERR, "%s Send err %d fd %d", __func__,
+                        static_cast<int>(ret), accepted_fd);
+                } else {
+                    phxrpc::log(LOG_DEBUG, "%s Send ret %d idx %d", __func__,
+                                static_cast<int>(ret), idx_);
+                }
+                hsha_server_stat_->io_write_bytes_ += resp->size();
             }
             delete resp;
         }
@@ -174,7 +193,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
             hsha_server_stat_->io_write_fails_++;
         }
 
-        if (!is_keep_alive || (ReturnCode::OK != ret)) {
+        if (!msg_handler->is_keep_alive() || (ReturnCode::OK != ret)) {
             break;
         }
     }
@@ -194,17 +213,19 @@ UThreadSocket_t *HshaServerIO::ActiveSocketFunc() {
         hsha_server_stat_->outqueue_wait_time_costs_ += queue_wait_time_ms;
         hsha_server_stat_->outqueue_wait_time_costs_count_++;
 
-        UThreadSocket_t *socket = (UThreadSocket_t *)args;
+        UThreadSocket_t *socket = (UThreadSocket_t *)(((DataFlowArgs *)args)->socket);
         if (socket != nullptr && IsUThreadDestory(*socket)) {
-            // socket aready timeout.
-            //phxrpc::log(LOG_ERR, "%s socket aready timeout", __func__);
+            // socket aready timeout
+            //log(LOG_ERR, "%s socket aready timeout", __func__);
             UThreadClose(*socket);
             free(socket);
             delete resp;
+
             continue;
         }
 
         UThreadSetArgs(*socket, (void *)resp);
+
         return socket;
     }
 
@@ -261,7 +282,7 @@ HshaServerAcceptor::~HshaServerAcceptor() {
 void HshaServerAcceptor::LoopAccept(const char *const bind_ip, const int port) {
     int listen_fd{-1};
     if (!BlockTcpUtils::Listen(&listen_fd, bind_ip, port)) {
-        printf("listen fail, ip %s port %d\n", bind_ip, port);
+        printf("listen %s:%d err\n", bind_ip, port);
         exit(-1);
     }
 
@@ -274,7 +295,7 @@ void HshaServerAcceptor::LoopAccept(const char *const bind_ip, const int port) {
     pid_t thread_id = 0;
     int ret{sched_setaffinity(thread_id, sizeof(mask), &mask)};
     if (0 != ret) {
-        printf("sched_setaffinity fail\n");
+        printf("sched_setaffinity err\n");
     }
 #endif
 
@@ -285,7 +306,7 @@ void HshaServerAcceptor::LoopAccept(const char *const bind_ip, const int port) {
         if (accepted_fd >= 0) {
             if (!hsha_server_->hsha_server_qos_.CanAccept()) {
                 hsha_server_->hsha_server_stat_.rejected_fds_++;
-                phxrpc::log(LOG_ERR, "%s too many connection, reject accept, fd %d", __func__, accepted_fd);
+                log(LOG_ERR, "%s too many connection, reject accept, fd %d", __func__, accepted_fd);
                 close(accepted_fd);
                 continue;
             }
@@ -293,7 +314,7 @@ void HshaServerAcceptor::LoopAccept(const char *const bind_ip, const int port) {
             idx_ %= hsha_server_->server_unit_list_.size();
             if (!hsha_server_->server_unit_list_[idx_++]->AddAcceptedFd(accepted_fd)) {
                 hsha_server_->hsha_server_stat_.rejected_fds_++;
-                phxrpc::log(LOG_ERR, "%s accept queue full, reject accept, fd %d", __func__, accepted_fd);
+                log(LOG_ERR, "%s accept queue full, reject accept, fd %d", __func__, accepted_fd);
                 close(accepted_fd);
                 continue;
             }
@@ -347,13 +368,10 @@ HshaServer::~HshaServer() {
     for (auto &hsha_server_unit : server_unit_list_) {
         delete hsha_server_unit;
     }
-
-    accept_thread_.join();
 }
 
 void HshaServer::RunForever() {
-    accept_thread_ = thread(&HshaServerAcceptor::LoopAccept, hsha_server_acceptor_,
-                            config_->GetBindIP(), config_->GetPort());
+    hsha_server_acceptor_.LoopAccept(config_->GetBindIP(), config_->GetPort());
 }
 
 

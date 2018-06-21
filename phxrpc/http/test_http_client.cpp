@@ -82,9 +82,9 @@ int main(int argc, char **argv) {
     }
 
     HttpRequest request;
-    request.SetURI(uri);
-    request.SetMethod(method);
-    request.SetVersion("HTTP/1.1");
+    request.set_uri(uri);
+    request.set_version("HTTP/1.1");
+    request.set_method(method);
     request.AddHeader("Connection", "Keep-Alive");
     request.AddHeader("Host", "127.0.0.1");
 
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     } else if (request.IsMethod("HEAD")) {
         ret = HttpClient::Head(socket, request, &response);
     } else {
-        printf("unsupport method %s\n", request.GetMethod());
+        printf("unsupport method %s\n", request.method());
     }
 
     if (0 == ret) {
