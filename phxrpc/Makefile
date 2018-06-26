@@ -14,12 +14,14 @@ LIB_RPC_OBJS = rpc/phxrpc.pb.o rpc/http_caller.o rpc/server_config.o rpc/client_
 		   rpc/socket_stream_phxrpc.o rpc/uthread_caller.o rpc/client_monitor.o rpc/server_monitor.o \
 		   rpc/monitor_factory.o rpc/hsha_server.o rpc/server_base.o
 
+LIB_COMM_OBJS = comm/assert.o
+
 ifeq ($(OS),Darwin)
 	CFLAGS += -I$(PHXRPC_ROOT)/plugin_darwin/network
 	LIB_NETWORK_OBJS += ../plugin_darwin/network/epoll-darwin.o
 endif
 
-LIB_OBJS = $(LIB_RPC_OBJS) $(LIB_HTTP_OBJS) $(LIB_NETWORK_OBJS) $(LIB_FILE_OBJS) \
+LIB_OBJS = $(LIB_RPC_OBJS) $(LIB_HTTP_OBJS) $(LIB_NETWORK_OBJS) $(LIB_FILE_OBJS) $(LIB_COMM_OBJS)
 
 TARGETS = libphxrpc.a
 

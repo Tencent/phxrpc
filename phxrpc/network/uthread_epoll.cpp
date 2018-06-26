@@ -42,6 +42,7 @@ See the AUTHORS file for names of contributors.
 #include <sys/epoll.h>
 #endif
 
+#include "phxrpc/comm.h"
 #include "phxrpc/file/log_utils.h"
 #include "phxrpc/network/socket_stream_base.h"
 
@@ -80,8 +81,7 @@ EpollNotifier::~EpollNotifier() {
 }
 
 void EpollNotifier::Run() {
-    bool chk = (pipe(pipe_fds_) == 0);
-    if (!chk) assert(chk);
+    PHXRPC_ASSERT(pipe(pipe_fds_) == 0);
     fcntl(pipe_fds_[1], F_SETFL, O_NONBLOCK);
     scheduler_->AddTask(std::bind(&EpollNotifier::Func, this), nullptr);
 }
