@@ -93,8 +93,8 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         // will be deleted by worker
         BaseRequest *req{nullptr};
-        ReturnCode ret{msg_handler->ServerRecv(stream, req)};
-        if (ReturnCode::OK != ret) {
+        int ret{msg_handler->ServerRecv(stream, req)};
+        if (0 != ret) {
             delete req;
             hsha_server_stat_->io_read_fails_++;
             hsha_server_stat_->rpc_time_costs_count_++;
@@ -138,7 +138,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
         }
 
         ret = msg_handler->GenResponse(data_flow_args->resp);
-        if (ReturnCode::OK != ret) {
+        if (0 != ret) {
             delete req;
             log(LOG_ERR, "%s GenResponse err %d fd %d", __func__,
                 static_cast<int>(ret), accepted_fd);
@@ -174,7 +174,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
             BaseResponse *resp{(BaseResponse *)UThreadGetArgs(*socket)};
             if (!resp->fake()) {
                 ret = resp->Send(stream);
-                if (ReturnCode::OK != ret) {
+                if (0 != ret) {
                     log(LOG_ERR, "%s Send err %d fd %d", __func__,
                         static_cast<int>(ret), accepted_fd);
                 } else {
@@ -189,11 +189,11 @@ void HshaServerIO::IOFunc(int accepted_fd) {
         hsha_server_stat_->rpc_time_costs_count_++;
         hsha_server_stat_->rpc_time_costs_ += time_cost.Cost();
 
-        if (ReturnCode::OK != ret) {
+        if (0 != ret) {
             hsha_server_stat_->io_write_fails_++;
         }
 
-        if (!msg_handler->is_keep_alive() || (ReturnCode::OK != ret)) {
+        if (!msg_handler->is_keep_alive() || (0 != ret)) {
             break;
         }
     }

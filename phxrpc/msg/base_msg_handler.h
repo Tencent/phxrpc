@@ -35,9 +35,9 @@ class BaseMessageHandler {
 
     virtual bool Accept(BaseTcpStream &in_stream) = 0;
 
-    virtual ReturnCode ServerRecv(BaseTcpStream &socket, BaseRequest *&req) = 0;
+    virtual int ServerRecv(BaseTcpStream &socket, BaseRequest *&req) = 0;
 
-    virtual ReturnCode GenResponse(BaseResponse *&resp) = 0;
+    virtual int GenResponse(BaseResponse *&resp) = 0;
 
     bool is_keep_alive() const { return is_keep_alive_; }
 

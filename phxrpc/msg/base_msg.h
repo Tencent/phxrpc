@@ -47,9 +47,9 @@ class BaseMessage {
     BaseMessage();
     virtual ~BaseMessage();
 
-    virtual ReturnCode Send(BaseTcpStream &socket) const = 0;
-    virtual ReturnCode ToPb(google::protobuf::Message *const message) const = 0;
-    virtual ReturnCode FromPb(const google::protobuf::Message &message) = 0;
+    virtual int Send(BaseTcpStream &socket) const = 0;
+    virtual int ToPb(google::protobuf::Message *const message) const = 0;
+    virtual int FromPb(const google::protobuf::Message &message) = 0;
     virtual size_t size() const = 0;
 
     bool fake() const { return fake_; };
@@ -87,7 +87,7 @@ class BaseResponse : virtual public BaseMessage {
 
     virtual void SetPhxRpcResult(const int result) = 0;
     virtual void DispatchErr() = 0;
-    virtual ReturnCode ModifyResp(const bool keep_alive, const std::string &version) = 0;
+    virtual int ModifyResp(const bool keep_alive, const std::string &version) = 0;
 };
 
 

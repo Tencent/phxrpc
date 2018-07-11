@@ -127,7 +127,7 @@ void HttpMessageHandler::FixRespHeaders(const HttpRequest &req, HttpResponse *re
     FixRespHeaders(req.IsKeepAlive(), req.version(), resp);
 }
 
-ReturnCode HttpMessageHandler::SendReqHeader(BaseTcpStream &socket, const char *method, const HttpRequest &req) {
+int HttpMessageHandler::SendReqHeader(BaseTcpStream &socket, const char *method, const HttpRequest &req) {
     string url;
 
     if (req.GetParamCount() > 0) {
@@ -167,16 +167,16 @@ ReturnCode HttpMessageHandler::SendReqHeader(BaseTcpStream &socket, const char *
 
     if (0 == req.content().size()) {
         if (socket.flush().good()) {
-            return ReturnCode::OK;
+            return 0;
         } else {
-            return static_cast<ReturnCode>(socket.LastError());
+            return static_cast<int>(socket.LastError());
         }
     }
 
-    return ReturnCode::OK;
+    return 0;
 }
 
-ReturnCode HttpMessageHandler::RecvRespStartLine(BaseTcpStream &socket, HttpResponse *resp) {
+int HttpMessageHandler::RecvRespStartLine(BaseTcpStream &socket, HttpResponse *resp) {
     char line[1024]{0};
 
     bool is_good{socket.getlineWithTrimRight(line, sizeof(line)).good()};
@@ -199,14 +199,14 @@ ReturnCode HttpMessageHandler::RecvRespStartLine(BaseTcpStream &socket, HttpResp
     }
 
     if (is_good) {
-        return ReturnCode::OK;
+        return 0;
     } else {
         phxrpc::log(LOG_WARNING, "%s, fail", __func__);
-        return static_cast<ReturnCode>(socket.LastError());
+        return static_cast<int>(socket.LastError());
     }
 }
 
-ReturnCode HttpMessageHandler::RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req) {
+int HttpMessageHandler::RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req) {
     char line[1024]{0};
 
     bool is_good = socket.getlineWithTrimRight(line, sizeof(line)).good();
@@ -226,13 +226,13 @@ ReturnCode HttpMessageHandler::RecvReqStartLine(BaseTcpStream &socket, HttpReque
     }
 
     if (is_good) {
-        return ReturnCode::OK;
+        return 0;
     } else {
-        return static_cast<ReturnCode>(socket.LastError());
+        return static_cast<int>(socket.LastError());
     }
 }
 
-ReturnCode HttpMessageHandler::RecvHeaders(BaseTcpStream &socket, HttpMessage *msg) {
+int HttpMessageHandler::RecvHeaders(BaseTcpStream &socket, HttpMessage *msg) {
     bool is_good{false};
 
     char *line = (char *)malloc(MAX_RECV_LEN);
@@ -268,13 +268,13 @@ ReturnCode HttpMessageHandler::RecvHeaders(BaseTcpStream &socket, HttpMessage *m
     line = nullptr;
 
     if (is_good) {
-        return ReturnCode::OK;
+        return 0;
     } else {
-        return static_cast<ReturnCode>(socket.LastError());
+        return static_cast<int>(socket.LastError());
     }
 }
 
-ReturnCode HttpMessageHandler::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
+int HttpMessageHandler::RecvBody(BaseTcpStream &socket, HttpMessage *msg) {
     bool is_good{true};
 
     const char *encoding{msg->GetHeaderValue(HttpMessage::HEADER_TRANSFER_ENCODING)};
@@ -339,19 +339,19 @@ ReturnCode HttpMessageHandler::RecvBody(BaseTcpStream &socket, HttpMessage *msg)
     free(buff);
 
     if (is_good) {
-        return ReturnCode::OK;
+        return 0;
     } else {
-        return static_cast<ReturnCode>(socket.LastError());
+        return static_cast<int>(socket.LastError());
     }
 }
 
-ReturnCode HttpMessageHandler::RecvReq(BaseTcpStream &socket, HttpRequest *req) {
-    ReturnCode ret{RecvReqStartLine(socket, req)};
+int HttpMessageHandler::RecvReq(BaseTcpStream &socket, HttpRequest *req) {
+    int ret{RecvReqStartLine(socket, req)};
 
-    if (ReturnCode::OK == ret)
+    if (0 == ret)
         ret = RecvHeaders(socket, req);
 
-    if (ReturnCode::OK == ret)
+    if (0 == ret)
         ret = RecvBody(socket, req);
 
     return ret;
@@ -370,12 +370,12 @@ bool HttpMessageHandler::Accept(BaseTcpStream &in_stream) {
     return false;
 }
 
-ReturnCode HttpMessageHandler::ServerRecv(BaseTcpStream &socket, BaseRequest *&req) {
+int HttpMessageHandler::ServerRecv(BaseTcpStream &socket, BaseRequest *&req) {
     HttpRequest *http_req{new HttpRequest};
     req = http_req;
 
-    ReturnCode ret{RecvReq(socket, http_req)};
-    if (ReturnCode::OK == ret) {
+    int ret{RecvReq(socket, http_req)};
+    if (0 == ret) {
         req_ = req;
         version_ = (http_req->version() != nullptr ? http_req->version() : "");
         is_keep_alive_ = (0 != http_req->IsKeepAlive());
@@ -384,11 +384,11 @@ ReturnCode HttpMessageHandler::ServerRecv(BaseTcpStream &socket, BaseRequest *&r
     return ret;
 }
 
-ReturnCode HttpMessageHandler::GenResponse(BaseResponse *&resp) {
+int HttpMessageHandler::GenResponse(BaseResponse *&resp) {
     resp = req_->GenResponse();
     resp->ModifyResp(is_keep_alive_, version_);
 
-    return ReturnCode::OK;
+    return 0;
 }
 
 

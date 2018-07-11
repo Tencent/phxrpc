@@ -451,7 +451,7 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
             func->GetCmdID(), func->GetName());
     fprintf(write, "\n");
 
-    fprintf(write, "    int ret{0};\n");
+    fprintf(write, "    int ret{-1};\n");
     fprintf(write, "\n");
 
     name_render_.GetMessageClassName(func->GetReq()->GetType(), type_name, sizeof(type_name));
@@ -465,10 +465,9 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
     fprintf(write, "    // unpack request\n");
     fprintf(write, "    {\n");
 
-    fprintf(write, "        phxrpc::ReturnCode ret_code{req->ToPb(&req_pb)};\n");
-    fprintf(write, "        if (phxrpc::ReturnCode::OK != ret_code) {\n");
-    fprintf(write, "            phxrpc::log(LOG_ERR, \"ToPb err %%d\", "
-            "static_cast<int>(ret_code));\n");
+    fprintf(write, "        ret = req->ToPb(&req_pb);\n");
+    fprintf(write, "        if (0 != ret) {\n");
+    fprintf(write, "            phxrpc::log(LOG_ERR, \"ToPb err %%d\", ret);\n");
 
     fprintf(write, "\n");
     fprintf(write, "            return -EINVAL;\n");
@@ -490,10 +489,9 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
     if (0 != strcmp(type_name, "google::protobuf::Empty")) {
         fprintf(write, "    // pack response\n");
         fprintf(write, "    {\n");
-        fprintf(write, "        phxrpc::ReturnCode ret_code{resp->FromPb(resp_pb)};\n");
-        fprintf(write, "        if (phxrpc::ReturnCode::OK != ret_code) {\n");
-        fprintf(write, "            phxrpc::log(LOG_ERR, \"FromPb err %%d\", "
-                "static_cast<int>(ret_code));\n");
+        fprintf(write, "        ret = resp->FromPb(resp_pb);\n");
+        fprintf(write, "        if (0 != ret) {\n");
+        fprintf(write, "            phxrpc::log(LOG_ERR, \"FromPb err %%d\", ret);\n");
         fprintf(write, "\n");
         fprintf(write, "            return -ENOMEM;\n");
         fprintf(write, "        }\n");

@@ -46,18 +46,18 @@ const char *HttpMessage::HEADER_SERVER = "Server";
 const char *HttpMessage::HEADER_X_PHXRPC_RESULT = "X-PHXRPC-Result";
 
 
-ReturnCode HttpMessage::ToPb(google::protobuf::Message *const message) const {
+int HttpMessage::ToPb(google::protobuf::Message *const message) const {
     if (!message->ParseFromString(content()))
-        return ReturnCode::ERROR;
+        return -1;
 
-    return ReturnCode::OK;
+    return 0;
 }
 
-ReturnCode HttpMessage::FromPb(const google::protobuf::Message &message) {
+int HttpMessage::FromPb(const google::protobuf::Message &message) {
     if (!message.SerializeToString(mutable_content()))
-        return ReturnCode::ERROR;
+        return -1;
 
-    return ReturnCode::OK;
+    return 0;
 }
 
 size_t HttpMessage::size() const {
@@ -257,7 +257,7 @@ void HttpResponse::DispatchErr() {
     SetReasonPhrase("Not Found");
 }
 
-ReturnCode HttpResponse::Send(BaseTcpStream &socket) const {
+int HttpResponse::Send(BaseTcpStream &socket) const {
     socket << version() << " " << GetStatusCode() << " " << GetReasonPhrase() << "\r\n";
 
     for (size_t i{0}; GetHeaderCount() > i; ++i) {
@@ -276,16 +276,16 @@ ReturnCode HttpResponse::Send(BaseTcpStream &socket) const {
         socket << content();
 
     if (socket.flush().good()) {
-        return ReturnCode::OK;
+        return 0;
     } else {
-        return static_cast<ReturnCode>(socket.LastError());
+        return static_cast<int>(socket.LastError());
     }
 }
 
-ReturnCode HttpResponse::ModifyResp(const bool keep_alive, const string &version) {
+int HttpResponse::ModifyResp(const bool keep_alive, const string &version) {
     HttpMessageHandler::FixRespHeaders(keep_alive, version.c_str(), this);
 
-    return ReturnCode::OK;
+    return 0;
 }
 
 void HttpResponse::SetStatusCode(int status_code) {

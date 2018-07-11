@@ -43,27 +43,27 @@ class HttpMessageHandler : public BaseMessageHandler {
 
     static void FixRespHeaders(bool is_keep_alive, const char *version, HttpResponse *resp);
 
-    static ReturnCode SendReqHeader(BaseTcpStream &socket, const char *method, const HttpRequest &req);
+    static int SendReqHeader(BaseTcpStream &socket, const char *method, const HttpRequest &req);
 
-    static ReturnCode RecvRespStartLine(BaseTcpStream &socket, HttpResponse *resp);
+    static int RecvRespStartLine(BaseTcpStream &socket, HttpResponse *resp);
 
-    static ReturnCode RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req);
+    static int RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req);
 
-    static ReturnCode RecvHeaders(BaseTcpStream &socket, HttpMessage *msg);
+    static int RecvHeaders(BaseTcpStream &socket, HttpMessage *msg);
 
-    static ReturnCode RecvBody(BaseTcpStream &socket, HttpMessage *msg);
+    static int RecvBody(BaseTcpStream &socket, HttpMessage *msg);
 
-    static ReturnCode RecvReq(BaseTcpStream &socket, HttpRequest *req);
+    static int RecvReq(BaseTcpStream &socket, HttpRequest *req);
 
     HttpMessageHandler() = default;
     virtual ~HttpMessageHandler() override = default;
 
     virtual bool Accept(BaseTcpStream &in_stream) override;
 
-    virtual ReturnCode ServerRecv(BaseTcpStream &socket,
+    virtual int ServerRecv(BaseTcpStream &socket,
                                   BaseRequest *&req) override;
 
-    virtual ReturnCode GenResponse(BaseResponse *&resp) override;
+    virtual int GenResponse(BaseResponse *&resp) override;
 };
 
 

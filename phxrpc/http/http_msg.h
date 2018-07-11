@@ -52,8 +52,8 @@ class HttpMessage : virtual public BaseMessage {
     HttpMessage() = default;
     virtual ~HttpMessage() override = default;
 
-    virtual ReturnCode ToPb(google::protobuf::Message *const message) const override;
-    virtual ReturnCode FromPb(const google::protobuf::Message &message) override;
+    virtual int ToPb(google::protobuf::Message *const message) const override;
+    virtual int FromPb(const google::protobuf::Message &message) override;
     virtual size_t size() const override;
 
     void AddHeader(const char *name, const char *value);
@@ -90,8 +90,8 @@ class HttpRequest : public HttpMessage, public BaseRequest {
     HttpRequest();
     virtual ~HttpRequest() override;
 
-    virtual ReturnCode Send(BaseTcpStream &socket) const override {
-        return ReturnCode::ERROR_UNIMPLEMENT;
+    virtual int Send(BaseTcpStream &socket) const override {
+        return -101;
     }
 
     virtual BaseResponse *GenResponse() const override;
@@ -120,12 +120,12 @@ class HttpResponse : public HttpMessage, public BaseResponse {
     HttpResponse();
     virtual ~HttpResponse() override;
 
-    virtual ReturnCode Send(BaseTcpStream &socket) const override;
+    virtual int Send(BaseTcpStream &socket) const override;
 
     virtual void SetPhxRpcResult(const int result) override;
     virtual void DispatchErr() override;
 
-    virtual ReturnCode ModifyResp(const bool keep_alive, const std::string &version) override;
+    virtual int ModifyResp(const bool keep_alive, const std::string &version) override;
 
     void SetStatusCode(int status_code);
     int GetStatusCode() const;
