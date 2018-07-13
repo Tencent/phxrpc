@@ -25,7 +25,7 @@ See the AUTHORS file for names of contributors.
 #include <cstdlib>
 #include <cstring>
 
-#include "phxrpc/http/http_msg_handler.h"
+#include "phxrpc/http/http_protocol.h"
 #include "phxrpc/rpc/phxrpc.pb.h"
 
 
@@ -161,6 +161,42 @@ HttpRequest::HttpRequest() {
 HttpRequest::~HttpRequest() {
 }
 
+int HttpRequest::Send(BaseTcpStream &socket) const {
+    int ret{HttpProtocol::SendReqHeader(socket, "POST", *this)};
+
+    if (0 == ret) {
+        socket << content();
+        if (!socket.flush().good())
+            ret = static_cast<int>(socket.LastError());
+    }
+
+    return ret;
+}
+
+BaseResponse *HttpRequest::GenResponse() const {
+    return new HttpResponse;
+}
+
+bool HttpRequest::keep_alive() const {
+    const char *proxy{GetHeaderValue(HEADER_PROXY_CONNECTION)};
+    const char *local{GetHeaderValue(HEADER_CONNECTION)};
+
+    if ((nullptr != proxy && 0 == strcasecmp(proxy, "Keep-Alive"))
+        || (nullptr != local && 0 == strcasecmp(local, "Keep-Alive"))) {
+        return true;
+    }
+
+    return false;
+}
+
+void HttpRequest::set_keep_alive(const bool keep_alive) {
+    if (keep_alive) {
+        AddHeader(HttpMessage::HEADER_CONNECTION, "Keep-Alive");
+    } else {
+        AddHeader(HttpMessage::HEADER_CONNECTION, "");
+    }
+}
+
 void HttpRequest::AddParam(const char *name, const char *value) {
     param_name_list_.push_back(name);
     param_value_list_.push_back(value);
@@ -204,22 +240,6 @@ const char *HttpRequest::GetParamValue(const char *name) const {
     return value;
 }
 
-BaseResponse *HttpRequest::GenResponse() const {
-    return new HttpResponse;
-}
-
-int HttpRequest::IsKeepAlive() const {
-    const char *proxy{GetHeaderValue(HEADER_PROXY_CONNECTION)};
-    const char *local{GetHeaderValue(HEADER_CONNECTION)};
-
-    if ((nullptr != proxy && 0 == strcasecmp(proxy, "Keep-Alive"))
-        || (nullptr != local && 0 == strcasecmp(local, "Keep-Alive"))) {
-        return 1;
-    }
-
-    return 0;
-}
-
 int HttpRequest::IsMethod(const char *method) const {
     return 0 == strcasecmp(method, method_);
 }
@@ -248,17 +268,13 @@ HttpResponse::HttpResponse() {
 HttpResponse::~HttpResponse() {
 }
 
-void HttpResponse::SetPhxRpcResult(const int result) {
-    AddHeader(HttpMessage::HEADER_X_PHXRPC_RESULT, result);
-}
-
 void HttpResponse::DispatchErr() {
-    SetStatusCode(404);
-    SetReasonPhrase("Not Found");
+    set_status_code(404);
+    set_reason_phrase("Not Found");
 }
 
 int HttpResponse::Send(BaseTcpStream &socket) const {
-    socket << version() << " " << GetStatusCode() << " " << GetReasonPhrase() << "\r\n";
+    socket << version() << " " << status_code() << " " << reason_phrase() << "\r\n";
 
     for (size_t i{0}; GetHeaderCount() > i; ++i) {
         socket << GetHeaderName(i) << ": " << GetHeaderValue(i) << "\r\n";
@@ -283,24 +299,33 @@ int HttpResponse::Send(BaseTcpStream &socket) const {
 }
 
 int HttpResponse::ModifyResp(const bool keep_alive, const string &version) {
-    HttpMessageHandler::FixRespHeaders(keep_alive, version.c_str(), this);
+    HttpProtocol::FixRespHeaders(keep_alive, version.c_str(), this);
 
     return 0;
 }
 
-void HttpResponse::SetStatusCode(int status_code) {
+int HttpResponse::result() {
+    const char *result{GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_RESULT)};
+    return atoi(nullptr == result ? "-1" : result);
+}
+
+void HttpResponse::set_result(const int result) {
+    AddHeader(HttpMessage::HEADER_X_PHXRPC_RESULT, result);
+}
+
+void HttpResponse::set_status_code(int status_code) {
     status_code_ = status_code;
 }
 
-int HttpResponse::GetStatusCode() const {
+int HttpResponse::status_code() const {
     return status_code_;
 }
 
-void HttpResponse::SetReasonPhrase(const char *reason_phrase) {
+void HttpResponse::set_reason_phrase(const char *reason_phrase) {
     snprintf(reason_phrase_, sizeof(reason_phrase_), "%s", reason_phrase);
 }
 
-const char *HttpResponse::GetReasonPhrase() const {
+const char *HttpResponse::reason_phrase() const {
     return reason_phrase_;
 }
 

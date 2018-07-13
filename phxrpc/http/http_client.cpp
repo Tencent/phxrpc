@@ -27,9 +27,10 @@ See the AUTHORS file for names of contributors.
 #include <cstdlib>
 #include <cstring>
 
+#include "phxrpc/file/log_utils.h"
 #include "phxrpc/http/http_msg.h"
 #include "phxrpc/http/http_msg_handler.h"
-#include "phxrpc/file/log_utils.h"
+#include "phxrpc/http/http_protocol.h"
 #include "phxrpc/network/socket_stream_base.h"
 
 
@@ -37,14 +38,14 @@ namespace phxrpc {
 
 
 int HttpClient::Get(BaseTcpStream &socket, const HttpRequest &req, HttpResponse *resp) {
-    int ret{HttpMessageHandler::SendReqHeader(socket, "GET", req)};
+    int ret{HttpProtocol::SendReqHeader(socket, "GET", req)};
 
     if (0 == ret) {
-        ret = HttpMessageHandler::RecvRespStartLine(socket, resp);
+        ret = HttpProtocol::RecvRespStartLine(socket, resp);
         if (0 == ret)
-            ret = HttpMessageHandler::RecvHeaders(socket, resp);
-        if (0 == ret && SC_NOT_MODIFIED != resp->GetStatusCode()) {
-            ret = HttpMessageHandler::RecvBody(socket, resp);
+            ret = HttpProtocol::RecvHeaders(socket, resp);
+        if (0 == ret && SC_NOT_MODIFIED != resp->status_code()) {
+            ret = HttpProtocol::RecvBody(socket, resp);
         }
     }
 
@@ -59,7 +60,7 @@ int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse
 
 int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse *resp,
                      PostStat *post_stat) {
-    int ret{HttpMessageHandler::SendReqHeader(socket, "POST", req)};
+    int ret{HttpProtocol::SendReqHeader(socket, "POST", req)};
 
     if (0 == ret) {
         socket << req.content();
@@ -74,12 +75,12 @@ int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse
     }
 
     if (0 == ret) {
-        ret = HttpMessageHandler::RecvRespStartLine(socket, resp);
+        ret = HttpProtocol::RecvRespStartLine(socket, resp);
         if (0 == ret)
-            ret = HttpMessageHandler::RecvHeaders(socket, resp);
+            ret = HttpProtocol::RecvHeaders(socket, resp);
 
-        if (0 == ret && SC_NOT_MODIFIED != resp->GetStatusCode()) {
-            ret = HttpMessageHandler::RecvBody(socket, resp);
+        if (0 == ret && SC_NOT_MODIFIED != resp->status_code()) {
+            ret = HttpProtocol::RecvBody(socket, resp);
         }
 
         if (0 != ret && SocketStreamError_Normal_Closed != ret) {
@@ -96,13 +97,13 @@ int HttpClient::Post(BaseTcpStream &socket, const HttpRequest &req, HttpResponse
 }
 
 int HttpClient::Head(BaseTcpStream & socket, const HttpRequest &req, HttpResponse *resp) {
-    int ret{HttpMessageHandler::SendReqHeader(socket, "HEAD", req)};
+    int ret{HttpProtocol::SendReqHeader(socket, "HEAD", req)};
 
     if (0 == ret)
-        ret = HttpMessageHandler::RecvRespStartLine(socket, resp);
+        ret = HttpProtocol::RecvRespStartLine(socket, resp);
 
     if (0 == ret)
-        ret = HttpMessageHandler::RecvHeaders(socket, resp);
+        ret = HttpProtocol::RecvHeaders(socket, resp);
 
     return static_cast<int>(ret);
 }

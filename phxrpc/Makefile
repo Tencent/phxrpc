@@ -1,6 +1,6 @@
 include ../phxrpc.mk
 
-LIB_HTTP_OBJS = http/http_client.o http/http_msg.o http/http_msg_handler.o \
+LIB_HTTP_OBJS = http/http_client.o http/http_msg.o http/http_msg_handler.o http/http_protocol.o \
 		http/http_msg_handler_factory.o
 
 LIB_NETWORK_OBJS = network/socket_stream_base.o network/uthread_runtime.o \

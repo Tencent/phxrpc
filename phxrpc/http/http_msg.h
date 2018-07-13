@@ -90,12 +90,11 @@ class HttpRequest : public HttpMessage, public BaseRequest {
     HttpRequest();
     virtual ~HttpRequest() override;
 
-    virtual int Send(BaseTcpStream &socket) const override {
-        return -101;
-    }
+    virtual int Send(BaseTcpStream &socket) const override;
 
     virtual BaseResponse *GenResponse() const override;
-    virtual int IsKeepAlive() const override;
+    virtual bool keep_alive() const override;
+    virtual void set_keep_alive(const bool keep_alive) override;
 
     void AddParam(const char *name, const char *value);
     bool RemoveParam(const char *name);
@@ -122,16 +121,18 @@ class HttpResponse : public HttpMessage, public BaseResponse {
 
     virtual int Send(BaseTcpStream &socket) const override;
 
-    virtual void SetPhxRpcResult(const int result) override;
     virtual void DispatchErr() override;
 
     virtual int ModifyResp(const bool keep_alive, const std::string &version) override;
 
-    void SetStatusCode(int status_code);
-    int GetStatusCode() const;
+    virtual int result() override;
+    virtual void set_result(const int result) override;
 
-    void SetReasonPhrase(const char *reason_phrase);
-    const char *GetReasonPhrase() const;
+    void set_status_code(int status_code);
+    int status_code() const;
+
+    void set_reason_phrase(const char *reason_phrase);
+    const char *reason_phrase() const;
 
   private:
     int status_code_;

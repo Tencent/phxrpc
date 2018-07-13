@@ -34,25 +34,27 @@ See the AUTHORS file for names of contributors.
 namespace phxrpc {
 
 
-HttpCaller::HttpCaller(BaseTcpStream &socket, ClientMonitor &client_monitor)
-        : socket_(socket), client_monitor_(client_monitor), cmd_id_(-1) {
+Caller::Caller(BaseTcpStream &socket, ClientMonitor &client_monitor,
+               BaseMessageHandlerFactory *const msg_handler_factory)
+        : socket_(socket), client_monitor_(client_monitor), cmd_id_(-1),
+          msg_handler_factory_(msg_handler_factory) {
 }
 
-HttpCaller::~HttpCaller() {
+Caller::~Caller() {
 }
 
-HttpRequest &HttpCaller::GetRequest() {
-    return req_;
+BaseRequest *Caller::GetRequest() {
+    return req_.get();
 }
 
-HttpResponse &HttpCaller::GetResponse() {
-    return resp_;
+BaseResponse *Caller::GetResponse() {
+    return resp_.get();
 }
 
-void HttpCaller::MonitorReport(ClientMonitor &client_monitor, bool send_error,
-                               bool recv_error, size_t send_size,
-                               size_t recv_size, uint64_t call_begin,
-                               uint64_t call_end) {
+void Caller::MonitorReport(ClientMonitor &client_monitor, bool send_error,
+                           bool recv_error, size_t send_size,
+                           size_t recv_size, uint64_t call_begin,
+                           uint64_t call_end) {
     if (send_error) {
         client_monitor.SendError();
     }
@@ -65,55 +67,82 @@ void HttpCaller::MonitorReport(ClientMonitor &client_monitor, bool send_error,
     client_monitor.RecvBytes(recv_size);
     client_monitor.RequestCost(call_begin, call_end);
     if (0 < cmd_id_) {
-        client_monitor.ClientCall(cmd_id_, GetRequest().uri());
+        client_monitor.ClientCall(cmd_id_, req_->uri());
     }
 }
 
-int HttpCaller::Call(const google::protobuf::MessageLite &req,
-                     google::protobuf::MessageLite *resp) {
-    if (!req.SerializeToString(req_.mutable_content())) {
+int Caller::Call(const google::protobuf::Message &req,
+                 google::protobuf::Message *resp) {
+    auto msg_handler(msg_handler_factory_->Create());
+    BaseRequest *tmp_req{nullptr};
+    int ret{msg_handler->GenRequest(tmp_req)};
+    if (0 != ret || !tmp_req) {
+        log(LOG_ERR, "GenRequest err %d", ret);
+
         return -1;
     }
+    req_.reset(tmp_req);
 
-    uint64_t call_begin{Timer::GetSteadyClockMS()};
-    req_.AddHeader(HttpMessage::HEADER_CONTENT_LENGTH, req_.content().size());
-    HttpClient::PostStat post_stat;
-    int ret{HttpClient::Post(socket_, req_, &resp_, &post_stat)};
-    MonitorReport(client_monitor_, post_stat.send_error_,
-                  post_stat.recv_error_, req_.size(),
-                  resp_.size(), call_begin,
-                  Timer::GetSteadyClockMS());
-
+    ret = req_->FromPb(req);
     if (0 != ret) {
-        phxrpc::log(LOG_ERR, "http call err %d", ret);
+        log(LOG_ERR, "FromPb err %d", ret);
+
         return ret;
     }
 
-    if (!resp->ParseFromString(resp_.content())) {
-        return -1;
+    req_->set_uri(uri_.c_str());
+    req_->set_keep_alive(keep_alive_);
+
+    bool send_error{false}, recv_error{false};
+    uint64_t call_begin{Timer::GetSteadyClockMS()};
+    ret = req_->Send(socket_);
+    if (0 != ret && SocketStreamError_Normal_Closed != ret) {
+        send_error = true;
+        log(LOG_ERR, "Send err %d", ret);
     }
 
-    const char *result{resp_.GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_RESULT)};
-    ret = atoi(nullptr == result ? "-1" : result);
+    if (0 == ret) {
+        BaseResponse *tmp_resp{nullptr};
+        ret = msg_handler->RecvResponse(socket_, tmp_resp);
+        if (0 != ret && SocketStreamError_Normal_Closed != ret || !tmp_resp) {
+            recv_error = true;
+            log(LOG_ERR, "RecvResponse err %d", ret);
+        }
+        resp_.reset(tmp_resp);
+    }
+    MonitorReport(client_monitor_, send_error,
+                  recv_error, req_->size(),
+                  resp_ ? resp_->size() : 0, call_begin,
+                  Timer::GetSteadyClockMS());
 
-    if (ret < 0) {
-        phxrpc::log(LOG_ERR, "http call %s err %d", req_.uri(), ret);
+    if (0 != ret) {
+        log(LOG_ERR, "call err %d", ret);
+
+        return ret;
+    }
+
+    ret = resp_->ToPb(resp);
+    if (0 != ret) {
+        log(LOG_ERR, "ToPb err %d", ret);
+
+        return ret;
+    }
+
+    ret = resp_->result();
+    if (0 > ret) {
+        log(LOG_ERR, "call %s err %d", req_->uri(), ret);
     }
 
     return ret;
 }
 
-void HttpCaller::set_uri(const char *const uri, const int cmd_id) {
+void Caller::set_uri(const char *const uri, const int cmd_id) {
     cmd_id_ = cmd_id;
-    GetRequest().set_uri(uri);
+    uri_ = uri;
 }
 
-void HttpCaller::SetKeepAlive(const bool keep_alive) {
-    if (keep_alive) {
-        GetRequest().AddHeader(HttpMessage::HEADER_CONNECTION, "Keep-Alive");
-    } else {
-        GetRequest().AddHeader(HttpMessage::HEADER_CONNECTION, "");
-    }
+void Caller::set_keep_alive(const bool keep_alive) {
+    keep_alive_ = keep_alive;
 }
 
 

@@ -29,8 +29,10 @@ namespace phxrpc {
 
 class HttpMessageHandlerFactory : virtual public BaseMessageHandlerFactory {
   public:
-    HttpMessageHandlerFactory();
+    HttpMessageHandlerFactory() = default;
     virtual ~HttpMessageHandlerFactory() override = default;
+
+    virtual std::unique_ptr<BaseMessageHandler> Create() override;
 };
 
 

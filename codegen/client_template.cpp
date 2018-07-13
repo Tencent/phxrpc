@@ -76,6 +76,7 @@ const char *PHXRPC_CLIENT_CPP_TEMPLATE =
 #include <memory>
 #include <mutex>
 
+#include "phxrpc/http.h"
 #include "phxrpc/rpc.h"
 
 #include "$StubFile$.h"
@@ -130,6 +131,7 @@ const char *PHXRPC_UTHREAD_CLIENT_CPP_TEMPLATE =
 #include <memory>
 #include <mutex>
 
+#include "phxrpc/http.h"
 #include "phxrpc/rpc.h"
 
 #include "$StubFile$.h"
@@ -188,7 +190,8 @@ const char *PHXRPC_CLIENT_FUNC_TEMPLATE =
                 *(global_$ClientClassLower$_monitor_.get()))};
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
-            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory factory;
+            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()), &factory);
             return stub.$Func$;
         }
 
@@ -212,7 +215,8 @@ const char *PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
                 *(global_$ClientClassLower$_monitor_.get()))};
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
-            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+            phxrpc::HttpMessageHandlerFactory factory;
+            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()), &factory);
             return stub.$Func$;
         }
     }
@@ -237,7 +241,8 @@ const char *PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE =
                 if (phxrpc::PhxrpcTcpUtils::Open(&uthread_s, &socket, ep->ip, ep->port,
                     global_$ClientClassLower$_config_.GetConnectTimeoutMS(), *(global_$ClientClassLower$_monitor_.get()))) {
                     socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
-                    $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()));
+                    phxrpc::HttpMessageHandlerFactory http_msg_factory;
+                    $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()), http_msg_factory);
                     int this_ret{stub.PHXEcho(req, resp)};
                     if (this_ret == 0) {
                         ret = this_ret;

@@ -84,7 +84,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         hsha_server_stat_->io_read_requests_++;
 
-        BaseMessageHandler *msg_handler{factory_->Create(stream)};
+        auto msg_handler(factory_->Create());
         if (!msg_handler) {
             log(LOG_ERR, "%s Create err, client closed or no msg handler accept", __func__);
 
@@ -93,9 +93,12 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         // will be deleted by worker
         BaseRequest *req{nullptr};
-        int ret{msg_handler->ServerRecv(stream, req)};
+        int ret{msg_handler->RecvRequest(stream, req)};
         if (0 != ret) {
-            delete req;
+            if (req) {
+                delete req;
+                req = nullptr;
+            }
             hsha_server_stat_->io_read_fails_++;
             hsha_server_stat_->rpc_time_costs_count_++;
             hsha_server_stat_->rpc_time_costs_ += time_cost.Cost();
@@ -105,13 +108,16 @@ void HshaServerIO::IOFunc(int accepted_fd) {
         }
         char client_ip[128]{'\0'};
         stream.GetRemoteHost(client_ip, sizeof(client_ip));
-        phxrpc::log(LOG_DEBUG, "%s ServerRecv ret %d client_ip %s", __func__,
+        phxrpc::log(LOG_DEBUG, "%s RecvRequest ret %d client_ip %s", __func__,
                     static_cast<int>(ret), client_ip);
 
         hsha_server_stat_->io_read_bytes_ += req->size();
 
         if (!data_flow_->CanPushRequest(config_->GetMaxQueueLength())) {
-            delete req;
+            if (req) {
+                delete req;
+                req = nullptr;
+            }
             hsha_server_stat_->queue_full_rejected_after_accepted_fds_++;
             phxrpc::log(LOG_ERR, "%s overflow can't enqueue fd %d", __func__, accepted_fd);
 
@@ -120,7 +126,10 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         if (!hsha_server_qos_->CanEnqueue()) {
             // fast reject don't cal rpc_time_cost;
-            delete req;
+            if (req) {
+                delete req;
+                req = nullptr;
+            }
             hsha_server_stat_->enqueue_fast_rejects_++;
             log(LOG_ERR, "%s fast reject can't enqueue fd %d", __func__, accepted_fd);
 
@@ -131,7 +140,10 @@ void HshaServerIO::IOFunc(int accepted_fd) {
         hsha_server_stat_->inqueue_push_requests_++;
         DataFlowArgs *data_flow_args{new DataFlowArgs};
         if (!data_flow_args) {
-            delete req;
+            if (req) {
+                delete req;
+                req = nullptr;
+            }
             log(LOG_ERR, "%s data_flow_args nullptr fd %d", __func__, accepted_fd);
 
             break;
@@ -139,7 +151,10 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         ret = msg_handler->GenResponse(data_flow_args->resp);
         if (0 != ret) {
-            delete req;
+            if (req) {
+                delete req;
+                req = nullptr;
+            }
             log(LOG_ERR, "%s GenResponse err %d fd %d", __func__,
                 static_cast<int>(ret), accepted_fd);
 
@@ -193,7 +208,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
             hsha_server_stat_->io_write_fails_++;
         }
 
-        if (!msg_handler->is_keep_alive() || (0 != ret)) {
+        if (!msg_handler->keep_alive() || (0 != ret)) {
             break;
         }
     }

@@ -59,7 +59,7 @@ class BaseDispatcher {
             log(LOG_DEBUG, "%s uri %s not found", __func__, req->uri());
         }
 
-        resp->SetPhxRpcResult(ret);
+        resp->set_result(ret);
 
         return uri_func_map_.end() != iter;
     }

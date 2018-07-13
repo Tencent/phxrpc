@@ -32,8 +32,8 @@ namespace phxrpc {
 using namespace std;
 
 
-HttpMessageHandlerFactory::HttpMessageHandlerFactory() {
-    AddProtocol(unique_ptr<phxrpc::BaseMessageHandler>(new phxrpc::HttpMessageHandler));
+unique_ptr<BaseMessageHandler> HttpMessageHandlerFactory::Create() {
+    return move(unique_ptr<BaseMessageHandler>(new HttpMessageHandler));
 }
 
 

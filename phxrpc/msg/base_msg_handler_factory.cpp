@@ -28,23 +28,5 @@ See the AUTHORS file for names of contributors.
 namespace phxrpc {
 
 
-using namespace std;
-
-
-BaseMessageHandler *BaseMessageHandlerFactory::Create(BaseTcpStream &in_stream) {
-    for (const auto &handler : handlers_) {
-        if (handler->Accept(in_stream)) {
-            return handler.get();
-        }
-    }
-
-    return nullptr;
-}
-
-void BaseMessageHandlerFactory::AddProtocol(unique_ptr<BaseMessageHandler> &&handler) {
-    handlers_.emplace_back(move(handler));
-}
-
-
 }
 

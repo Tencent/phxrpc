@@ -68,6 +68,7 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "namespace phxrpc {\n");
     fprintf(write, "\n");
     fprintf(write, "\n");
+    fprintf(write, "class BaseMessageHandlerFactory;\n");
     fprintf(write, "class BaseTcpStream;\n");
     fprintf(write, "class ClientMonitor;\n");
     fprintf(write, "\n");
@@ -83,11 +84,12 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree *stree, FILE *write) {
     {
         fprintf(write, "class %s {\n", class_name);
         fprintf(write, "  public:\n");
-        fprintf(write, "    %s(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor);\n", class_name);
+        fprintf(write, "    %s(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,\n"
+                "        phxrpc::BaseMessageHandlerFactory *const msg_handler_factory);\n", class_name);
         fprintf(write, "    virtual ~%s();\n", class_name);
         fprintf(write, "\n");
 
-        fprintf(write, "    void SetKeepAlive(const bool keep_alive);\n\n");
+        fprintf(write, "    void set_keep_alive(const bool keep_alive);\n\n");
 
         SyntaxFuncVector *flist{stree->GetFuncList()};
         auto fit(flist->cbegin());
@@ -101,7 +103,8 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree *stree, FILE *write) {
         fprintf(write, "  private:\n");
         fprintf(write, "    phxrpc::BaseTcpStream &socket_;\n");
         fprintf(write, "    phxrpc::ClientMonitor &client_monitor_;\n");
-        fprintf(write, "    bool keep_alive_;\n");
+        fprintf(write, "    bool keep_alive_{false};\n");
+        fprintf(write, "    phxrpc::BaseMessageHandlerFactory *msg_handler_factory_{nullptr};\n");
 
         fprintf(write, "};\n");
         fprintf(write, "\n");
@@ -145,8 +148,9 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "#include \"%s.h\"\n", file_name);
     fprintf(write, "\n");
 
-    fprintf(write, "#include \"phxrpc/rpc.h\"\n");
+    fprintf(write, "#include \"phxrpc/http.h\"\n");
     fprintf(write, "#include \"phxrpc/network.h\"\n");
+    fprintf(write, "#include \"phxrpc/rpc.h\"\n");
     fprintf(write, "\n");
     fprintf(write, "\n");
 
@@ -154,10 +158,12 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetStubClassName(stree->GetName(), class_name, sizeof(class_name));
 
     {
-        fprintf(write, "%s::%s(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor)\n",
+        fprintf(write, "%s::%s(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,\n"
+                "        phxrpc::BaseMessageHandlerFactory *const msg_handler_factory)\n",
                 class_name, class_name);
 
-        fprintf(write, "        : socket_(socket), client_monitor_(client_monitor), keep_alive_(false) {\n");
+        fprintf(write, "        : socket_(socket), client_monitor_(client_monitor), keep_alive_(false),\n"
+                "          msg_handler_factory_(msg_handler_factory) {\n");
         fprintf(write, "}\n");
         fprintf(write, "\n");
 
@@ -165,7 +171,7 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
         fprintf(write, "}\n");
         fprintf(write, "\n");
 
-        fprintf(write, "void %s::SetKeepAlive(const bool keep_alive) {\n", class_name);
+        fprintf(write, "void %s::set_keep_alive(const bool keep_alive) {\n", class_name);
         fprintf(write, "    keep_alive_ = keep_alive;\n");
         fprintf(write, "}\n");
         fprintf(write, "\n");
@@ -173,7 +179,7 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
         SyntaxFuncVector *flist{stree->GetFuncList()};
         auto fit(flist->cbegin());
         for (; flist->cend() != fit; ++fit) {
-            GenerateStubFunc(stree, &(*fit), write, true);
+            GenerateStubFunc(stree, &(*fit), write);
         }
 
     }
@@ -181,31 +187,19 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
 
 void ClientCodeRender::GenerateStubFunc(const SyntaxTree *const stree,
                                         const SyntaxFunc *const func,
-                                        FILE *write, const bool use_default_caller) {
+                                        FILE *write) {
     string buffer;
 
     GetStubFuncDeclaration(stree, func, 0, &buffer);
 
-    char caller_name[128]{"HttpCaller"};
-    if (!use_default_caller) {
-        // protocol
-        name_render_.GetCallerClassName(stree->GetName(), caller_name, sizeof(caller_name));
-    }
-
     fprintf(write, "%s {\n", buffer.c_str());
 
-    fprintf(write, "    phxrpc::%s caller(socket_, client_monitor_);\n", caller_name);
+    fprintf(write, "    phxrpc::Caller caller(socket_, client_monitor_, msg_handler_factory_);\n");
     fprintf(write, "    caller.set_uri(\"/%s/%s\", %d);\n",
             SyntaxTree::Cpp2UriPackageName(stree->GetCppPackageName()).c_str(),
             func->GetName(), func->GetCmdID());
-    fprintf(write, "    caller.SetKeepAlive(keep_alive_);\n");
-    if (!use_default_caller) {
-        // protocol
-        fprintf(write, "    return caller.%sCall(req, resp);\n", func->GetName());
-    } else {
-        // user custom
-        fprintf(write, "    return caller.Call(req, resp);\n");
-    }
+    fprintf(write, "    caller.set_keep_alive(keep_alive_);\n");
+    fprintf(write, "    return caller.Call(req, resp);\n");
 
     fprintf(write, "}\n");
     fprintf(write, "\n");

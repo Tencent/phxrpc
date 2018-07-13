@@ -29,20 +29,13 @@ namespace phxrpc {
 
 
 class BaseMessageHandler;
-class BaseTcpStream;
 
 class BaseMessageHandlerFactory {
   public:
     BaseMessageHandlerFactory() = default;
     virtual ~BaseMessageHandlerFactory() = default;
 
-    BaseMessageHandler *Create(BaseTcpStream &in_stream);
-
-  protected:
-    void AddProtocol(std::unique_ptr<BaseMessageHandler> &&handler);
-
-  private:
-    std::vector<std::unique_ptr<BaseMessageHandler>> handlers_;
+    virtual std::unique_ptr<BaseMessageHandler> Create() = 0;
 };
 
 

@@ -33,18 +33,16 @@ class BaseMessageHandler {
     BaseMessageHandler() = default;
     virtual ~BaseMessageHandler() = default;
 
-    virtual bool Accept(BaseTcpStream &in_stream) = 0;
+    virtual int RecvRequest(BaseTcpStream &socket, BaseRequest *&req) = 0;
+    virtual int RecvResponse(BaseTcpStream &socket, BaseResponse *&resp) = 0;
 
-    virtual int ServerRecv(BaseTcpStream &socket, BaseRequest *&req) = 0;
-
+    virtual int GenRequest(BaseRequest *&req) = 0;
     virtual int GenResponse(BaseResponse *&resp) = 0;
 
-    bool is_keep_alive() const { return is_keep_alive_; }
+    virtual bool keep_alive() const = 0;
 
   protected:
     BaseRequest *req_{nullptr};
-    std::string version_;
-    bool is_keep_alive_{false};
 };
 
 

@@ -494,7 +494,10 @@ void Worker::WorkerLogic(void *args, BaseRequest *req, int queue_wait_time_ms) {
 
     pool_->scheduler_->NotifyEpoll();
 
-    delete req;
+    if (req) {
+        delete req;
+        req = nullptr;
+    }
 }
 
 void Worker::NotifyEpoll() {

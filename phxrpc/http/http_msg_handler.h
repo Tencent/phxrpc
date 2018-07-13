@@ -35,35 +35,20 @@ class HttpResponse;
 
 class HttpMessageHandler : public BaseMessageHandler {
   public:
-    enum {
-        MAX_RECV_LEN = 8192
-    };
-
-    static void FixRespHeaders(const HttpRequest &req, HttpResponse *resp);
-
-    static void FixRespHeaders(bool is_keep_alive, const char *version, HttpResponse *resp);
-
-    static int SendReqHeader(BaseTcpStream &socket, const char *method, const HttpRequest &req);
-
-    static int RecvRespStartLine(BaseTcpStream &socket, HttpResponse *resp);
-
-    static int RecvReqStartLine(BaseTcpStream &socket, HttpRequest *req);
-
-    static int RecvHeaders(BaseTcpStream &socket, HttpMessage *msg);
-
-    static int RecvBody(BaseTcpStream &socket, HttpMessage *msg);
-
-    static int RecvReq(BaseTcpStream &socket, HttpRequest *req);
-
     HttpMessageHandler() = default;
     virtual ~HttpMessageHandler() override = default;
 
-    virtual bool Accept(BaseTcpStream &in_stream) override;
+    virtual int RecvRequest(BaseTcpStream &socket, BaseRequest *&req) override;
+    virtual int RecvResponse(BaseTcpStream &socket, BaseResponse *&resp) override;
 
-    virtual int ServerRecv(BaseTcpStream &socket,
-                                  BaseRequest *&req) override;
-
+    virtual int GenRequest(BaseRequest *&req) override;
     virtual int GenResponse(BaseResponse *&resp) override;
+
+    virtual bool keep_alive() const override;
+
+  private:
+    std::string version_;
+    bool keep_alive_{false};
 };
 
 

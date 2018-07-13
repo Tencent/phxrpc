@@ -70,7 +70,8 @@ class BaseRequest : virtual public BaseMessage {
     virtual ~BaseRequest() override;
 
     virtual BaseResponse *GenResponse() const = 0;
-    virtual int IsKeepAlive() const = 0;
+    virtual bool keep_alive() const = 0;
+    virtual void set_keep_alive(const bool keep_alive) = 0;
 
     void set_uri(const char *uri);
     const char *uri() const;
@@ -85,9 +86,11 @@ class BaseResponse : virtual public BaseMessage {
     BaseResponse();
     virtual ~BaseResponse() override;
 
-    virtual void SetPhxRpcResult(const int result) = 0;
     virtual void DispatchErr() = 0;
     virtual int ModifyResp(const bool keep_alive, const std::string &version) = 0;
+
+    virtual int result() = 0;
+    virtual void set_result(const int result) = 0;
 };
 
 
