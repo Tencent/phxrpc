@@ -34,7 +34,7 @@ class BaseTcpStream;
 class Caller {
   public:
     Caller(BaseTcpStream &socket, ClientMonitor &client_monitor,
-           BaseMessageHandlerFactory *const msg_handler_factory);
+           BaseMessageHandlerFactory &msg_handler_factory);
 
     virtual ~Caller();
 
@@ -63,7 +63,7 @@ class Caller {
     std::unique_ptr<BaseRequest> req_;
     std::unique_ptr<BaseResponse> resp_;
 
-    BaseMessageHandlerFactory *msg_handler_factory_{nullptr};
+    BaseMessageHandlerFactory &msg_handler_factory_;
 };
 
 

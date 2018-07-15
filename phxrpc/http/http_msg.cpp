@@ -268,11 +268,6 @@ HttpResponse::HttpResponse() {
 HttpResponse::~HttpResponse() {
 }
 
-void HttpResponse::DispatchErr() {
-    set_status_code(404);
-    set_reason_phrase("Not Found");
-}
-
 int HttpResponse::Send(BaseTcpStream &socket) const {
     socket << version() << " " << status_code() << " " << reason_phrase() << "\r\n";
 
@@ -298,7 +293,19 @@ int HttpResponse::Send(BaseTcpStream &socket) const {
     }
 }
 
-int HttpResponse::ModifyResp(const bool keep_alive, const string &version) {
+void HttpResponse::SetFake(FakeReason reason) {
+  switch (reason) {
+    case FakeReason::DISPATCH_ERROR:
+      set_status_code(404);
+      set_reason_phrase("Not Found");
+      break;
+    default:
+      set_status_code(520);
+      set_reason_phrase("Unknown Error");
+  };
+}
+
+int HttpResponse::Modify(const bool keep_alive, const string &version) {
     HttpProtocol::FixRespHeaders(keep_alive, version.c_str(), this);
 
     return 0;

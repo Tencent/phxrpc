@@ -121,9 +121,9 @@ class HttpResponse : public HttpMessage, public BaseResponse {
 
     virtual int Send(BaseTcpStream &socket) const override;
 
-    virtual void DispatchErr() override;
+    virtual void SetFake(FakeReason reason) override;
 
-    virtual int ModifyResp(const bool keep_alive, const std::string &version) override;
+    virtual int Modify(const bool keep_alive, const std::string &version) override;
 
     virtual int result() override;
     virtual void set_result(const int result) override;

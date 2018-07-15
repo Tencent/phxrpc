@@ -85,7 +85,7 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree *stree, FILE *write) {
         fprintf(write, "class %s {\n", class_name);
         fprintf(write, "  public:\n");
         fprintf(write, "    %s(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,\n"
-                "        phxrpc::BaseMessageHandlerFactory *const msg_handler_factory);\n", class_name);
+                "        phxrpc::BaseMessageHandlerFactory &msg_handler_factory);\n", class_name);
         fprintf(write, "    virtual ~%s();\n", class_name);
         fprintf(write, "\n");
 
@@ -104,7 +104,7 @@ void ClientCodeRender::GenerateStubHpp(SyntaxTree *stree, FILE *write) {
         fprintf(write, "    phxrpc::BaseTcpStream &socket_;\n");
         fprintf(write, "    phxrpc::ClientMonitor &client_monitor_;\n");
         fprintf(write, "    bool keep_alive_{false};\n");
-        fprintf(write, "    phxrpc::BaseMessageHandlerFactory *msg_handler_factory_{nullptr};\n");
+        fprintf(write, "    phxrpc::BaseMessageHandlerFactory &msg_handler_factory_;\n");
 
         fprintf(write, "};\n");
         fprintf(write, "\n");
@@ -159,7 +159,7 @@ void ClientCodeRender::GenerateStubCpp(SyntaxTree *stree, FILE *write) {
 
     {
         fprintf(write, "%s::%s(phxrpc::BaseTcpStream &socket, phxrpc::ClientMonitor &client_monitor,\n"
-                "        phxrpc::BaseMessageHandlerFactory *const msg_handler_factory)\n",
+                "        phxrpc::BaseMessageHandlerFactory &msg_handler_factory)\n",
                 class_name, class_name);
 
         fprintf(write, "        : socket_(socket), client_monitor_(client_monitor), keep_alive_(false),\n"

@@ -58,7 +58,7 @@ class UThreadCaller {
                   google::protobuf::Message &request,
                   google::protobuf::Message *response,
                   ClientMonitor &client_monitor,
-                  BaseMessageHandlerFactory *const msg_handler_factory,
+                  BaseMessageHandlerFactory &msg_handler_factory,
                   const std::string &uri, const int cmd_id, const Endpoint_t &ep,
                   const int connect_timeout_ms, const int socket_timeout_ms,
                   UThreadCallback callback, void *args);
@@ -88,7 +88,7 @@ class UThreadCaller {
     google::protobuf::Message *request_;
     google::protobuf::Message *response_;
     ClientMonitor &client_monitor_;
-    BaseMessageHandlerFactory *msg_handler_factory_{nullptr};
+    BaseMessageHandlerFactory &msg_handler_factory_;
     std::string uri_;
     int cmd_id_;
     Endpoint_t ep_;
@@ -103,7 +103,7 @@ class UThreadCaller {
 class UThreadMultiCaller {
   public:
     UThreadMultiCaller(ClientMonitor &client_monitor,
-                       BaseMessageHandlerFactory *const msg_handler_factory);
+                       BaseMessageHandlerFactory &msg_handler_factory);
     virtual ~UThreadMultiCaller();
 
     void AddCaller(google::protobuf::Message &request,
@@ -120,7 +120,7 @@ class UThreadMultiCaller {
     UThreadEpollScheduler uthread_scheduler_;
     std::vector<UThreadCaller *> uthread_caller_list_;
     ClientMonitor &client_monitor_;
-    BaseMessageHandlerFactory *msg_handler_factory_{nullptr};
+    BaseMessageHandlerFactory &msg_handler_factory_;
 };
 
 

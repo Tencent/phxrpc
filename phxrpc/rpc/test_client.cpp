@@ -23,18 +23,20 @@ See the AUTHORS file for names of contributors.
 #include <syslog.h>
 #include <google/protobuf/message_lite.h>
 
+#include "caller.h"
 #include "monitor_factory.h"
-#include "http_caller.h"
 
 #include "phxrpc/network.h"
 #include "phxrpc/http.h"
 
+
 using namespace phxrpc;
 
-int main(int argc, char ** argv) {
-    for (size_t i = 0; i < 20; i++) {
+
+int main(int argc, char **argv) {
+    for (size_t i{0}; 20 > i; ++i) {
         phxrpc::BlockTcpStream socket;
-        if(phxrpc::BlockTcpUtils::Open(&socket, "127.0.0.1", 26161, 200, NULL, 0)) {
+        if(phxrpc::BlockTcpUtils::Open(&socket, "127.0.0.1", 26161, 200, nullptr, 0)) {
             socket.SetTimeout(5000);
             HttpRequest request;
             HttpResponse response;
@@ -48,11 +50,12 @@ int main(int argc, char ** argv) {
                 continue;
             }
 
-            const char * result = response.GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_RESULT);
-            ret = atoi(NULL == result ? "-1" : result);
+            const char *result = response.GetHeaderValue(HttpMessage::HEADER_X_PHXRPC_RESULT);
+            ret = atoi(nullptr == result ? "-1" : result);
             printf("post ret %d\n", ret);
         }
     }
 
     return 0;
 }
+

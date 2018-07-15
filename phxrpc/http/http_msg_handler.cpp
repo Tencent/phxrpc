@@ -71,7 +71,7 @@ int HttpMessageHandler::GenRequest(BaseRequest *&req) {
 
 int HttpMessageHandler::GenResponse(BaseResponse *&resp) {
     resp = req_->GenResponse();
-    resp->ModifyResp(keep_alive_, version_);
+    resp->Modify(keep_alive_, version_);
 
     return 0;
 }

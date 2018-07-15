@@ -426,7 +426,7 @@ void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
             fprintf(write, ",\n");
         }
         fprintf(write, "        {\"/%s/%s\", &%s::%s}",
-                SyntaxTree::Cpp2PbPackageName(stree->GetCppPackageName()).c_str(),
+                SyntaxTree::Cpp2UriPackageName(stree->GetCppPackageName()).c_str(),
                 fit->GetName(), dispatcher_name, fit->GetName());
     }
     fprintf(write, "};\n");

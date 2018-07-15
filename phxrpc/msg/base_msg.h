@@ -83,11 +83,16 @@ class BaseRequest : virtual public BaseMessage {
 
 class BaseResponse : virtual public BaseMessage {
   public:
+    enum class FakeReason {
+        NONE = 0,
+        DISPATCH_ERROR = 1
+    };
+
     BaseResponse();
     virtual ~BaseResponse() override;
 
-    virtual void DispatchErr() = 0;
-    virtual int ModifyResp(const bool keep_alive, const std::string &version) = 0;
+    virtual void SetFake(FakeReason reason) = 0;
+    virtual int Modify(const bool keep_alive, const std::string &version) = 0;
 
     virtual int result() = 0;
     virtual void set_result(const int result) = 0;

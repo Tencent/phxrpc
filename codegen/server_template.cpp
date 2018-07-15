@@ -39,8 +39,8 @@ const char *PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
 using namespace std;
 
 
-void Dispatch(const phxrpc::BaseRequest *request,
-              phxrpc::BaseResponse *response,
+void Dispatch(const phxrpc::BaseRequest *req,
+              phxrpc::BaseResponse *resp,
               phxrpc::DispatcherArgs_t *args) {
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
@@ -49,8 +49,8 @@ void Dispatch(const phxrpc::BaseRequest *request,
 
     phxrpc::BaseDispatcher<$DispatcherClass$> base_dispatcher(
             dispatcher, $DispatcherClass$::GetURIFuncMap());
-    if (!base_dispatcher.Dispatch(request, response)) {
-        response->DispatchErr();
+    if (!base_dispatcher.Dispatch(req, resp)) {
+        resp->SetFake(phxrpc::BaseResponse::FakeReason::DISPATCH_ERROR);
     }
 }
 
@@ -133,8 +133,8 @@ const char *PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE =
 using namespace std;
 
 
-void Dispatch(const phxrpc::BaseRequest *request,
-              phxrpc::BaseResponse *response,
+void Dispatch(const phxrpc::BaseRequest *req,
+              phxrpc::BaseResponse *resp,
               phxrpc::DispatcherArgs_t *args) {
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
@@ -143,8 +143,8 @@ void Dispatch(const phxrpc::BaseRequest *request,
 
     phxrpc::BaseDispatcher<$DispatcherClass$> base_dispatcher(
             dispatcher, $DispatcherClass$::GetURIFuncMap());
-    if (!base_dispatcher.Dispatch(request, response)) {
-        response->DispatchErr();
+    if (!base_dispatcher.Dispatch(req, resp)) {
+        resp->SetFake(phxrpc::BaseResponse::FakeReason::DISPATCH_ERROR);
     }
 }
 

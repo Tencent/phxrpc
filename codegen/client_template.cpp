@@ -190,8 +190,8 @@ const char *PHXRPC_CLIENT_FUNC_TEMPLATE =
                 *(global_$ClientClassLower$_monitor_.get()))};
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
-            phxrpc::HttpMessageHandlerFactory factory;
-            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()), &factory);
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()), http_msg_factory);
             return stub.$Func$;
         }
 
@@ -215,8 +215,8 @@ const char *PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
                 *(global_$ClientClassLower$_monitor_.get()))};
         if (open_ret) {
             socket.SetTimeout(global_$ClientClassLower$_config_.GetSocketTimeoutMS());
-            phxrpc::HttpMessageHandlerFactory factory;
-            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()), &factory);
+            phxrpc::HttpMessageHandlerFactory http_msg_factory;
+            $StubClass$ stub(socket, *(global_$ClientClassLower$_monitor_.get()), http_msg_factory);
             return stub.$Func$;
         }
     }

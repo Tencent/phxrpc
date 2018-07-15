@@ -19,7 +19,7 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include "http_caller.h"
+#include "phxrpc/rpc/caller.h"
 
 #include <syslog.h>
 
@@ -35,7 +35,7 @@ namespace phxrpc {
 
 
 Caller::Caller(BaseTcpStream &socket, ClientMonitor &client_monitor,
-               BaseMessageHandlerFactory *const msg_handler_factory)
+               BaseMessageHandlerFactory &msg_handler_factory)
         : socket_(socket), client_monitor_(client_monitor), cmd_id_(-1),
           msg_handler_factory_(msg_handler_factory) {
 }
@@ -73,7 +73,7 @@ void Caller::MonitorReport(ClientMonitor &client_monitor, bool send_error,
 
 int Caller::Call(const google::protobuf::Message &req,
                  google::protobuf::Message *resp) {
-    auto msg_handler(msg_handler_factory_->Create());
+    auto msg_handler(msg_handler_factory_.Create());
     BaseRequest *tmp_req{nullptr};
     int ret{msg_handler->GenRequest(tmp_req)};
     if (0 != ret || !tmp_req) {
@@ -104,7 +104,7 @@ int Caller::Call(const google::protobuf::Message &req,
     if (0 == ret) {
         BaseResponse *tmp_resp{nullptr};
         ret = msg_handler->RecvResponse(socket_, tmp_resp);
-        if (0 != ret && SocketStreamError_Normal_Closed != ret || !tmp_resp) {
+        if ((0 != ret && SocketStreamError_Normal_Closed != ret) || !tmp_resp) {
             recv_error = true;
             log(LOG_ERR, "RecvResponse err %d", ret);
         }

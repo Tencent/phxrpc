@@ -21,9 +21,9 @@ See the AUTHORS file for names of contributors.
 
 #include <cassert>
 
-#include "uthread_caller.h"
-#include "http_caller.h"
+#include "caller.h"
 #include "client_monitor.h"
+#include "uthread_caller.h"
 
 #include "phxrpc/network.h"
 
@@ -38,7 +38,7 @@ UThreadCaller::UThreadCaller(UThreadEpollScheduler *uthread_scheduler,
                              google::protobuf::Message &request,
                              google::protobuf::Message *response,
                              ClientMonitor &client_monitor,
-                             BaseMessageHandlerFactory *const msg_handler_factory,
+                             BaseMessageHandlerFactory &msg_handler_factory,
                              const string &uri, const int cmd_id, const Endpoint_t &ep,
                              const int connect_timeout_ms, const int socket_timeout_ms,
                              UThreadCallback callback, void *args)
@@ -128,7 +128,7 @@ void UThreadCaller::Close() {
 ///////////////////////////////////////////////////////////////////
 
 UThreadMultiCaller::UThreadMultiCaller(ClientMonitor &client_monitor,
-                                       BaseMessageHandlerFactory *const msg_handler_factory)
+                                       BaseMessageHandlerFactory &msg_handler_factory)
         : uthread_scheduler_(64 * 1024, 300), client_monitor_(client_monitor),
           msg_handler_factory_(msg_handler_factory) {
 }
