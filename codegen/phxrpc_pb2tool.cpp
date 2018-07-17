@@ -61,7 +61,7 @@ void Proto2Tool(const char *program, const char *pb_file, const char *dir_path,
         return;
     }
 
-    NameRender name_render(syntax_tree.GetPrefix());
+    NameRender name_render(syntax_tree.prefix());
     ToolCodeRender code_render(name_render);
 
     char filename[256]{0}, tmp[256]{0};

@@ -85,9 +85,9 @@ int ProtoUtils::LoadNormal(const char *file_name, SyntaxTree *stree, map<string,
 
     const FileDescriptor *fd{importer.Import(file_name)};
 
-    stree->SetCppPackageName(SyntaxTree::Pb2CppPackageName(fd->package()).c_str());
+    stree->set_package_name(fd->package().c_str());
 
-    stree->SetProtoFile(file_name);
+    stree->set_proto_file(file_name);
 
     for (int i{0}; 1 > i && fd->service_count() > i; ++i) {
         const ServiceDescriptor * iter = fd->service(i);
@@ -108,7 +108,7 @@ int ProtoUtils::LoadNormal(const char *file_name, SyntaxTree *stree, map<string,
             func.GetResp()->SetName("Resp");
             func.GetResp()->SetType(output_type->full_name().c_str());
 
-            stree->GetFuncList()->push_back(func);
+            stree->mutable_func_list()->push_back(func);
         }
     }
 
@@ -152,10 +152,6 @@ int ProtoUtils::LoadExtension(const char *file_name, SyntaxTree *stree, DiskSour
                     if (nullptr != strstr(opt.name(0).name_part().c_str(), "Usage")) {
                         func->SetUsage(opt.string_value().c_str());
                     }
-
-                    if (nullptr != strstr(opt.name(0).name_part().c_str(), "Protocol")) {
-                        func->SetProtocol(opt.string_value().c_str());
-                    }
                 }
             }
         }
@@ -180,7 +176,7 @@ int ProtoUtils::AddEcho(SyntaxTree *stree) {
         echo_func.SetOptString("s:");
         echo_func.SetUsage("-s <string>");
 
-        stree->GetFuncList()->insert(stree->GetFuncList()->begin(), echo_func);
+        stree->mutable_func_list()->insert(stree->mutable_func_list()->begin(), echo_func);
     }
 
     return 0;

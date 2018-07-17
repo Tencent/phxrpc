@@ -45,7 +45,7 @@ void ServiceCodeRender::GenerateServiceHpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetServiceFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2service", stree->GetProtoFile(), &buffer);
+    name_render_.GetCopyright("phxrpc_pb2service", stree->proto_file(), &buffer);
 
     fprintf(write, "/* %s.h\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -55,7 +55,7 @@ void ServiceCodeRender::GenerateServiceHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "#pragma once\n");
     fprintf(write, "\n");
 
-    name_render_.GetMessageFileName(stree->GetProtoFile(), file_name, sizeof(file_name));
+    name_render_.GetMessageFileName(stree->proto_file(), file_name, sizeof(file_name));
     fprintf(write, "#include \"%s.h\"\n", file_name);
 
     fprintf(write, "\n");
@@ -70,7 +70,7 @@ void ServiceCodeRender::GenerateServiceHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    virtual ~%s();\n", service_name);
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         string buffer;
@@ -88,7 +88,7 @@ void ServiceCodeRender::GenerateServiceCpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetServiceFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2service", stree->GetProtoFile(), &buffer);
+    name_render_.GetCopyright("phxrpc_pb2service", stree->proto_file(), &buffer);
 
     fprintf(write, "/* %s.cpp\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -98,7 +98,7 @@ void ServiceCodeRender::GenerateServiceCpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "#include \"%s.h\"\n", file_name);
     fprintf(write, "\n");
 
-    name_render_.GetMessageFileName(stree->GetProtoFile(), file_name, sizeof(file_name));
+    name_render_.GetMessageFileName(stree->proto_file(), file_name, sizeof(file_name));
     fprintf(write, "#include \"%s.h\"\n", file_name);
     fprintf(write, "#include \"phxrpc/file.h\"\n");
 
@@ -116,7 +116,7 @@ void ServiceCodeRender::GenerateServiceCpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         string buffer;
@@ -135,7 +135,7 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree *stree, FILE *write,
     name_render_.GetServiceImplFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2service", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2service", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.h\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -150,7 +150,7 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree *stree, FILE *write,
         fprintf(write, "\n");
     }
 
-    name_render_.GetMessageFileName(stree->GetProtoFile(), file_name, sizeof(file_name));
+    name_render_.GetMessageFileName(stree->proto_file(), file_name, sizeof(file_name));
     fprintf(write, "#include \"%s.h\"\n", file_name);
 
     name_render_.GetServiceFileName(stree->GetName(), file_name, sizeof(file_name));
@@ -184,7 +184,7 @@ void ServiceCodeRender::GenerateServiceImplHpp(SyntaxTree *stree, FILE *write,
     fprintf(write, "    virtual ~%s() override;\n", service_impl_name);
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         string buffer;
@@ -211,7 +211,7 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree *stree, FILE *write,
     name_render_.GetServerConfigFileName(stree->GetName(), config_file, sizeof(config_file));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2service", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2service", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.cpp\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -226,7 +226,7 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree *stree, FILE *write,
 
     fprintf(write, "#include \"%s.h\"\n", config_file);
 
-    name_render_.GetMessageFileName(stree->GetProtoFile(), file_name, sizeof(file_name));
+    name_render_.GetMessageFileName(stree->proto_file(), file_name, sizeof(file_name));
     fprintf(write, "#include \"%s.h\"\n", file_name);
 
     fprintf(write, "\n\n");
@@ -251,7 +251,7 @@ void ServiceCodeRender::GenerateServiceImplCpp(SyntaxTree *stree, FILE *write,
     fprintf(write, "}\n");
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         string buffer;
@@ -301,7 +301,7 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetDispatcherFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2service", stree->GetProtoFile(), &buffer);
+    name_render_.GetCopyright("phxrpc_pb2service", stree->proto_file(), &buffer);
 
     fprintf(write, "/* %s.h\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -335,7 +335,7 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    virtual ~%s();\n", dispatcher_name);
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         fprintf(write, "    int %s(const phxrpc::BaseRequest *const req, "
@@ -358,7 +358,7 @@ void ServiceCodeRender::GenerateDispatcherCpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetDispatcherFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2service", stree->GetProtoFile(), &buffer);
+    name_render_.GetCopyright("phxrpc_pb2service", stree->proto_file(), &buffer);
 
     fprintf(write, "/* %s.h\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -375,7 +375,7 @@ void ServiceCodeRender::GenerateDispatcherCpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "#include \"phxrpc/file.h\"\n");
     fprintf(write, "\n");
 
-    name_render_.GetMessageFileName(stree->GetProtoFile(), file_name, sizeof(file_name));
+    name_render_.GetMessageFileName(stree->proto_file(), file_name, sizeof(file_name));
     fprintf(write, "#include \"%s.h\"\n", file_name);
 
     name_render_.GetServiceFileName(stree->GetName(), file_name, sizeof(file_name));
@@ -402,7 +402,7 @@ void ServiceCodeRender::GenerateDispatcherCpp(SyntaxTree *stree, FILE *write) {
 
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         GenerateDispatcherFunc(stree, &(*fit), write);
@@ -419,14 +419,14 @@ void ServiceCodeRender::GenerateURIFuncMap(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    static phxrpc::BaseDispatcher<%s>::URIFuncMap uri_func_map = {\n",
             dispatcher_name);
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         if (fit != flist->cbegin()) {
             fprintf(write, ",\n");
         }
         fprintf(write, "        {\"/%s/%s\", &%s::%s}",
-                SyntaxTree::Cpp2UriPackageName(stree->GetCppPackageName()).c_str(),
+                SyntaxTree::Pb2UriPackageName(stree->package_name()).c_str(),
                 fit->GetName(), dispatcher_name, fit->GetName());
     }
     fprintf(write, "};\n");
