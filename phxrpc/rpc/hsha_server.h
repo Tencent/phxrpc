@@ -46,6 +46,7 @@ class DataFlow final {
     int PluckResponse(void *&args, BaseResponse *&resp);
     int PickResponse(void *&args, BaseResponse *&resp);
     bool CanPushRequest(const int max_queue_length);
+    bool CanPushResponse(const int max_queue_length);
     bool CanPluckRequest();
     bool CanPluckResponse();
 
@@ -270,8 +271,7 @@ class HshaServerIO final {
     HshaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
                  const HshaServerConfig *config,
                  DataFlow *data_flow, HshaServerStat *hsha_server_stat,
-                 HshaServerQos *hsha_server_qos, WorkerPool *worker_pool,
-                 BaseMessageHandlerFactory *const factory);
+                 HshaServerQos *hsha_server_qos, WorkerPool *worker_pool);
     ~HshaServerIO();
 
     void RunForever();
@@ -288,7 +288,6 @@ class HshaServerIO final {
     HshaServerStat *hsha_server_stat_{nullptr};
     HshaServerQos *hsha_server_qos_{nullptr};
     WorkerPool *worker_pool_{nullptr};
-    BaseMessageHandlerFactory *factory_{nullptr};
     std::queue<int> accepted_fd_list_;
     std::mutex queue_mutex_;
 };
@@ -303,8 +302,7 @@ class HshaServerUnit {
                    int worker_thread_count,
                    int worker_uthread_count_per_thread,
                    int worker_uthread_stack_size,
-                   Dispatch_t dispatch, void *args,
-                   BaseMessageHandlerFactory *const factory);
+                   Dispatch_t dispatch, void *args);
     virtual ~HshaServerUnit();
 
     void RunFunc();
@@ -336,8 +334,7 @@ class HshaServerAcceptor final {
 
 class HshaServer {
   public:
-    HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch,
-               void *args, BaseMessageHandlerFactory *const factory);
+    HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args);
     virtual ~HshaServer();
 
     void RunForever();

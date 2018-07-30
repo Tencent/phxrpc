@@ -32,10 +32,16 @@ class BaseMessageHandler;
 
 class BaseMessageHandlerFactory {
   public:
+    static BaseMessageHandlerFactory *GetDefault();
+    static void SetDefault(BaseMessageHandlerFactory *const default_instance);
+
     BaseMessageHandlerFactory() = default;
     virtual ~BaseMessageHandlerFactory() = default;
 
     virtual std::unique_ptr<BaseMessageHandler> Create() = 0;
+
+  private:
+    static thread_local std::unique_ptr<BaseMessageHandlerFactory> default_instance_;
 };
 
 

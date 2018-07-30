@@ -28,5 +28,21 @@ See the AUTHORS file for names of contributors.
 namespace phxrpc {
 
 
+using namespace std;
+
+
+BaseMessageHandlerFactory *BaseMessageHandlerFactory::GetDefault() {
+    return default_instance_.get();
+}
+
+void BaseMessageHandlerFactory::SetDefault(BaseMessageHandlerFactory *const default_instance) {
+    if (default_instance) {
+        default_instance_.reset(default_instance);
+    }
+}
+
+thread_local unique_ptr<BaseMessageHandlerFactory> BaseMessageHandlerFactory::default_instance_;
+
+
 }
 

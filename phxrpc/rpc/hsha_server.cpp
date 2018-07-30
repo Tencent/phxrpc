@@ -109,6 +109,10 @@ bool DataFlow::CanPushRequest(const int max_queue_length) {
     return in_queue_.size() < (size_t)max_queue_length;
 }
 
+bool DataFlow::CanPushResponse(const int max_queue_length) {
+    return out_queue_.size() < (size_t)max_queue_length;
+}
+
 bool DataFlow::CanPluckRequest() {
     return !in_queue_.empty();
 }
@@ -552,11 +556,10 @@ void WorkerPool::NotifyEpoll() {
 HshaServerIO::HshaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
                            const HshaServerConfig *config,
                            DataFlow *data_flow, HshaServerStat *hsha_server_stat,
-                           HshaServerQos *hsha_server_qos, WorkerPool *worker_pool,
-                           BaseMessageHandlerFactory *const factory)
+                           HshaServerQos *hsha_server_qos, WorkerPool *worker_pool)
         : idx_(idx), scheduler_(scheduler), config_(config), data_flow_(data_flow),
           hsha_server_stat_(hsha_server_stat), hsha_server_qos_(hsha_server_qos),
-          worker_pool_(worker_pool), factory_(factory) {
+          worker_pool_(worker_pool) {
 }
 
 HshaServerIO::~HshaServerIO() {
@@ -595,7 +598,8 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         hsha_server_stat_->io_read_requests_++;
 
-        auto msg_handler(factory_->Create());
+        BaseMessageHandlerFactory::SetDefault(new HttpMessageHandlerFactory());
+        auto msg_handler(BaseMessageHandlerFactory::GetDefault()->Create());
         if (!msg_handler) {
             log(LOG_ERR, "%s Create err, client closed or no msg handler accept", __func__);
 
@@ -743,8 +747,7 @@ void HshaServerIO::RunForever() {
 
 HshaServerUnit::HshaServerUnit(const int idx, HshaServer *const hsha_server,
         int worker_thread_count, int worker_uthread_count_per_thread,
-        int worker_uthread_stack_size, Dispatch_t dispatch, void *args,
-        BaseMessageHandlerFactory *const factory)
+        int worker_uthread_stack_size, Dispatch_t dispatch, void *args)
         : hsha_server_(hsha_server),
 #ifndef __APPLE__
           scheduler_(8 * 1024, 1000000, false),
@@ -757,7 +760,7 @@ HshaServerUnit::HshaServerUnit(const int idx, HshaServer *const hsha_server,
                        &hsha_server_->hsha_server_stat_, dispatch, args),
           hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_,
                           &hsha_server_->hsha_server_stat_,
-                          &hsha_server_->hsha_server_qos_, &worker_pool_, factory),
+                          &hsha_server_->hsha_server_qos_, &worker_pool_),
           thread_(&HshaServerUnit::RunFunc, this) {
 }
 
@@ -832,8 +835,7 @@ void HshaServerAcceptor::LoopAccept(const char *const bind_ip, const int port) {
 }
 
 
-HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch,
-                       void *args, BaseMessageHandlerFactory *const factory)
+HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args)
         : config_(&config),
           hsha_server_monitor_(MonitorFactory::GetFactory()->
                                CreateServerMonitor(config.GetPackageName())),
@@ -851,12 +853,13 @@ HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatc
     size_t worker_thread_count_per_io{worker_thread_count / io_count};
     for (size_t i{0}; i < io_count; ++i) {
         if (i == io_count - 1) {
-            worker_thread_count_per_io = worker_thread_count - (worker_thread_count_per_io * (io_count - 1));
+            worker_thread_count_per_io = worker_thread_count -
+                    (worker_thread_count_per_io * (io_count - 1));
         }
         auto hsha_server_unit =
             new HshaServerUnit(i, this, (int)worker_thread_count_per_io,
                     config.GetWorkerUThreadCount(), worker_uthread_stack_size,
-                    dispatch, args, factory);
+                    dispatch, args);
         assert(hsha_server_unit != nullptr);
         server_unit_list_.push_back(hsha_server_unit);
     }
