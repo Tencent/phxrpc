@@ -21,9 +21,6 @@ See the AUTHORS file for names of contributors.
 
 #include "phxrpc/msg/base_msg_handler_factory.h"
 
-#include "phxrpc/msg/base_msg_handler.h"
-#include "phxrpc/network/socket_stream_base.h"
-
 
 namespace phxrpc {
 
@@ -31,18 +28,5 @@ namespace phxrpc {
 using namespace std;
 
 
-BaseMessageHandlerFactory *BaseMessageHandlerFactory::GetDefault() {
-    return default_instance_.get();
-}
-
-void BaseMessageHandlerFactory::SetDefault(BaseMessageHandlerFactory *const default_instance) {
-    if (default_instance) {
-        default_instance_.reset(default_instance);
-    }
-}
-
-thread_local unique_ptr<BaseMessageHandlerFactory> BaseMessageHandlerFactory::default_instance_;
-
-
-}
+}  // namespace phxrpc
 

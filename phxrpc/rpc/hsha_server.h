@@ -21,8 +21,10 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
+#include <memory>
 #include <thread>
 
+#include "phxrpc/http.h"
 #include "phxrpc/msg.h"
 
 #include "phxrpc/rpc/server_base.h"
@@ -271,7 +273,8 @@ class HshaServerIO final {
     HshaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
                  const HshaServerConfig *config,
                  DataFlow *data_flow, HshaServerStat *hsha_server_stat,
-                 HshaServerQos *hsha_server_qos, WorkerPool *worker_pool);
+                 HshaServerQos *hsha_server_qos, WorkerPool *worker_pool,
+                 phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func);
     ~HshaServerIO();
 
     void RunForever();
@@ -288,6 +291,7 @@ class HshaServerIO final {
     HshaServerStat *hsha_server_stat_{nullptr};
     HshaServerQos *hsha_server_qos_{nullptr};
     WorkerPool *worker_pool_{nullptr};
+    std::unique_ptr<BaseMessageHandlerFactory> msg_handler_factory_;
     std::queue<int> accepted_fd_list_;
     std::mutex queue_mutex_;
 };
@@ -334,7 +338,11 @@ class HshaServerAcceptor final {
 
 class HshaServer {
   public:
-    HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args);
+    HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args,
+               phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func =
+               []()->std::unique_ptr<phxrpc::HttpMessageHandlerFactory> {
+        return std::unique_ptr<phxrpc::HttpMessageHandlerFactory>(new phxrpc::HttpMessageHandlerFactory);
+    });
     virtual ~HshaServer();
 
     void RunForever();
@@ -344,6 +352,7 @@ class HshaServer {
     friend class HshaServerUnit;
 
     const HshaServerConfig *config_{nullptr};
+    phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func_;
     ServerMonitorPtr hsha_server_monitor_;
     HshaServerStat hsha_server_stat_;
     HshaServerQos hsha_server_qos_;

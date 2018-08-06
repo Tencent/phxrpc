@@ -24,11 +24,6 @@ See the AUTHORS file for names of contributors.
 #include <cassert>
 #include <random>
 
-#include "phxrpc/file.h"
-#include "phxrpc/http.h"
-#include "phxrpc/msg.h"
-#include "phxrpc/network.h"
-
 #include "server_monitor.h"
 #include "monitor_factory.h"
 
@@ -526,9 +521,8 @@ WorkerPool::WorkerPool(const int idx,
                        Dispatch_t dispatch,
                        void *args)
         : idx_(idx), scheduler_(scheduler), config_(config),
-          data_flow_(data_flow),
-          hsha_server_stat_(hsha_server_stat), dispatch_(dispatch),
-          args_(args), last_notify_idx_(0) {
+          data_flow_(data_flow), hsha_server_stat_(hsha_server_stat),
+          dispatch_(dispatch), args_(args), last_notify_idx_(0) {
     for (int i{0}; i < thread_count; ++i) {
         auto worker(new Worker(i, this, uthread_count_per_thread, uthread_stack_size));
         assert(worker != nullptr);
@@ -556,10 +550,12 @@ void WorkerPool::NotifyEpoll() {
 HshaServerIO::HshaServerIO(const int idx, UThreadEpollScheduler *const scheduler,
                            const HshaServerConfig *config,
                            DataFlow *data_flow, HshaServerStat *hsha_server_stat,
-                           HshaServerQos *hsha_server_qos, WorkerPool *worker_pool)
-        : idx_(idx), scheduler_(scheduler), config_(config), data_flow_(data_flow),
-          hsha_server_stat_(hsha_server_stat), hsha_server_qos_(hsha_server_qos),
-          worker_pool_(worker_pool) {
+                           HshaServerQos *hsha_server_qos, WorkerPool *worker_pool,
+                           phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func)
+        : idx_(idx), scheduler_(scheduler), config_(config),
+          data_flow_(data_flow), hsha_server_stat_(hsha_server_stat),
+          hsha_server_qos_(hsha_server_qos), worker_pool_(worker_pool),
+          msg_handler_factory_(move(msg_handler_factory_create_func())) {
 }
 
 HshaServerIO::~HshaServerIO() {
@@ -598,8 +594,7 @@ void HshaServerIO::IOFunc(int accepted_fd) {
 
         hsha_server_stat_->io_read_requests_++;
 
-        BaseMessageHandlerFactory::SetDefault(new HttpMessageHandlerFactory());
-        auto msg_handler(BaseMessageHandlerFactory::GetDefault()->Create());
+        auto msg_handler(msg_handler_factory_->Create());
         if (!msg_handler) {
             log(LOG_ERR, "%s Create err, client closed or no msg handler accept", __func__);
 
@@ -758,9 +753,10 @@ HshaServerUnit::HshaServerUnit(const int idx, HshaServer *const hsha_server,
                        worker_thread_count, worker_uthread_count_per_thread,
                        worker_uthread_stack_size, &data_flow_,
                        &hsha_server_->hsha_server_stat_, dispatch, args),
-          hsha_server_io_(idx, &scheduler_, hsha_server_->config_, &data_flow_,
-                          &hsha_server_->hsha_server_stat_,
-                          &hsha_server_->hsha_server_qos_, &worker_pool_),
+          hsha_server_io_(idx, &scheduler_, hsha_server_->config_,
+                          &data_flow_, &hsha_server_->hsha_server_stat_,
+                          &hsha_server_->hsha_server_qos_, &worker_pool_,
+                          hsha_server_->msg_handler_factory_create_func_),
           thread_(&HshaServerUnit::RunFunc, this) {
 }
 
@@ -835,8 +831,9 @@ void HshaServerAcceptor::LoopAccept(const char *const bind_ip, const int port) {
 }
 
 
-HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args)
-        : config_(&config),
+HshaServer::HshaServer(const HshaServerConfig &config, const Dispatch_t &dispatch, void *args,
+                       phxrpc::BaseMessageHandlerFactoryCreateFunc msg_handler_factory_create_func)
+        : config_(&config), msg_handler_factory_create_func_(msg_handler_factory_create_func),
           hsha_server_monitor_(MonitorFactory::GetFactory()->
                                CreateServerMonitor(config.GetPackageName())),
           hsha_server_stat_(&config, hsha_server_monitor_),
