@@ -26,6 +26,7 @@ const char *PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
 #include <signal.h>
 #include <unistd.h>
 
+#include "phxrpc/comm.h"
 #include "phxrpc/file.h"
 #include "phxrpc/http.h"
 #include "phxrpc/msg.h"
@@ -39,9 +40,9 @@ const char *PHXRPC_EPOLL_SERVER_MAIN_TEMPLATE =
 using namespace std;
 
 
-void Dispatch(const phxrpc::BaseRequest *req,
-              phxrpc::BaseResponse *resp,
-              phxrpc::DispatcherArgs_t *args) {
+void Dispatch(const phxrpc::BaseRequest &req,
+              phxrpc::BaseResponse *const resp,
+              phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
     $ServiceImplClass$ service(*service_args);
@@ -119,6 +120,7 @@ const char *PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE =
 #include <signal.h>
 #include <unistd.h>
 
+#include "phxrpc/comm.h"
 #include "phxrpc/file.h"
 #include "phxrpc/http.h"
 #include "phxrpc/msg.h"
@@ -132,9 +134,9 @@ const char *PHXRPC_EPOLL_UTHREAD_SERVER_MAIN_TEMPLATE =
 using namespace std;
 
 
-void Dispatch(const phxrpc::BaseRequest *req,
-              phxrpc::BaseResponse *resp,
-              phxrpc::DispatcherArgs_t *args) {
+void Dispatch(const phxrpc::BaseRequest &req,
+              phxrpc::BaseResponse *const resp,
+              phxrpc::DispatcherArgs_t *const args) {
     ServiceArgs_t *service_args{(ServiceArgs_t *)(args->service_args)};
 
     $ServiceImplClass$ service(*service_args, args->server_worker_uthread_scheduler);

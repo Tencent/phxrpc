@@ -25,6 +25,7 @@ See the AUTHORS file for names of contributors.
 #include <cstring>
 #include <string>
 
+#include "phxrpc/file.h"
 #include "phxrpc/http/http_msg.h"
 #include "phxrpc/network/socket_stream_base.h"
 

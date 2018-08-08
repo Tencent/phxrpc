@@ -234,7 +234,7 @@ class Worker final {
 };
 
 
-typedef std::function<void(const BaseRequest *, BaseResponse *, DispatcherArgs_t *)> Dispatch_t;
+typedef std::function<void (const BaseRequest &, BaseResponse *const, DispatcherArgs_t *const)> Dispatch_t;
 
 class ServerMgr;
 

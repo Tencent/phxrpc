@@ -338,7 +338,7 @@ void ServiceCodeRender::GenerateDispatcherHpp(SyntaxTree *stree, FILE *write) {
     auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
-        fprintf(write, "    int %s(const phxrpc::BaseRequest *const req, "
+        fprintf(write, "    int %s(const phxrpc::BaseRequest &req, "
                 "phxrpc::BaseResponse *const resp);\n",
                 fit->GetName());
     }
@@ -443,7 +443,7 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
 
     name_render_.GetDispatcherClassName(stree->GetName(), dispatcher_name, sizeof(dispatcher_name));
 
-    fprintf(write, "int %s::%s(const phxrpc::BaseRequest *const req, "
+    fprintf(write, "int %s::%s(const phxrpc::BaseRequest &req, "
             "phxrpc::BaseResponse *const resp) {\n",
             dispatcher_name, func->GetName());
 
@@ -465,7 +465,7 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
     fprintf(write, "    // unpack request\n");
     fprintf(write, "    {\n");
 
-    fprintf(write, "        ret = req->ToPb(&req_pb);\n");
+    fprintf(write, "        ret = req.ToPb(&req_pb);\n");
     fprintf(write, "        if (0 != ret) {\n");
     fprintf(write, "            phxrpc::log(LOG_ERR, \"ToPb err %%d\", ret);\n");
 

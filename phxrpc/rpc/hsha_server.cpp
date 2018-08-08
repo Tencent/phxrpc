@@ -477,7 +477,7 @@ void Worker::WorkerLogic(void *args, BaseRequest *req, int queue_wait_time_ms) {
 
         DispatcherArgs_t dispatcher_args(pool_->hsha_server_stat_->hsha_server_monitor_,
                 worker_scheduler_, pool_->args_, args);
-        pool_->dispatch_(req, resp, &dispatcher_args);
+        pool_->dispatch_(*req, resp, &dispatcher_args);
 
         pool_->hsha_server_stat_->worker_time_costs_ += time_cost.Cost();
         pool_->hsha_server_stat_->worker_time_costs_count_++;

@@ -25,18 +25,15 @@ See the AUTHORS file for names of contributors.
 #include <string>
 
 #include "phxrpc/msg/base_msg.h"
-// TODO: remove
-#include "phxrpc/file.h"
 
 
 namespace phxrpc {
 
 
-template<typename Dispatcher>
+template <typename Dispatcher>
 class BaseDispatcher {
   public:
-    typedef int (Dispatcher::*URIFunc_t)(const BaseRequest *const req,
-                                         BaseResponse *const resp);
+    typedef int (Dispatcher::*URIFunc_t)(const BaseRequest &req, BaseResponse *const resp);
 
     typedef std::map<std::string, URIFunc_t> URIFuncMap;
 
@@ -46,17 +43,12 @@ class BaseDispatcher {
 
     virtual ~BaseDispatcher() = default;
 
-    bool Dispatch(const BaseRequest *const req, BaseResponse *const resp) {
+    bool Dispatch(const BaseRequest &req, BaseResponse *const resp) {
         int ret{-1};
-        typename URIFuncMap::const_iterator iter(uri_func_map_.find(req->uri()));
+        typename URIFuncMap::const_iterator iter(uri_func_map_.find(req.uri()));
 
         if (uri_func_map_.end() != iter) {
-            // TODO: remove
-            log(LOG_DEBUG, "%s uri %s found %s", __func__, req->uri(), iter->first.c_str());
             ret = (dispatcher_.*iter->second)(req, resp);
-        } else {
-            // TODO: remove
-            log(LOG_DEBUG, "%s uri %s not found", __func__, req->uri());
         }
 
         resp->set_result(ret);
