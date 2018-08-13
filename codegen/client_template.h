@@ -32,3 +32,4 @@ extern const char * PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE;
 
 extern const char * PHXRPC_BATCH_CLIENT_FUNC_TEMPLATE;
 extern const char * PHXRPC_CLIENT_ETC_TEMPLATE;
+

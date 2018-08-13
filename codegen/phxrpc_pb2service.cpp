@@ -44,10 +44,11 @@ void PrintHelp(const char *program) {
     printf("PhxRPC ProtoBuf tool\n");
     printf("\n");
     printf("%s <-f profo file> <-d destination file dir> [-v]\n", program);
-    printf(" Usage: -f <proto file>            # proto file\n");
-    printf("        -d <dir>                   # destination file dir\n");
-    printf("        -I <dir>                   # include path dir\n");
-    printf("        -v                         # print this screen\n");
+    printf(" Usage: -f <proto file>             # proto file\n");
+    printf("        -d <dir>                    # destination file dir\n");
+    printf("        -I <dir>                    # include path dir\n");
+    printf("        -u <uthread mode>           # uthread mode\n");
+    printf("        -v                          # print this screen\n");
     printf("\n");
 
     return;
@@ -64,7 +65,7 @@ void Proto2Service(const char *program, const char *pb_file,
         return;
     }
 
-    NameRender name_render(syntax_tree.GetPrefix());
+    NameRender name_render(syntax_tree.prefix());
     ServiceCodeRender code_render(name_render);
 
     // generate files

@@ -21,21 +21,9 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "client_monitor.h"
-#include "phxrpc/http.h"
+#include "phxrpc/rpc/client_monitor.h"
 
-
-namespace google {
-
-namespace protobuf {
-
-
-class MessageLite;
-
-
-}
-
-}
+#include "phxrpc/msg.h"
 
 
 namespace phxrpc {
@@ -43,34 +31,39 @@ namespace phxrpc {
 
 class BaseTcpStream;
 
-class HttpCaller {
+class Caller {
   public:
-    HttpCaller(BaseTcpStream &socket, ClientMonitor &client_monitor);
+    Caller(BaseTcpStream &socket, ClientMonitor &client_monitor,
+           BaseMessageHandlerFactory &msg_handler_factory);
 
-    virtual ~HttpCaller();
+    virtual ~Caller();
 
-    HttpRequest &GetRequest();
+    BaseRequest *GetRequest();
 
-    HttpResponse &GetResponse();
+    BaseResponse *GetResponse();
 
-    int Call(const google::protobuf::MessageLite &req,
-             google::protobuf::MessageLite *resp);
+    int Call(const google::protobuf::Message &req,
+             google::protobuf::Message *resp);
 
-    void SetURI(const char *const uri, const int cmdid);
+    void set_uri(const char *const uri, const int cmd_id);
 
-    void SetKeepAlive(const bool keep_alive);
+    void set_keep_alive(const bool keep_alive);
 
   private:
-    void MonitorReport(phxrpc::ClientMonitor &client_monitor, bool send_error,
+    void MonitorReport(ClientMonitor &client_monitor, bool send_error,
                        bool recv_error, size_t send_size, size_t recv_size,
                        uint64_t call_begin, uint64_t call_end);
 
     BaseTcpStream &socket_;
     ClientMonitor &client_monitor_;
     int cmd_id_;
+    std::string uri_;
+    bool keep_alive_{false};
 
-    HttpRequest req_;
-    HttpResponse resp_;
+    std::unique_ptr<BaseRequest> req_;
+    std::unique_ptr<BaseResponse> resp_;
+
+    BaseMessageHandlerFactory &msg_handler_factory_;
 };
 
 

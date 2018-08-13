@@ -1,7 +1,6 @@
-
 include ../../phxrpc.mk
 
-TEST_TARGETS = test_thread_queue test_hsha_server test_client \
+TEST_TARGETS = test_thread_queue test_hsha_server test_client
 
 all: $(TEST_TARGETS)
 
@@ -13,7 +12,8 @@ test_hsha_server: test_hsha_server.o
 
 test_client: test_client.o
 	$(LINKER) $^ -L$(PHXRPC_ROOT)/lib -lphxrpc $(LDFLAGS) -o $@
-	
+
 clean:
 	@( $(RM) $(TEST_TARGETS) )
 	@( $(RM) *.o core.* $(LIB_OBJS) )
+

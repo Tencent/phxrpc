@@ -19,16 +19,20 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#pragma once
+#include "phxrpc/msg/base_msg_handler.h"
 
-#include "rpc/caller.h"
-#include "rpc/client_config.h"
-#include "rpc/client_monitor.h"
-#include "rpc/hsha_server.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/server_config.h"
-#include "rpc/server_monitor.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
+#include <cassert>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+#include "phxrpc/file/log_utils.h"
+
+
+namespace phxrpc {
+
+
+}
 

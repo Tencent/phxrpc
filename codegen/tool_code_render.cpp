@@ -45,7 +45,7 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetToolFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2tool", stree->GetProtoFile(), &buffer);
+    name_render_.GetCopyright("phxrpc_pb2tool", stree->proto_file(), &buffer);
 
     fprintf(write, "/* %s.h\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -76,7 +76,7 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    virtual ~%s();\n", class_name);
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         fprintf(write, "    virtual int %s(phxrpc::OptMap &bigmap);\n", fit->GetName());
@@ -95,7 +95,7 @@ void ToolCodeRender::GenerateToolHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    static Name2Func_t *GetName2Func() {\n");
     fprintf(write, "        static Name2Func_t name2func[]{\n");
     {
-        SyntaxFuncVector *flist{stree->GetFuncList()};
+        auto flist(stree->func_list());
         auto fit(flist->cbegin());
         for (; flist->cend() != fit; ++fit) {
             if (0 < strlen(fit->GetOptString())) {
@@ -122,7 +122,7 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetToolFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2tool", stree->GetProtoFile(), &buffer);
+    name_render_.GetCopyright("phxrpc_pb2tool", stree->proto_file(), &buffer);
 
     fprintf(write, "/* %s.cpp\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -155,7 +155,7 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree, FILE *write) {
     char client_class[128]{'\0'};
     name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         fprintf(write, "int %s::%s(phxrpc::OptMap &/* opt_map */) {\n", class_name, fit->GetName());
@@ -171,7 +171,7 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetToolImplFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2tool", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2tool", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.h\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -208,7 +208,7 @@ void ToolCodeRender::GenerateToolImplHpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "    virtual ~%sImpl() override;\n", class_name);
     fprintf(write, "\n");
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         fprintf(write, "    virtual int %s(phxrpc::OptMap &opt_map) override;\n", fit->GetName());
@@ -224,7 +224,7 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetToolImplFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2tool", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2tool", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.cpp\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -262,7 +262,7 @@ void ToolCodeRender::GenerateToolImplCpp(SyntaxTree *stree, FILE *write) {
     char client_class[128]{'\0'}, req_class[128]{'\0'}, resp_class[128]{'\0'};
     name_render_.GetClientClassName(stree->GetName(), client_class, sizeof(client_class));
 
-    SyntaxFuncVector *flist{stree->GetFuncList()};
+    auto flist(stree->func_list());
     auto fit(flist->cbegin());
     for (; flist->cend() != fit; ++fit) {
         name_render_.GetMessageClassName(fit->GetReq()->GetType(), req_class, sizeof(req_class));
@@ -297,7 +297,7 @@ void ToolCodeRender::GenerateToolMainCpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetToolMainFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2tool", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2tool", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.cpp\n", file_name);
     fprintf(write, "%s", buffer.c_str());

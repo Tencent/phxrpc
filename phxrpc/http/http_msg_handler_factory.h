@@ -21,14 +21,20 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "rpc/caller.h"
-#include "rpc/client_config.h"
-#include "rpc/client_monitor.h"
-#include "rpc/hsha_server.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/server_config.h"
-#include "rpc/server_monitor.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
+#include "phxrpc/msg.h"
+
+
+namespace phxrpc {
+
+
+class HttpMessageHandlerFactory : virtual public BaseMessageHandlerFactory {
+  public:
+    HttpMessageHandlerFactory() = default;
+    virtual ~HttpMessageHandlerFactory() override = default;
+
+    virtual std::unique_ptr<BaseMessageHandler> Create() override;
+};
+
+
+}  // namespace phxrpc
 

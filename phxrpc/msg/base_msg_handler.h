@@ -21,14 +21,30 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "rpc/caller.h"
-#include "rpc/client_config.h"
-#include "rpc/client_monitor.h"
-#include "rpc/hsha_server.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/server_config.h"
-#include "rpc/server_monitor.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
+#include "phxrpc/msg/base_msg.h"
+#include "phxrpc/network.h"
+
+
+namespace phxrpc {
+
+
+class BaseMessageHandler {
+  public:
+    BaseMessageHandler() = default;
+    virtual ~BaseMessageHandler() = default;
+
+    virtual int RecvRequest(BaseTcpStream &socket, BaseRequest *&req) = 0;
+    virtual int RecvResponse(BaseTcpStream &socket, BaseResponse *&resp) = 0;
+
+    virtual int GenRequest(BaseRequest *&req) = 0;
+    virtual int GenResponse(BaseResponse *&resp) = 0;
+
+    virtual bool keep_alive() const = 0;
+
+  protected:
+    BaseRequest *req_{nullptr};
+};
+
+
+}
 

@@ -19,11 +19,12 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#include <string.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
+#include "code_utils.h"
 #include "syntax_tree.h"
 
 
@@ -66,9 +67,9 @@ const char *SyntaxParam::GetType() const {
 //====================================================================
 
 SyntaxFunc::SyntaxFunc() {
+    cmdid_ = -1;
     memset(opt_string_, 0, sizeof(opt_string_));
     memset(usage_, 0, sizeof(usage_));
-    cmdid_ = -1;
 }
 
 SyntaxFunc::~SyntaxFunc() {
@@ -90,6 +91,14 @@ SyntaxParam *SyntaxFunc::GetResp() {
     return &resp_;
 }
 
+void SyntaxFunc::SetCmdID(const int cmdid) {
+    cmdid_ = cmdid;
+}
+
+int SyntaxFunc::GetCmdID() const {
+    return cmdid_;
+}
+
 void SyntaxFunc::SetOptString(const char *opt_string) {
     strncpy(opt_string_, opt_string, sizeof(opt_string_));
 }
@@ -106,56 +115,57 @@ const char *SyntaxFunc::GetUsage() const {
     return usage_;
 }
 
-void SyntaxFunc::SetCmdID(const int cmdid) {
-    cmdid_ = cmdid;
-}
-
-int SyntaxFunc::GetCmdID() const {
-    return cmdid_;
-}
-
 //====================================================================
+
+char *SyntaxTree::ToLower(char *s) {
+    char *ret = s;
+
+    for (; *s != '\0'; ++s)
+        *s = tolower(*s);
+
+    return ret;
+}
+
+char *SyntaxTree::ToUpper(char *s) {
+    char *ret = s;
+
+    for (; *s != '\0'; s++)
+        *s = toupper(*s);
+
+    return ret;
+}
+
+string SyntaxTree::Pb2CppPackageName(const string &pb_package_name) {
+    string cpp_package_name(pb_package_name);
+    StrReplaceAll(&cpp_package_name, ".", "::");
+    return cpp_package_name;
+}
+
+string SyntaxTree::Cpp2PbPackageName(const string &cpp_package_name) {
+    string pb_package_name(cpp_package_name);
+    StrReplaceAll(&pb_package_name, "::", ".");
+    return pb_package_name;
+}
+
+string SyntaxTree::Pb2UriPackageName(const std::string &cpp_package_name) {
+    string uri_package_name(cpp_package_name);
+    StrReplaceAll(&uri_package_name, ".", "/");
+    return uri_package_name;
+}
+
+string SyntaxTree::Uri2PbPackageName(const std::string &uri_package_name) {
+    string cpp_package_name(uri_package_name);
+    StrReplaceAll(&cpp_package_name, "/", ".");
+    return cpp_package_name;
+}
 
 SyntaxTree::SyntaxTree() {
     memset(prefix_, 0, sizeof(prefix_));
     memset(proto_file_, 0, sizeof(proto_file_));
-    memset(package_name_, 0, sizeof(package_name_));
+    memset(pb_package_name_, 0, sizeof(pb_package_name_));
 }
 
 SyntaxTree::~SyntaxTree() {
-}
-
-void SyntaxTree::SetProtoFile(const char * proto_file) {
-    strncpy(proto_file_, proto_file, sizeof(proto_file_) - 1);
-}
-
-const char *SyntaxTree::GetProtoFile() const {
-    return proto_file_;
-}
-
-const char *SyntaxTree::GetPackageName() const {
-    return package_name_;
-}
-
-void SyntaxTree::SetPackageName(const char *package_name) {
-    strncpy(package_name_, package_name, sizeof(package_name_) - 1);
-}
-
-void SyntaxTree::SetPrefix(const char *prefix) {
-    strncpy(prefix_, prefix, sizeof(prefix_) - 1);
-    ToUpper(prefix_);
-}
-
-const char *SyntaxTree::GetPrefix() const {
-    return prefix_;
-}
-
-const SyntaxFuncVector *SyntaxTree::GetFuncList() const {
-    return &func_list_;
-}
-
-SyntaxFuncVector *SyntaxTree::GetFuncList() {
-    return &func_list_;
 }
 
 SyntaxFunc *SyntaxTree::FindFunc(const char *name) {
@@ -174,21 +184,36 @@ SyntaxFunc *SyntaxTree::FindFunc(const char *name) {
 void SyntaxTree::Print() {
 }
 
-char *SyntaxTree::ToLower(char *s) {
-    char *ret = s;
-
-    for (; *s != '\0'; ++s)
-        *s = tolower(*s);
-
-    return ret;
+const char *SyntaxTree::proto_file() const {
+    return proto_file_;
 }
 
-char *SyntaxTree::ToUpper(char *s) {
-    char *ret = s;
+void SyntaxTree::set_proto_file(const char *proto_file) {
+    strncpy(proto_file_, proto_file, sizeof(proto_file_) - 1);
+}
 
-    for (; *s != '\0'; s++)
-        *s = toupper(*s);
+const char *SyntaxTree::package_name() const {
+    return pb_package_name_;
+}
 
-    return ret;
+void SyntaxTree::set_package_name(const char *pb_package_name) {
+    strncpy(pb_package_name_, pb_package_name, sizeof(pb_package_name_) - 1);
+}
+
+const char *SyntaxTree::prefix() const {
+    return prefix_;
+}
+
+void SyntaxTree::set_prefix(const char *prefix) {
+    strncpy(prefix_, prefix, sizeof(prefix_) - 1);
+    ToUpper(prefix_);
+}
+
+const SyntaxFuncVector *SyntaxTree::func_list() const {
+    return &func_list_;
+}
+
+SyntaxFuncVector *SyntaxTree::mutable_func_list() {
+    return &func_list_;
 }
 

@@ -44,7 +44,7 @@ void ServerCodeRender::GenerateServerConfigHpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetServerConfigFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2server", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2server", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.h\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -74,7 +74,7 @@ void ServerCodeRender::GenerateServerConfigCpp(SyntaxTree *stree, FILE *write) {
     name_render_.GetServerConfigFileName(stree->GetName(), file_name, sizeof(file_name));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2server", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2server", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.cpp\n", file_name);
     fprintf(write, "%s", buffer.c_str());
@@ -84,35 +84,35 @@ void ServerCodeRender::GenerateServerConfigCpp(SyntaxTree *stree, FILE *write) {
     char class_name[128]{'\0'};
     char message_file[128]{'\0'};
     name_render_.GetServerConfigClassName(stree->GetName(), class_name, sizeof(class_name));
-    name_render_.GetMessageFileName(stree->GetProtoFile(), message_file, sizeof(message_file));
+    name_render_.GetMessageFileName(stree->proto_file(), message_file, sizeof(message_file));
 
     string content = PHXRPC_EPOLL_SERVER_CONFIG_CPP_TEMPLATE;
 
-    string package_name = "\"" + string(stree->GetPackageName()) + "\"";
+    string package_name_expression = "\"" + string(stree->package_name()) + "\"";
 
     {
         string message_name;
-        for (auto itr : *(stree->GetFuncList())) {
-            if (string(itr.GetReq()->GetType()).find(stree->GetPackageName()) != string::npos) {
+        for (auto itr : *(stree->func_list())) {
+            if (string(itr.GetReq()->GetType()).find(stree->package_name()) != string::npos) {
                 message_name = itr.GetReq()->GetType();
                 break;
-            } else if (string(itr.GetResp()->GetType()).find(stree->GetPackageName()) != string::npos) {
+            } else if (string(itr.GetResp()->GetType()).find(stree->package_name()) != string::npos) {
                 message_name = itr.GetResp()->GetType();
                 break;
             }
         }
         if (message_name != "") {
-            int package_name_len = strlen(stree->GetPackageName());
+            int package_name_len = strlen(stree->package_name());
             message_name = message_name.substr(package_name_len + 1,
                                                message_name.size() - package_name_len - 1);
-            package_name = "\n                " + string(stree->GetPackageName()) + "::" + message_name
+            package_name_expression = "\n                " + SyntaxTree::Pb2CppPackageName(stree->package_name()) + "::" + message_name
                            + "::default_instance().GetDescriptor()->file()->package().c_str()";
         }
     }
 
     StrTrim(&content);
     StrReplaceAll(&content, "$MessageFile$", message_file);
-    StrReplaceAll(&content, "$PackageName$", package_name);
+    StrReplaceAll(&content, "$PackageNameExpression$", package_name_expression);
     StrReplaceAll(&content, "$ServerConfigClass$", class_name);
     StrReplaceAll(&content, "$ServerConfigFile$", file_name);
 
@@ -127,7 +127,7 @@ void ServerCodeRender::GenerateServerMainCpp(SyntaxTree *stree, FILE *write, con
     name_render_.GetServerMainFileName(stree->GetName(), svrfile, sizeof(svrfile));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2server", stree->GetProtoFile(), &buffer, false);
+    name_render_.GetCopyright("phxrpc_pb2server", stree->proto_file(), &buffer, false);
 
     fprintf(write, "/* %s.cpp\n", svrfile);
     fprintf(write, "%s", buffer.c_str());
@@ -171,7 +171,7 @@ void ServerCodeRender::GenerateServerEtc(SyntaxTree *stree, FILE *write, const b
     name_render_.GetServerEtcFileName(stree->GetName(), etc_file, sizeof(etc_file));
 
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2server", stree->GetProtoFile(), &buffer, false, "#");
+    name_render_.GetCopyright("phxrpc_pb2server", stree->proto_file(), &buffer, false, "#");
 
     fprintf(write, "# %s\n", etc_file);
     fprintf(write, "%s", buffer.c_str());
@@ -186,7 +186,7 @@ void ServerCodeRender::GenerateServerEtc(SyntaxTree *stree, FILE *write, const b
     }
 
     StrTrim(&content);
-    StrReplaceAll(&content, "$PackageName$", stree->GetPackageName());
+    StrReplaceAll(&content, "$PbPackageName$", stree->package_name());
 
     fprintf(write, "%s", content.c_str());
 
@@ -197,7 +197,7 @@ void ServerCodeRender::GenerateServerEtc(SyntaxTree *stree, FILE *write, const b
 void ServerCodeRender::GenerateMakefile(SyntaxTree *stree,
         const string &mk_dir_path, FILE *write, const bool is_uthread_mode) {
     string buffer;
-    name_render_.GetCopyright("phxrpc_pb2server", stree->GetProtoFile(), &buffer, false, "#");
+    name_render_.GetCopyright("phxrpc_pb2server", stree->proto_file(), &buffer, false, "#");
 
     fprintf(write, "# Makefile\n");
     fprintf(write, "%s", buffer.c_str());
@@ -222,7 +222,7 @@ void ServerCodeRender::GenerateMakefile(SyntaxTree *stree,
 
     name_render_.GetClientFileName(stree->GetName(), client_file, sizeof(client_file));
     name_render_.GetStubFileName(stree->GetName(), stub_file, sizeof(stub_file));
-    name_render_.GetMessageFileName(stree->GetProtoFile(), message_file, sizeof(message_file));
+    name_render_.GetMessageFileName(stree->proto_file(), message_file, sizeof(message_file));
 
     string content;
     if (!is_uthread_mode) {
@@ -248,7 +248,7 @@ void ServerCodeRender::GenerateMakefile(SyntaxTree *stree,
     StrReplaceAll(&content, "$ToolImplFile$", tool_impl_file);
     StrReplaceAll(&content, "$ToolMainFile$", tool_main_file);
 
-    StrReplaceAll(&content, "$ProtoFile$", stree->GetProtoFile());
+    StrReplaceAll(&content, "$ProtoFile$", stree->proto_file());
 
     fprintf(write, "%s", content.c_str());
 

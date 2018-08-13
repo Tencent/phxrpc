@@ -26,15 +26,16 @@ See the AUTHORS file for names of contributors.
 #include <cstring>
 #include <memory>
 
-#include "http_msg.h"
-#include "http_client.h"
-
 #include "phxrpc/comm.h"
 #include "phxrpc/file/file_utils.h"
 #include "phxrpc/file/opt_map.h"
+#include "phxrpc/http/http_client.h"
+#include "phxrpc/http/http_msg.h"
 #include "phxrpc/network/socket_stream_block.h"
 
+
 using namespace phxrpc;
+
 
 void ShowUsage(const char *program) {
     printf("\n%s [-h host] [-p port] [-r POST|GET] [-u URI] [-f file] [-v]\n", program);
@@ -81,9 +82,9 @@ int main(int argc, char **argv) {
     }
 
     HttpRequest request;
-    request.SetURI(uri);
-    request.SetMethod(method);
-    request.SetVersion("HTTP/1.1");
+    request.set_uri(uri);
+    request.set_version("HTTP/1.1");
+    request.set_method(method);
     request.AddHeader("Connection", "Keep-Alive");
     request.AddHeader("Host", "127.0.0.1");
 
@@ -111,7 +112,7 @@ int main(int argc, char **argv) {
     } else if (request.IsMethod("HEAD")) {
         ret = HttpClient::Head(socket, request, &response);
     } else {
-        printf("unsupport method %s\n", request.GetMethod());
+        printf("unsupport method %s\n", request.method());
     }
 
     if (0 == ret) {

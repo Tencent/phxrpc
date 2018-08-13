@@ -72,21 +72,21 @@ class SyntaxFunc : public SyntaxNode {
 
     SyntaxParam *GetResp();
 
+    void SetCmdID(const int cmdid);
+    int GetCmdID() const;
+
     void SetOptString(const char *opt_string);
     const char *GetOptString() const;
 
     void SetUsage(const char *usage);
     const char *GetUsage() const;
 
-    void SetCmdID(const int cmdid);
-    int GetCmdID() const;
-
   private:
     SyntaxParam req_;
     SyntaxParam resp_;
+    int cmdid_;
     char opt_string_[_SYNTAX_DESC_LEN];
     char usage_[_SYNTAX_DESC_LEN];
-    int cmdid_;
 };
 
 //------------------------------------------------------------
@@ -99,32 +99,38 @@ typedef std::vector<SyntaxTree *> SyntaxTreeVector;
 
 class SyntaxTree : public SyntaxNode {
   public:
+    static char *ToLower(register char *s);
+    static char *ToUpper(register char *s);
+
+    static std::string Pb2CppPackageName(const std::string &pb_package_name);
+    static std::string Cpp2PbPackageName(const std::string &cpp_package_name);
+
+    static std::string Pb2UriPackageName(const std::string &cpp_package_name);
+    static std::string Uri2PbPackageName(const std::string &url_package_name);
+
     SyntaxTree();
     virtual ~SyntaxTree() override;
-
-    void SetProtoFile(const char *proto_file);
-    const char *GetProtoFile() const;
-
-    void SetPrefix(const char *prefix);
-    const char *GetPrefix() const;
-
-    void SetPackageName(const char *package_name);
-    const char *GetPackageName() const;
-
-    const SyntaxFuncVector *GetFuncList() const;
-    SyntaxFuncVector *GetFuncList();
 
     SyntaxFunc *FindFunc(const char *name);
 
     void Print();
 
-    static char *ToLower(register char *s);
-    static char *ToUpper(register char *s);
+    const char *proto_file() const;
+    void set_proto_file(const char *proto_file);
+
+    const char *prefix() const;
+    void set_prefix(const char *prefix);
+
+    const char *package_name() const;
+    void set_package_name(const char *pb_package_name);
+
+    const SyntaxFuncVector *func_list() const;
+    SyntaxFuncVector *mutable_func_list();
 
   private:
     char proto_file_[128];
     char prefix_[32];
-    char package_name_[128];
+    char pb_package_name_[128];
 
     SyntaxFuncVector func_list_;
 };

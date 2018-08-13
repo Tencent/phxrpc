@@ -21,14 +21,32 @@ See the AUTHORS file for names of contributors.
 
 #pragma once
 
-#include "rpc/caller.h"
-#include "rpc/client_config.h"
-#include "rpc/client_monitor.h"
-#include "rpc/hsha_server.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/server_config.h"
-#include "rpc/server_monitor.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
+
+namespace phxrpc {
+
+
+enum class ReturnCode {
+    OK = 0,
+    ERROR = -1,
+    ERROR_UNIMPLEMENT = -101,
+    ERROR_SOCKET = -102,
+    ERROR_STREAM_NOT_GOOD = -103,
+    ERROR_LENGTH_UNDERFLOW = -104,
+    ERROR_LENGTH_OVERFLOW = -105,
+    ERROR_SOCKET_STREAM_TIMEOUT = -202,
+    ERROR_SOCKET_STREAM_NORMAL_CLOSED = -303,
+    ERROR_VIOLATE_PROTOCOL = -401,
+    MAX,
+};
+
+
+enum class Direction {
+    NONE = 0,
+    REQUEST,
+    RESPONSE,
+    MAX,
+};
+
+
+}
 

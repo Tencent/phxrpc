@@ -19,16 +19,23 @@ permissions and limitations under the License.
 See the AUTHORS file for names of contributors.
 */
 
-#pragma once
+#include "phxrpc/http/http_msg_handler_factory.h"
 
-#include "rpc/caller.h"
-#include "rpc/client_config.h"
-#include "rpc/client_monitor.h"
-#include "rpc/hsha_server.h"
-#include "rpc/monitor_factory.h"
-#include "rpc/phxrpc.pb.h"
-#include "rpc/server_config.h"
-#include "rpc/server_monitor.h"
-#include "rpc/socket_stream_phxrpc.h"
-#include "rpc/uthread_caller.h"
+#include <memory>
+
+#include "phxrpc/http/http_msg_handler.h"
+
+
+namespace phxrpc {
+
+
+using namespace std;
+
+
+unique_ptr<BaseMessageHandler> HttpMessageHandlerFactory::Create() {
+    return move(unique_ptr<BaseMessageHandler>(new HttpMessageHandler));
+}
+
+
+}  // namespace phxrpc
 
