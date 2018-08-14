@@ -129,8 +129,11 @@ void ToolCodeRender::GenerateToolCpp(SyntaxTree *stree, FILE *write) {
     fprintf(write, "*/\n");
     fprintf(write, "\n");
 
-    fprintf(write, "#include \"phxrpc/file.h\"\n\n");
     fprintf(write, "#include \"%s.h\"\n", file_name);
+    fprintf(write, "\n");
+
+    fprintf(write, "#include \"phxrpc/file.h\"\n");
+    fprintf(write, "\n");
 
     name_render_.GetClientFileName(stree->GetName(), file_name, sizeof(file_name));
     fprintf(write, "#include \"%s.h\"\n", file_name);
