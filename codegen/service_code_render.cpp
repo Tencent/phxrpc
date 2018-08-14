@@ -489,8 +489,7 @@ void ServiceCodeRender::GenerateDispatcherFunc(const SyntaxTree *const stree,
     if (0 != strcmp(type_name, "google::protobuf::Empty")) {
         fprintf(write, "    // pack response\n");
         fprintf(write, "    {\n");
-        fprintf(write, "        ret = resp->FromPb(resp_pb);\n");
-        fprintf(write, "        if (0 != ret) {\n");
+        fprintf(write, "        if (0 != resp->FromPb(resp_pb)) {\n");
         fprintf(write, "            phxrpc::log(LOG_ERR, \"FromPb err %%d\", ret);\n");
         fprintf(write, "\n");
         fprintf(write, "            return -ENOMEM;\n");
