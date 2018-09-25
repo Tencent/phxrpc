@@ -213,7 +213,11 @@ void ClientCodeRender::GenerateClientHpp(SyntaxTree *stree,
     string buffer;
     name_render_.GetCopyright("phxrpc_pb2client", stree->proto_file(), &buffer, false);
 
-    fprintf(write, "/* %s.h\n", file_name);
+    if (is_uthread_mode) {
+        fprintf(write, "/* %s_uthread.h\n", file_name);
+    } else {
+        fprintf(write, "/* %s.h\n", file_name);
+    }
     fprintf(write, "%s", buffer.c_str());
     fprintf(write, "*/\n");
     fprintf(write, "\n");
@@ -294,7 +298,11 @@ void ClientCodeRender::GenerateClientCpp(SyntaxTree *stree,
     string buffer;
     name_render_.GetCopyright("phxrpc_pb2client", stree->proto_file(), &buffer, false);
 
-    fprintf(write, "/* %s.cpp\n", client_file);
+    if (is_uthread_mode) {
+        fprintf(write, "/* %s_uthread.cpp\n", client_file);
+    } else {
+        fprintf(write, "/* %s.cpp\n", client_file);
+    }
     fprintf(write, "%s", buffer.c_str());
     fprintf(write, "*/\n");
 
