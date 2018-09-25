@@ -181,7 +181,7 @@ $ClientClassFuncs$
 const char *PHXRPC_CLIENT_FUNC_TEMPLATE =
         R"(
 {
-    const phxrpc::Endpoint_t *ep = global_$ClientClassLower$_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_$ClientClassLower$_config_.GetRandom()};
 
     if (ep) {
         phxrpc::BlockTcpStream socket;
@@ -206,7 +206,7 @@ const char *PHXRPC_CLIENT_FUNC_TEMPLATE =
 const char *PHXRPC_UTHREAD_CLIENT_FUNC_TEMPLATE =
         R"(
 {
-    const phxrpc::Endpoint_t *ep = global_$ClientClassLower$_config_.GetRandom();
+    const phxrpc::Endpoint_t *ep{global_$ClientClassLower$_config_.GetRandom()};
 
     if (uthread_scheduler_ && ep) {
         phxrpc::UThreadTcpStream socket;
