@@ -49,7 +49,7 @@ class Caller {
 
     void set_keep_alive(const bool keep_alive);
 
-  private:
+  protected:
     void MonitorReport(ClientMonitor &client_monitor, bool send_error,
                        bool recv_error, size_t send_size, size_t recv_size,
                        uint64_t call_begin, uint64_t call_end);
