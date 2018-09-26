@@ -90,7 +90,7 @@ syntax = "proto3";
 package search;
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/empty.proto";
-import "phxrpc/phxrpc.proto";
+import "phxrpc/rpc/phxrpc.proto";
 
 enum SiteType {
     BLOG = 0;
@@ -103,7 +103,7 @@ message Site {
     string url = 1;
     string title = 2;
     SiteType type = 3;
-    tring summary = 4;
+    string summary = 4;
 }
 
 message SearchRequest {
